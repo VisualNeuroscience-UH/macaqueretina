@@ -1,0 +1,30 @@
+DOG model: exclusion criteria apply before or at experimental data fit and no units generated from statistics need exclusion
+	-Apricot data
+		-manually picked bad data idx
+	-fit_module
+		- _fit_spatial_filters
+			- if DoG fit fails at scipy.optimize.curve_fit
+
+VAE model: Bad fits after 2) are marked bad and values set to zero
+	
+	-construct_retina_module calls DoG fit in two occacions:
+		1) Before optimizing positions (apply_rf_repulsion) at "Bad fit loop"
+			- at build => _create_spatial_rfs => _get_vae_imgs_with_good_fits
+				-calls the fit.client iteratively until no bad fits
+		- fit_module
+			- _fit_spatial_filters
+				- if DoG fit fails at scipy.optimize.curve_fit
+				- error calculation:
+					fit_deviations = gc_img_fitted - this_rf
+					fit_error = np.sum(fit_deviations**2) / np.prod(this_rf.shape)
+					error_all_viable_cells[cell_idx, 0] = fit_error
+					error_df = pd.DataFrame(error_all_viable_cells, columns=["spatialfit_mse"])
+				- _get_fit_outliers
+					- called if mark_outliers_bad == True w/ columns=error_df.columns				
+					- remove units with col value > +- 3SD from mean value
+		
+		2) After optimizing positions
+			- at build => _create_spatial_rfs 
+			- fit_module
+				- _fit_spatial_filters
+					- if DoG fit fails at scipy.optimize.curve_fit

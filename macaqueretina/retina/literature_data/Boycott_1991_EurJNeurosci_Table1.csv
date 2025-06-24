@@ -1,0 +1,9 @@
+Description,DB1,DB2,DB3,DB4,DB5,DB6,FMB,IMB
+Cone_contacts_Range,5-8,5-8,8-10,7-8,5-7,10,1-2,1-2
+Cone_contacts_Average,5.9,6.4,9,7.25,6.6,10,1.07,1.24
+Depth_of_cell_body_um,13.3,10.6,5.9,10.5,11.4,5.5,13.4,9.7
+Depth_of_axon_terminal_um,30-34,36-42,39,44-47,47,51-56,38,51
+Area_of_axon_terminal_um^2,723,340,1033,500,338,1149,187,170
+Estimated_density_mm^-2,1382,2935,968,2000,2958,870,5359,5882
+Bipolar_cone_ratio,0.27,0.57,0.19,0.39,0.57,0.17,1.04,1.14
+Cone_divergence,1.6,3.6,1.63,2.8,3.8,1.7,1,1

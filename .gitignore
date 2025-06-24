@@ -1,0 +1,26 @@
+# =========================
+# Operating System Files
+# =========================
+
+# Windows
+# =========================
+
+*Zone.Identifier
+
+# =========================
+# Temporary and conf files
+# =========================
+
+.vscode/
+*__pycache__
+*.pytest_cache
+*.ipynb_checkpoints
+*.virtual_documents
+.coverage
+
+*.pyc
+*.rst~
+docs/_build/
+docs/build/
+
+
