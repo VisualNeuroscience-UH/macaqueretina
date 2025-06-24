@@ -195,7 +195,7 @@ path = Path.joinpath(model_root_path, Path(project), experiment)
 
 gc_type = "parasol"  # "parasol", "midget"
 response_type = "on"  # "on", "off"
-spatial_model_type = "DOG"  # "DOG", "VAE"
+spatial_model_type = "VAE"  # "DOG", "VAE"
 temporal_model_type = "fixed"  # "fixed", "dynamic", "subunit"
 
 print(f"{gc_type=}")
