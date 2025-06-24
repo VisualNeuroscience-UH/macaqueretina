@@ -155,7 +155,7 @@ Computing device
 For small retinas cpu is faster. Use cpu if you do not have cuda (and NVidia GPU).
 """
 # After training a VAE model with a device, the model must be loaded to same device. Pytorch quirk.
-device = "cuda"  # "cpu" or "cuda"
+device = "cpu"  # "cpu" or "cuda"
 
 """
 ### Housekeeping ###. Do not comment out.

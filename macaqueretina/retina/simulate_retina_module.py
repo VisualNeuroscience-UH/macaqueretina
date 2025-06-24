@@ -2208,6 +2208,7 @@ class ConcreteSimulationBuilder(SimulationBuildInterface):
 
         # Convert NumPy arrays to PyTorch tensors
         device = self.device
+        print(f"{device=}")
         video_copy_tensor = torch.tensor(video_copy, dtype=torch.float32, device=device)
         r_matrix_tensor = torch.tensor(r_matrix, dtype=torch.long, device=device)
         q_matrix_tensor = torch.tensor(q_matrix, dtype=torch.long, device=device)
