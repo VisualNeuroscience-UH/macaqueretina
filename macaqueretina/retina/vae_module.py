@@ -467,7 +467,7 @@ class Decoder(nn.Module):
                 kernel_size=kernel_stride["kernel"],
                 stride=kernel_stride["stride"],
                 padding=padding,
-                output_padding=output_padding[conv_layers - i - 1],
+                output_padding=int(output_padding[conv_layers - i - 1]),
             )
 
             # parametrize the -1 if you want to change b-layer
@@ -818,7 +818,7 @@ class TrainableVAE(tune.Trainable):
 
     def load_checkpoint(self, tmp_checkpoint_dir):
         checkpoint_path = os.path.join(tmp_checkpoint_dir, "model.pth")
-        # self.model.load_state_dict(torch.load(checkpoint_path))
+        # self.model.load_state_dict(torch.load(checkpoint_path, weights_only=True))
         self.model = torch.load(checkpoint_path, weights_only=False)
 
 
@@ -854,7 +854,7 @@ class RetinaVAE(RetinaMath):
         self.response_type = response_type
 
         # Fixed values for both single training and ray tune runs
-        self.epochs = 500
+        self.epochs = 5
         self.lr_step_size = 20  # Learning rate decay step size (in epochs)
         self.lr_gamma = 0.9  # Learning rate decay (multiplier for learning rate)
         # how many times to get the data, applied only if augmentation_dict is not None
@@ -923,17 +923,13 @@ class RetinaVAE(RetinaMath):
 
         self.device = self.context.device
 
-        # # Visualize the augmentation effects and exit
-        # self._visualize_augmentation_and_exit()
-
-        # # Create model and set optimizer and learning rate scheduler
+        # torch.serialization.add_safe_globals([VariationalAutoencoder])
+        # torch.serialization.add_safe_globals([retina.vae_module.VariationalAutoencoder])
         self._get_and_split_apricot_data()
-
-        # # KID comparison btw real and fake images and exit
-        # self.check_kid_and_exit()
 
         match self.training_mode:
             case "train_model":
+
                 self.timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
                 # Create datasets and dataloaders
@@ -972,6 +968,7 @@ class RetinaVAE(RetinaMath):
                 )
 
             case "tune_model":
+                # self._get_and_split_apricot_data()
                 self.ray_dir = self._set_ray_folder(self.context)
 
                 # This will be captured at _set_ray_tuner
@@ -1441,6 +1438,8 @@ class RetinaVAE(RetinaMath):
         print(f"Saving model to {model_path}")
         # torch.save(self.vae.state_dict(), model_path)
         torch.save(self.vae, model_path)
+        # model_scripted = torch.jit.script(self.vae)  # Export to TorchScript
+        # model_scripted.save(model_path)  # Save
 
         return model_path
 
@@ -2153,7 +2152,3 @@ class RetinaVAE(RetinaMath):
         print(f"KID mean: {kid_mean}, KID std: {kid_std} for 2048 features")
 
         exit()
-
-
-if __name__ == "__main__":
-    pass

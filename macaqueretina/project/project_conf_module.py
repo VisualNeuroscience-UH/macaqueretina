@@ -155,7 +155,7 @@ Computing device
 For small retinas cpu is faster. Use cpu if you do not have cuda (and NVidia GPU).
 """
 # After training a VAE model with a device, the model must be loaded to same device. Pytorch quirk.
-device = "cpu"  # "cpu" or "cuda"
+device = "cuda"  # "cpu" or "cuda"
 
 """
 ### Housekeeping ###. Do not comment out.
@@ -250,7 +250,7 @@ retina_parameters = {
     "retina_center": 5.0 + 0j,  # degrees, this is stimulus_position (0, 0)
     "force_retina_build": True,  # False or True. If True, rebuilds retina even if the hash matches
     "training_mode": "load_model",  # "load_model", "train_model" or "tune_model". Applies to VAE only
-    "model_file_name": None,  # None for most recent or "model_[GC TYPE]_[RESPONSE TYPE]_[DEVICE]_[TIME_STAMP].pt" at input_folder. Applies to VAE "load_model" only
+    "model_file_name": "model_parasol_on_cuda_20240808_151642.pt",  # None for most recent or "model_[GC TYPE]_[RESPONSE TYPE]_[DEVICE]_[TIME_STAMP].pt" at input_folder. Applies to VAE "load_model" only
     "ray_tune_trial_id": None,  # Trial_id for tune, None for loading single run after "train_model". Applies to VAE "load_model" only
 }
 
