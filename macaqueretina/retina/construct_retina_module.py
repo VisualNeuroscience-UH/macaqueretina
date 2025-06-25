@@ -1328,13 +1328,10 @@ class SpatialModelBase(ABC):
         for i in range(len(df)):
             y_pix_lu = int(np.round(y_pix_c[i] - yoc_pix_scaled[i]))
             x_pix_lu = int(np.round(x_pix_c[i] - xoc_pix_scaled[i]))
-            try:
-                ret_img_pix[
-                    y_pix_lu : y_pix_lu + pix_per_side,
-                    x_pix_lu : x_pix_lu + pix_per_side,
-                ] += gc_img[i, :, :]
-            except:
-                breakpoint()
+            ret_img_pix[
+                y_pix_lu : y_pix_lu + pix_per_side,
+                x_pix_lu : x_pix_lu + pix_per_side,
+            ] += gc_img[i, :, :]
             gc_img_lu_pix[i, :] = [x_pix_lu, y_pix_lu]
 
         return ret_img_pix, gc_img_lu_pix

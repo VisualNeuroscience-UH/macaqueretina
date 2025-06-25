@@ -155,7 +155,7 @@ Computing device
 For small retinas cpu is faster. Use cpu if you do not have cuda (and NVidia GPU).
 """
 # After training a VAE model with a device, the model must be loaded to same device. Pytorch quirk.
-device = "cpu"  # "cpu" or "cuda"
+device = "cuda"  # "cpu" or "cuda"
 
 """
 ### Housekeeping ###. Do not comment out.
@@ -249,7 +249,7 @@ retina_parameters = {
     "model_density": 1.0,  # 1.0 for 100% of the literature density of ganglion cells
     "retina_center": 5.0 + 0j,  # degrees, this is stimulus_position (0, 0)
     "force_retina_build": True,  # False or True. If True, rebuilds retina even if the hash matches
-    "training_mode": "train_model",  # "load_model", "train_model" or "tune_model". Applies to VAE only
+    "training_mode": "load_model",  # "load_model", "train_model" or "tune_model". Applies to VAE only
     "model_file_name": None,  # None for most recent or "model_[GC TYPE]_[RESPONSE TYPE]_[DEVICE]_[TIME_STAMP].pt" at input_folder. Applies to VAE "load_model" only
     "ray_tune_trial_id": None,  # Trial_id for tune, None for loading single run after "train_model". Applies to VAE "load_model" only
 }
@@ -841,7 +841,7 @@ if __name__ == "__main__":
     # PM.viz.show_bipolars_linked_to_gc(n_samples=4, savefigname=None)
     # PM.viz.show_cones_linked_to_gc(gc_list=[10, 17], savefigname=None)
     # PM.viz.show_cones_linked_to_gc(n_samples=4, savefigname=None)
-    # PM.viz.show_DoG_img_grid(gc_list=[0, 1, 5, 10], savefigname=None)
+    PM.viz.show_DoG_img_grid(gc_list=[0, 1, 5, 10], savefigname=None)
     # PM.viz.show_DoG_img_grid(n_samples=8)
     # PM.viz.show_cell_density_vs_ecc(unit_type="cone", savefigname=None)
     # PM.viz.show_cell_density_vs_ecc(unit_type="gc", savefigname=None)
