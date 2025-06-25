@@ -168,13 +168,13 @@ class TestSimulateRetina(unittest.TestCase):
             "refractory_parameters": {"mock_param": "mock_value"},
             "visual2cortical_params": {"mock_param": "mock_value"},
         }
-        self.mock_context.apricot_metadata_parameters = {
+        self.mock_context.dog_metadata_parameters = {
             "data_microm_per_pix": 60,
             "data_spatialfilter_height": 13,
             "data_spatialfilter_width": 13,
             "data_fps": 30,
             "data_temporalfilter_samples": 15,
-            "apricot_data_folder": "mock_folder",
+            "exp_dog_data_folder": "mock_folder",
         }
         return_value1 = {
             "mock_data": "mock_value",

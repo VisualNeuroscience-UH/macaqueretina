@@ -428,96 +428,9 @@ class DoGModelBase(ABC):
         self.fit: Any = fit
         self.retina_math: Any = retina_math
 
-    def _get_apricot_statistics_context(self, gc_type, response_type, dog_model_type):
-
-        path = self.ret.experimental_archive["apricot_metadata_parameters"][
-            "apricot_statistics_folder"
-        ]
-        filename_stem = f"{gc_type}_{response_type}_{dog_model_type}"
-
-        filetypes = [
-            "exp_univariate_stat.csv",
-            "spatial_multivariate_stat.csv",
-            "temporal_multivariate_stat.csv",
-            "exp_cen_radius_mm.npy",
-        ]
-        self.apricot_context = {
-            "path": path,
-            "filename_stem": filename_stem,
-            "filetypes": filetypes,
-        }
-
-    def _update_apricot_statistics_on_disc(self) -> None:
-        """
-        Updates the apricot statistics on disk with the current experimental statistics.
-        """
-        path = self.apricot_context["path"]
-        filename_stem = self.apricot_context["filename_stem"]
-        filetypes = self.apricot_context["filetypes"]
-
-        for filetype in filetypes:
-            filename = f"{filename_stem}_{filetype}"
-            filepath = path / filename
-            my_object = getattr(self, filetype[:-4])  # Remove .csv from filename
-            if isinstance(my_object, pd.DataFrame):
-                my_object.to_csv(filepath, index_label=my_object.index.name)
-            elif isinstance(my_object, np.float64):
-                np.save(filepath, my_object)
-            print(f"Updated {filetype} statistics on disk.")
-
-    def _load_apricot_statistics_on_disc(self) -> None:
-        """
-        Loads the apricot statistics from disk into the current instance.
-        """
-        path = self.apricot_context["path"]
-        filename_stem = self.apricot_context["filename_stem"]
-        filetypes = self.apricot_context["filetypes"]
-
-        for filetype in filetypes:
-            filename = f"{filename_stem}_{filetype}"
-            filepath = path / filename
-            if filetype.endswith(".csv"):
-                df = pd.read_csv(filepath, index_col=0)
-                setattr(self, filetype[:-4], df)
-            elif filetype.endswith(".npy"):
-                exp_cen_radius_mm = np.load(filepath).astype(np.float64)
-                exp_cen_radius_mm = np.float64(exp_cen_radius_mm.item())
-                setattr(self, filetype[:-4], exp_cen_radius_mm)
-            print(f"Loaded {filetype} statistics from disk.")
-
-    def _get_all_experimental_statistics(self, dog_model_type: str) -> None:
-        """
-        Initializes fit and retrieves experimental fits for the DoG model.
-        If fit statistics are not found on disk, it fits the model and saves the statistics.
-
-        Parameters
-        ----------
-        dog_model_type : str
-            The type of DoG model to be used for fitting.
-        """
-        self._get_apricot_statistics_context(
-            self.ret.gc_type, self.ret.response_type, dog_model_type
-        )
-
-        try:
-            self._load_apricot_statistics_on_disc()
-
-        except FileNotFoundError:
-            self.fit.client(
-                self.ret.gc_type,
-                self.ret.response_type,
-                fit_type="experimental",
-                dog_model_type=dog_model_type,
-                mark_outliers_bad=False,
-            )
-            self.exp_cen_radius_mm = self.fit.receptive_field_sd.center_sd
-            (
-                self.exp_univariate_stat,
-                self.spatial_multivariate_stat,
-                self.temporal_multivariate_stat,
-            ) = self.fit.get_experimental_statistics()
-
-            self._update_apricot_statistics_on_disc()
+        dog_statistics = ret.experimental_archive["dog_statistics"]
+        for key, value in dog_statistics.items():
+            setattr(self, key, value)
 
     @abstractmethod
     def scale_to_mm(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -676,7 +589,6 @@ class DoGModelEllipseFixed(DoGModelBase):
 
     def __init__(self, ret: Any, fit: Any, retina_math: Any) -> None:
         super().__init__(ret, fit, retina_math)
-        self._get_all_experimental_statistics("ellipse_fixed")
 
     def scale_to_mm(self, df: pd.DataFrame, um_per_pixel: float) -> pd.DataFrame:
         """
@@ -827,7 +739,6 @@ class DoGModelEllipseIndependent(DoGModelBase):
 
     def __init__(self, ret: Any, fit: Any, retina_math: Any) -> None:
         super().__init__(ret, fit, retina_math)
-        self._get_all_experimental_statistics("ellipse_independent")
 
     def scale_to_mm(self, df: pd.DataFrame, um_per_pixel: float) -> pd.DataFrame:
         """
@@ -1004,7 +915,6 @@ class DoGModelCircular(DoGModelBase):
 
     def __init__(self, ret: Any, fit: Any, retina_math: Any) -> None:
         super().__init__(ret, fit, retina_math)
-        self._get_all_experimental_statistics("circular")
 
     def _get_dd_in_um(self, gc: Any) -> Any:
         """
@@ -1418,10 +1328,13 @@ class SpatialModelBase(ABC):
         for i in range(len(df)):
             y_pix_lu = int(np.round(y_pix_c[i] - yoc_pix_scaled[i]))
             x_pix_lu = int(np.round(x_pix_c[i] - xoc_pix_scaled[i]))
-            ret_img_pix[
-                y_pix_lu : y_pix_lu + pix_per_side,
-                x_pix_lu : x_pix_lu + pix_per_side,
-            ] += gc_img[i, :, :]
+            try:
+                ret_img_pix[
+                    y_pix_lu : y_pix_lu + pix_per_side,
+                    x_pix_lu : x_pix_lu + pix_per_side,
+                ] += gc_img[i, :, :]
+            except:
+                breakpoint()
             gc_img_lu_pix[i, :] = [x_pix_lu, y_pix_lu]
 
         return ret_img_pix, gc_img_lu_pix
@@ -1612,7 +1525,7 @@ class SpatialModelDOG(SpatialModelBase):
         )
 
     def _generate_DoG_with_rf_from_literature(
-        self, ret: Any, gc: Any, apricot_metadata_parameters: dict
+        self, ret: Any, gc: Any, dog_metadata_parameters: dict
     ) -> Any:
         """
         Generate Difference of Gaussians (DoG) model with dendritic field sizes from literature.
@@ -1620,7 +1533,7 @@ class SpatialModelDOG(SpatialModelBase):
         Parameters:
         ret: Object containing retina information
         gc: Object for ganglion cell data
-        apricot_metadata_parameters: Metadata containing image scaling information
+        dog_metadata_parameters: Metadata containing image scaling information
 
         Returns:
         Updated gc object with spatial parameters in millimeters.
@@ -1659,7 +1572,7 @@ class SpatialModelDOG(SpatialModelBase):
 
         gc.df = self.DoG_model.recalculate_ampl_s_from_relative_surround_volume(gc.df)
 
-        um_per_pixel = apricot_metadata_parameters["data_microm_per_pix"]
+        um_per_pixel = dog_metadata_parameters["data_microm_per_pix"]
         gc.df = self.DoG_model.scale_to_mm(gc.df, um_per_pixel)
 
         return gc
@@ -1738,13 +1651,11 @@ class SpatialModelDOG(SpatialModelBase):
         Returns:
         Tuple containing updated retina, ganglion cell data, and visualization image.
         """
-        apricot_metadata_parameters = ret.experimental_archive[
-            "apricot_metadata_parameters"
-        ]
+        dog_metadata_parameters = ret.experimental_archive["dog_metadata_parameters"]
 
         # Step 1: Generate DoG parameters
         gc = self._generate_DoG_with_rf_from_literature(
-            ret, gc, apricot_metadata_parameters
+            ret, gc, dog_metadata_parameters
         )
 
         # Step 2: Calculate dendritic diameter
@@ -2068,33 +1979,6 @@ class SpatialModelVAE(SpatialModelBase):
 
         return gc
 
-    def _get_data_at_latent_space(self, retina_vae: Any) -> np.ndarray:
-        """
-        Get original image data as projected through encoder to the latent space.
-
-        Parameters
-        ----------
-        retina_vae : Any
-            RetinaVAE object containing the VAE model.
-
-        Returns
-        -------
-        latent_data : np.ndarray
-            Numpy array containing the latent space data.
-        """
-        # Get the latent space data
-        train_df = retina_vae.get_encoded_samples(
-            dataset=retina_vae.train_loader.dataset
-        )
-        valid_df = retina_vae.get_encoded_samples(dataset=retina_vae.val_loader.dataset)
-        test_df = retina_vae.get_encoded_samples(dataset=retina_vae.test_loader.dataset)
-        latent_df = pd.concat([train_df, valid_df, test_df], axis=0, ignore_index=True)
-
-        # Extract data from latent_df into a numpy array from columns whose title include "EncVariable"
-        latent_data = latent_df.filter(regex="EncVariable").to_numpy()
-
-        return latent_data
-
     def _get_generated_rfs(
         self, retina_vae: Any, n_samples: int = 10
     ) -> Tuple[np.ndarray, np.ndarray]:
@@ -2116,12 +2000,12 @@ class SpatialModelVAE(SpatialModelBase):
             Raw image stack, shape (n_samples, img_size, img_size).
         """
         # 1. Make a probability density function of the latent space
-        latent_data = self._get_data_at_latent_space(retina_vae)
+        vae_latent_data = self.vae_latent_data
 
-        # Make a probability density function of the latent_data
+        # Make a probability density function of the vae_latent_data
         # Both uniform and normal distributions during learning are sampled
         # using Gaussian KDE estimate.
-        latent_pdf = stats.gaussian_kde(latent_data.T)
+        latent_pdf = stats.gaussian_kde(vae_latent_data.T)
 
         # 2. Sample from the pdf
         latent_samples = torch.tensor(latent_pdf.resample(n_samples).T).to(
@@ -2134,7 +2018,7 @@ class SpatialModelVAE(SpatialModelBase):
         self.project_data["gen_latent_space"] = {
             "samples": latent_samples.to("cpu").numpy(),
             "dim": latent_dim,
-            "data": latent_data,
+            "data": vae_latent_data,
         }
 
         # 3. Decode the samples
@@ -2181,11 +2065,7 @@ class SpatialModelVAE(SpatialModelBase):
 
         # 1) Get variational autoencoder to generate receptive fields
         print("\nGetting VAE model...")
-        self.retina_vae.build(
-            ret.gc_type,
-            ret.response_type,
-            save_tuned_models=True,
-        )
+        self.vae_latent_data = ret.experimental_archive["vae_statistics"]
 
         # 2) "Bad fit loop", provides eccentricity-scaled vae rfs with good DoG fits (error < 3SD from mean).
         print("\nBad fit loop: Generating receptive fields with good DoG fits...")
@@ -3189,7 +3069,6 @@ class ConcreteRetinaBuilder(RetinaBuildInterface):
     """
 
     def __init__(self, retina, retina_math, fit, retina_vae, device, viz) -> None:
-        """ """
 
         self._retina = retina
         self._ganglion_cell = None
@@ -4155,14 +4034,12 @@ class ConcreteRetinaBuilder(RetinaBuildInterface):
         """
         gc_pos_ecc_mm = np.array(gc.df.pos_ecc_mm.values)
 
-        apricot_metadata_parameters = self.experimental_archive[
-            "apricot_metadata_parameters"
-        ]
-        exp_um_per_pix = apricot_metadata_parameters["data_microm_per_pix"]
+        dog_metadata_parameters = self.experimental_archive["dog_metadata_parameters"]
+        exp_um_per_pix = dog_metadata_parameters["data_microm_per_pix"]
         # Mean fitted dendritic diameter for the original experimental data
 
         exp_dd_um = self.DoG_model.exp_cen_radius_mm * 2 * 1000  # in micrometers
-        exp_pix_per_side = apricot_metadata_parameters["data_spatialfilter_height"]
+        exp_pix_per_side = dog_metadata_parameters["data_spatialfilter_height"]
 
         # Get rf diameter vs eccentricity
         dict_key = "{0}_{1}".format(ret.gc_type, ret.dd_regr_model)
@@ -5063,9 +4940,9 @@ class ConstructRetina(Printable):
 
         return literature
 
-    def _append_apricot_metadata_parameters(self, data: dict) -> dict:
+    def _append_dog_metadata_parameters(self, data: dict) -> dict:
         """
-        Append apricot metadata to the data dictionary.
+        Append dog metadata to the data dictionary.
 
         Parameters
         ----------
@@ -5077,8 +4954,203 @@ class ConstructRetina(Printable):
         dict
             The updated data dictionary with metadata.
         """
-        data["apricot_metadata_parameters"] = self.context.apricot_metadata_parameters
+        data["dog_metadata_parameters"] = self.context.dog_metadata_parameters
         return data
+
+    def _get_statistics_context(
+        self,
+        gc_type: str,
+        response_type: str,
+        dog_model_type: str,
+        experimental_archive: dict,
+    ) -> None:
+
+        path = experimental_archive["dog_metadata_parameters"]["exp_rf_stat_folder"]
+        filename_stem = f"{gc_type}_{response_type}_{dog_model_type}"
+
+        filetypes = [
+            "exp_univariate_stat.csv",
+            "spatial_multivariate_stat.csv",
+            "temporal_multivariate_stat.csv",
+            "exp_cen_radius_mm.npy",
+        ]
+        self.dog_context = {
+            "path": path,
+            "filename_stem": filename_stem,
+            "filetypes": filetypes,
+        }
+
+        filename_stem = f"{gc_type}_{response_type}"
+
+        self.vae_context = {
+            "path": path,
+            "filename_stem": filename_stem,
+        }
+
+    def _update_dog_statistics_on_disc(self, dog_statistics) -> None:
+        """
+        Updates the dog statistics on disk with the current experimental statistics.
+        """
+        path = self.dog_context["path"]
+        filename_stem = self.dog_context["filename_stem"]
+        filetypes = self.dog_context["filetypes"]
+
+        for filetype in filetypes:
+            filename = f"{filename_stem}_{filetype}"
+            filepath = path / filename
+            my_object = dog_statistics[filetype[:-4]]
+            if isinstance(my_object, pd.DataFrame):
+                my_object.to_csv(filepath, index_label=my_object.index.name)
+            elif isinstance(my_object, np.float64):
+                np.save(filepath, my_object)
+            print(f"Updated {filetype} statistics on disk.")
+
+    def _get_dog_statistics(self, retina_parameters) -> None:
+        """
+        Loads the dog statistics from disk into the current instance.
+        If not found, recalculates the statistics by fitting the model to
+        experimental data and saves the statistics on disk.
+        """
+        path = self.dog_context["path"]
+        filename_stem = self.dog_context["filename_stem"]
+        filetypes = self.dog_context["filetypes"]
+
+        dog_statistics = {}
+        try:
+            for filetype in filetypes:
+                filename = f"{filename_stem}_{filetype}"
+                filepath = path / filename
+                if filetype.endswith(".csv"):
+                    df = self.data_io.get_data(full_path=filepath)
+                    dog_statistics[filetype[:-4]] = df
+                elif filetype.endswith(".npy"):
+                    exp_cen_radius_mm = self.data_io.get_data(full_path=filepath)
+                    exp_cen_radius_mm = np.float64(exp_cen_radius_mm.item())
+                    dog_statistics[filetype[:-4]] = exp_cen_radius_mm
+                print(f"Loaded {filetype} statistics from disk.")
+        except:
+            self.fit.client(
+                retina_parameters["gc_type"],
+                retina_parameters["response_type"],
+                fit_type="experimental",
+                dog_model_type=retina_parameters["dog_model_type"],
+                mark_outliers_bad=False,
+            )
+
+            dog_statistics["exp_cen_radius_mm"] = self.fit.receptive_field_sd.center_sd
+            (
+                dog_statistics["exp_univariate_stat"],
+                dog_statistics["spatial_multivariate_stat"],
+                dog_statistics["temporal_multivariate_stat"],
+            ) = self.fit.get_experimental_statistics()
+
+            self._update_dog_statistics_on_disc(dog_statistics)
+
+        return dog_statistics
+
+    def _update_latent_data(self, vae_latent_data: np.ndarray) -> None:
+
+        filepath = self._get_vae_statistics_filepath()
+        np.save(filepath, vae_latent_data)
+
+    def _get_vae_statistics_filepath(self) -> str:
+        """
+        Returns the file path for the VAE statistics based on the context.
+        """
+        path = self.vae_context["path"]
+        filename_stem = self.vae_context["filename_stem"]
+        return str(path / f"{filename_stem}_vae_latent_data.npy")
+
+    def _get_vae_statistics(self, retina_vae: Any) -> np.ndarray:
+        """
+        Loads the VAE statistics from disk. If not found, recalculates the statistics
+        by augmenting the original data and getting the encoded samples from the VAE model.
+        Saves the statistics on disk.
+        """
+
+        filepath = self._get_vae_statistics_filepath()
+        retina_vae.build()
+
+        try:
+            vae_latent_data = np.load(filepath)
+            print("Loaded VAE statistics from disk.")
+
+        except FileNotFoundError:
+            vae_train_parameters = self.context.retina_parameters[
+                "vae_train_parameters"
+            ]
+            augmentation_dict = vae_train_parameters.get("augmentation_dict", {})
+
+            retina_vae.get_and_split_apricot_data()
+            retina_vae.train_loader = retina_vae.augment_and_get_dataloader(
+                data_type="train", augmentation_dict=augmentation_dict
+            )
+            retina_vae.val_loader = retina_vae.augment_and_get_dataloader(
+                data_type="val", augmentation_dict=augmentation_dict
+            )
+            retina_vae.test_loader = retina_vae.augment_and_get_dataloader(
+                data_type="test", shuffle=False
+            )
+
+            # Get the latent space data
+            train_df = retina_vae.get_encoded_samples(
+                dataset=retina_vae.train_loader.dataset
+            )
+            valid_df = retina_vae.get_encoded_samples(
+                dataset=retina_vae.val_loader.dataset
+            )
+            test_df = retina_vae.get_encoded_samples(
+                dataset=retina_vae.test_loader.dataset
+            )
+            latent_df = pd.concat(
+                [train_df, valid_df, test_df], axis=0, ignore_index=True
+            )
+
+            # Extract data from latent_df into a numpy array from columns whose title include "EncVariable"
+            vae_latent_data = latent_df.filter(regex="EncVariable").to_numpy()
+
+            self._update_latent_data(vae_latent_data)
+
+        return vae_latent_data
+
+    def _get_all_experimental_statistics(
+        self, experimental_archive: dict, retina_parameters: dict
+    ) -> dict:
+        """
+        Initializes fit and retrieves experimental fits for the DoG model.
+        If fit statistics are not found on disk, it fits the model and saves the statistics.
+
+        Parameters
+        ----------
+        dog_model_type : str
+            The type of DoG model to be used for fitting.
+        """
+
+        self._get_statistics_context(
+            retina_parameters["gc_type"],
+            retina_parameters["response_type"],
+            retina_parameters["dog_model_type"],
+            experimental_archive,
+        )
+
+        try:
+            dog_statistics = self._get_dog_statistics(retina_parameters)
+        except FileNotFoundError:
+            print("No experimental statistics or data found on disk.")
+            raise
+
+        experimental_archive["dog_statistics"] = dog_statistics
+
+        # VAE statistics
+        try:
+            vae_latent_data = self._get_vae_statistics(self.retina_vae)
+        except FileNotFoundError:
+            print("No VAE statistics found on disk.")
+            raise
+
+        experimental_archive["vae_statistics"] = vae_latent_data
+
+        return experimental_archive
 
     def build_retina_client(self) -> None:
         """
@@ -5093,9 +5165,13 @@ class ConstructRetina(Printable):
             return
 
         experimental_archive = self._get_literature_data()
-        experimental_archive = self._append_apricot_metadata_parameters(
+        experimental_archive = self._append_dog_metadata_parameters(
             experimental_archive
         )
+        experimental_archive = self._get_all_experimental_statistics(
+            experimental_archive, retina_parameters
+        )
+
         retina_parameters["experimental_archive"] = experimental_archive
 
         retina = Retina(retina_parameters)

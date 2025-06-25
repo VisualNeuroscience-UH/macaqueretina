@@ -30,7 +30,7 @@ class TestGanglionCellData(unittest.TestCase):
             "temporal_model_type": "dynamic",
             "deg_per_mm": 1.0,
         }
-        self.mock_apricot_metadata_parameters = {
+        self.mock_dog_metadata_parameters = {
             "data_microm_per_pix": 1.0,
             "data_fps": 30,
             "data_temporalfilter_samples": 10,
@@ -67,7 +67,7 @@ class TestGanglionCellData(unittest.TestCase):
     def test_init(self):
         gcd = GanglionCellProduct(
             self.mock_retina,
-            self.mock_apricot_metadata_parameters,
+            self.mock_dog_metadata_parameters,
             self.mock_rfs_npz,
             self.mock_gc_dataframe,
             unit_index=None,
@@ -78,9 +78,7 @@ class TestGanglionCellData(unittest.TestCase):
         self.assertEqual(gcd.spike_generator_model, self.mock_spike_generator_model)
         self.assertEqual(gcd.mask_threshold, 0.5)
         self.assertEqual(gcd.refractory_parameters, {"param1": 1, "param2": 2})
-        self.assertEqual(
-            gcd.apricot_metadata_parameters, self.mock_apricot_metadata_parameters
-        )
+        self.assertEqual(gcd.dog_metadata_parameters, self.mock_dog_metadata_parameters)
         self.assertEqual(gcd.data_microm_per_pixel, 1.0)
         self.assertEqual(gcd.data_filter_fps, 30)
         self.assertEqual(gcd.data_filter_timesteps, 10)
@@ -92,7 +90,7 @@ class TestGanglionCellData(unittest.TestCase):
     def test_init_with_unit_index(self):
         gcd = GanglionCellProduct(
             self.mock_retina,
-            self.mock_apricot_metadata_parameters,
+            self.mock_dog_metadata_parameters,
             self.mock_rfs_npz,
             self.mock_gc_dataframe,
             unit_index=[0, 2],
@@ -106,7 +104,7 @@ class TestGanglionCellData(unittest.TestCase):
     def test_link_gcs_to_vs(self):
         gcd = GanglionCellProduct(
             self.mock_retina,
-            self.mock_apricot_metadata_parameters,
+            self.mock_dog_metadata_parameters,
             self.mock_rfs_npz,
             self.mock_gc_dataframe,
             unit_index=None,

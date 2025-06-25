@@ -897,9 +897,19 @@ class FitDataTypeTemplate(ABC, Printable):
                     }
 
                 case "skewnorm":
-                    shape, loc[index], scale[index] = stats.skewnorm.fit(
-                        experimental_data[:, index], loc=1
-                    )
+                    try:
+                        shape, loc[index], scale[index] = stats.skewnorm.fit(
+                            experimental_data[:, index], loc=0
+                        )
+                    except:
+                        # For some parameters, the fit might fail, e.g., if all values are the same
+                        # In this case, we can use a normal distribution fit as a fallback
+                        d = experimental_data[:, index]
+                        loc[index], scale[index] = stats.norm.fit(
+                            d, loc=np.mean(d), scale=np.std(d)
+                        )
+                        shape = 0  # skewness is zero for normal distribution
+
                     x_model_fit[:, index] = np.linspace(
                         stats.skewnorm.ppf(
                             0.001, shape, loc=loc[index], scale=scale[index]
@@ -1347,7 +1357,7 @@ class FitGenerated(FitDataTypeTemplate):
         return self.DoG_model.calculate_center_surround_sd(df, data_mm_per_pix)
 
     def get_generated_DoG_fits(self):
-        """ """
+
         (
             experimental_data,
             model_parameters,
@@ -1402,11 +1412,11 @@ class Fit(RetinaMath):
     a function consisting of cascade of two lowpass filters and for adding the tonic drive.
     """
 
-    def __init__(self, project_data, apricot_metadata_parameters):
+    def __init__(self, project_data, dog_metadata_parameters):
         # Dependency injection at ProjectManager construction
         self._project_data = project_data
 
-        self.metadata = apricot_metadata_parameters
+        self.metadata = dog_metadata_parameters
 
     @property
     def project_data(self):

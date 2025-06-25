@@ -17,9 +17,9 @@ class ApricotData:
     Read data from external mat files.
     """
 
-    def __init__(self, apricot_metadata_parameters, gc_type, response_type):
-        self.apricot_data_folder = apricot_metadata_parameters["apricot_data_folder"]
-        self.metadata = apricot_metadata_parameters
+    def __init__(self, dog_metadata_parameters, gc_type, response_type):
+        self.exp_dog_data_folder = dog_metadata_parameters["exp_dog_data_folder"]
+        self.metadata = dog_metadata_parameters
         gc_type = gc_type.lower()
         response_type = response_type.lower()
         self.gc_type = gc_type
@@ -60,7 +60,7 @@ class ApricotData:
         }
 
         # Read nonspatial data. Data type is numpy nd array, but it includes a lot of metadata.
-        filepath = self.apricot_data_folder / self.filename_nonspatial
+        filepath = self.exp_dog_data_folder / self.filename_nonspatial
         raw_data = sio.loadmat(filepath)  # , squeeze_me=True)
         self.data = raw_data["mosaicGLM"][0]
 
@@ -108,7 +108,7 @@ class ApricotData:
 
     # Called from Fit
     def read_spatial_filter_data(self):
-        filepath = self.apricot_data_folder / self.spatial_filename
+        filepath = self.exp_dog_data_folder / self.spatial_filename
         gc_spatial_data = sio.loadmat(filepath, variable_names=["c", "stafit"])
         spat_data_array = gc_spatial_data["c"]
         # Rotate dims to put n cells the first dim

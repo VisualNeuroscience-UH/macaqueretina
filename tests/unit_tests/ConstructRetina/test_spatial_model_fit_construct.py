@@ -30,14 +30,14 @@ class TestSpatialModelFIT(unittest.TestCase):
     def test_generate_DoG_with_rf_from_literature(self):
         ret = MagicMock()
         gc = MagicMock()
-        apricot_metadata_parameters = {"data_microm_per_pix": 2.0}
+        dog_metadata_parameters = {"data_microm_per_pix": 2.0}
         self.mock_DoG_model.exp_univariate_stat = MagicMock()
         self.mock_DoG_model.scale_to_mm.return_value = MagicMock()
         n_cells = 10
         gc.df = MagicMock()
         gc.df_fixed_values = {"param1": 1.0}
         result_gc = self.model._generate_DoG_with_rf_from_literature(
-            ret, gc, apricot_metadata_parameters
+            ret, gc, dog_metadata_parameters
         )
         self.mock_DoG_model.scale_to_mm.assert_called_once()
         self.assertEqual(gc, result_gc)
@@ -107,10 +107,8 @@ class TestSpatialModelFIT(unittest.TestCase):
         gc.img_mask = np.zeros((gc.n_units, 32, 32))
         ret.whole_ret_img = "whole_ret_img"
 
-        apricot_metadata_parameters = {"data_microm_per_pix": 2.0}
-        ret.experimental_archive = {
-            "apricot_metadata_parameters": apricot_metadata_parameters
-        }
+        dog_metadata_parameters = {"data_microm_per_pix": 2.0}
+        ret.experimental_archive = {"dog_metadata_parameters": dog_metadata_parameters}
         ret.mask_threshold = 0.5
 
         # Mock the behavior of the internal methods
@@ -128,7 +126,7 @@ class TestSpatialModelFIT(unittest.TestCase):
         result_ret, result_gc, result_img = self.model.create(ret, gc)
 
         # Assert the method calls and returned values
-        mock_generate_DoG.assert_called_once_with(ret, gc, apricot_metadata_parameters)
+        mock_generate_DoG.assert_called_once_with(ret, gc, dog_metadata_parameters)
         mock_get_gc_fit_img.assert_called_once_with(gc)
         mock_generate_center_masks.assert_called_once_with(ret, gc)
         mock_get_full_retina.assert_any_call(ret, gc, gc.img)

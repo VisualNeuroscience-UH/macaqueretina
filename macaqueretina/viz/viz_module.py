@@ -4846,7 +4846,7 @@ class Viz:
             gc_vae_df = self.construct_retina.gc_vae_df
 
             fit = self.construct_retina.Fit(
-                self.context.apricot_metadata_parameters,
+                self.context.dog_metadata_parameters,
                 self.construct_retina.gc_type,
                 self.construct_retina.response_type,
                 spatial_data=gc_vae_img,

@@ -193,8 +193,8 @@ path = Path.joinpath(model_root_path, Path(project), experiment)
 # Note: DOG model ellipse independent does not correlate the center and surround parameters. Thus they are independent, which
 # is not the case in the VAE model, and not very physiological.
 
-gc_type = "parasol"  # "parasol", "midget"
-response_type = "on"  # "on", "off"
+gc_type = "midget"  # "parasol", "midget"
+response_type = "off"  # "on", "off"
 spatial_model_type = "VAE"  # "DOG", "VAE"
 temporal_model_type = "fixed"  # "fixed", "dynamic", "subunit"
 
@@ -249,8 +249,8 @@ retina_parameters = {
     "model_density": 1.0,  # 1.0 for 100% of the literature density of ganglion cells
     "retina_center": 5.0 + 0j,  # degrees, this is stimulus_position (0, 0)
     "force_retina_build": True,  # False or True. If True, rebuilds retina even if the hash matches
-    "training_mode": "load_model",  # "load_model", "train_model" or "tune_model". Applies to VAE only
-    "model_file_name": "model_parasol_on_cuda_20240808_151642.pt",  # None for most recent or "model_[GC TYPE]_[RESPONSE TYPE]_[DEVICE]_[TIME_STAMP].pt" at input_folder. Applies to VAE "load_model" only
+    "training_mode": "train_model",  # "load_model", "train_model" or "tune_model". Applies to VAE only
+    "model_file_name": None,  # None for most recent or "model_[GC TYPE]_[RESPONSE TYPE]_[DEVICE]_[TIME_STAMP].pt" at input_folder. Applies to VAE "load_model" only
     "ray_tune_trial_id": None,  # Trial_id for tune, None for loading single run after "train_model". Applies to VAE "load_model" only
 }
 
@@ -364,6 +364,47 @@ run_parameters = {
 ###  Semi-constant variables
 ############################
 
+vae_train_parameters = {
+    # Fixed values for both single training and ray tune runs
+    "epochs": 500,  # Number of training epochs
+    "lr_step_size": 20,  # Learning rate decay step size (in epochs)
+    "lr_gamma": 0.9,  # Learning rate decay (multiplier for learning rate)
+    # how many times to get the data, applied only if augmentation_dict is not None
+    "resolution_hw": 13,  # Both x and y. Images will be sampled to this space.
+    # For ray tune only
+    # If grid_search is True, time_budget and grace_period are
+    "grid_search": True,  # False for tune by Optuna, True for grid search
+    "time_budget": 60 * 60 * 24 * 4,  # in seconds
+    "grace_period": 50,  # epochs. ASHA stops earliest at grace period.
+    #######################
+    # Single run parameters
+    #######################
+    # Set common VAE model parameters
+    "latent_dim": 32,  # 32  # 2**1 - 2**6, use powers of 2 btw 2 and 128
+    "channels": 16,
+    # lr will be reduced by scheduler down to lr * gamma ** (epochs/step_size)
+    "lr": 0.0005,
+    # self._show_lr_decay(self.lr, self.lr_gamma, self.lr_step_size, self.epochs)
+    "batch_size": 256,  # None will take the batch size from test_split size.
+    "test_split": 0.2,  # Split data for validation and testing (both will take this fraction of data)
+    "kernel_stride": "k7s1",  # "k3s1", "k3s2" # "k5s2" # "k5s1"
+    "conv_layers": 2,  # 1 - 5 for s1, 1 - 3 for k3s2 and k5s2
+    "batch_norm": True,
+    "latent_distribution": "uniform",  # "normal" or "uniform"
+    # Augment training and validation data.
+    "augmentation_dict": {
+        "rotation": 0,  # rotation in degrees
+        "translation": (
+            0,  # 0.07692307692307693,
+            0,  # 0.07692307692307693,
+        ),  # fraction of image, (x, y) -directions
+        "noise": 0,  # 0.005,  # noise float in [0, 1] (noise is added to the image)
+        "flip": 0.5,  # flip probability, both horizontal and vertical
+        "data_multiplier": 4,  # how many times to get the data w/ augmentation
+    },
+}
+
+
 # Cone noise gain induces ~25Hz spontaneous firing rates for the ON parasol and
 # midget gc units, and ~5Hz for the OFF parasol and midget units. (Raunak Sinha,
 # personal communication).
@@ -396,17 +437,14 @@ retina_parameters_append = {
     "ecc_limit_for_dd_fit": 20,  # 20,  # degrees, math.inf for no limit
 }
 
-# apricot data is the original Chichilnisky data, and the metadata is used for filtering and fitting
-apricot_metadata_parameters = {
+dog_metadata_parameters = {
     "data_microm_per_pix": 60,
     "data_spatialfilter_height": 13,
     "data_spatialfilter_width": 13,
     "data_fps": 30,
     "data_temporalfilter_samples": 15,
-    "apricot_data_folder": git_repo_root_path.joinpath(r"retina/apricot_data"),
-    "apricot_statistics_folder": git_repo_root_path.joinpath(
-        r"retina/apricot_statistics"
-    ),
+    "exp_dog_data_folder": git_repo_root_path.joinpath(r"retina/apricot_data"),
+    "exp_rf_stat_folder": git_repo_root_path.joinpath(r"retina/apricot_statistics"),
     "mask_noise": retina_parameters_append["apricot_data_noise_mask"],
 }
 
@@ -598,6 +636,7 @@ retina_parameters_append_the_rest = {
     "receptive_field_repulsion_parameters": receptive_field_repulsion_parameters,
     "visual2cortical_params": visual2cortical_params,
     "bipolar2gc_dict": bipolar2gc_dict,
+    "vae_train_parameters": vae_train_parameters,
 }
 
 retina_parameters_append.update(retina_parameters_append_the_rest)
@@ -719,7 +758,7 @@ if __name__ == "__main__":
         visual_stimulus_parameters=visual_stimulus_parameters,
         run_parameters=run_parameters,
         literature_data_files=literature_data_files,
-        apricot_metadata_parameters=apricot_metadata_parameters,
+        dog_metadata_parameters=dog_metadata_parameters,
         numpy_seed=numpy_seed,
         project_conf_module_file_path=project_conf_module_file_path,
     )
@@ -866,7 +905,7 @@ if __name__ == "__main__":
     ########################
 
     # Based on visual_stimulus_parameters above
-    PM.stimulate.make_stimulus_video()
+    # PM.stimulate.make_stimulus_video()
 
     ####################################
     ### Run multiple trials or units ###

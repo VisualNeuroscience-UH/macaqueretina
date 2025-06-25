@@ -1,5 +1,5 @@
 DOG model: exclusion criteria apply before or at experimental data fit and no units generated from statistics need exclusion
-	-Apricot data
+	-Experimental DoG data
 		-manually picked bad data idx
 	-fit_module
 		- _fit_spatial_filters

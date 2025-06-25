@@ -104,9 +104,9 @@ class ProjectManager(ProjectUtilities):
             VisualSignal,
         )
 
-        fit = Fit(project_data, context.apricot_metadata_parameters)
+        fit = Fit(project_data, context.dog_metadata_parameters)
 
-        retina_vae = RetinaVAE(context, context.retina_parameters["training_mode"])
+        retina_vae = RetinaVAE(context)
 
         self.construct_retina = ConstructRetina(
             context,

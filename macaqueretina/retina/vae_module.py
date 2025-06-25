@@ -722,16 +722,16 @@ class TrainableVAE(tune.Trainable):
             "data_multiplier": config.get("data_multiplier"),
         }
 
-        self._augment_and_get_dataloader = methods["_augment_and_get_dataloader"]
+        self.augment_and_get_dataloader = methods["augment_and_get_dataloader"]
 
-        self.train_loader = self._augment_and_get_dataloader(
+        self.train_loader = self.augment_and_get_dataloader(
             data_type="train",
             augmentation_dict=augmentation_dict,
             batch_size=config.get("batch_size"),
             shuffle=True,
         )
 
-        self.val_loader = self._augment_and_get_dataloader(
+        self.val_loader = self.augment_and_get_dataloader(
             data_type="val",
             augmentation_dict=augmentation_dict,
             batch_size=config.get("batch_size"),
@@ -812,14 +812,14 @@ class TrainableVAE(tune.Trainable):
 
     def save_checkpoint(self, tmp_checkpoint_dir):
         checkpoint_path = os.path.join(tmp_checkpoint_dir, "model.pth")
-        # torch.save(self.model.state_dict(), checkpoint_path)
-        torch.save(self.model, checkpoint_path)
+        torch.save(self.model.state_dict(), checkpoint_path)
+        # torch.save(self.model, checkpoint_path)
         return tmp_checkpoint_dir
 
     def load_checkpoint(self, tmp_checkpoint_dir):
         checkpoint_path = os.path.join(tmp_checkpoint_dir, "model.pth")
         # self.model.load_state_dict(torch.load(checkpoint_path, weights_only=True))
-        self.model = torch.load(checkpoint_path, weights_only=False)
+        self.model = torch.load_state_dict(checkpoint_path, weights_only=False)
 
 
 class RetinaVAE(RetinaMath):
@@ -833,10 +833,17 @@ class RetinaVAE(RetinaMath):
     SSIM : Wang_2009_IEEESignProcMag, Wang_2004_IEEETransImProc
     """
 
-    def __init__(self, context, training_mode) -> None:
-        # Dependency injection at ProjectManager construction
+    def __init__(self, context: dict) -> None:
+
         self._context = context
-        self.training_mode = training_mode
+        self.training_mode = context.retina_parameters["training_mode"]
+        self.gc_type = context.retina_parameters["gc_type"]
+        self.response_type = context.retina_parameters["response_type"]
+        self.gc_response_types = [[self.gc_type], [self.response_type]]
+
+        self.random_seed = self.context.numpy_seed
+        torch.manual_seed(self.random_seed)
+        np.random.seed(self.random_seed)
 
     @property
     def context(self):
@@ -844,74 +851,41 @@ class RetinaVAE(RetinaMath):
 
     def build(
         self,
-        gc_type,
-        response_type,
         save_tuned_models=False,
     ):
 
-        self.apricot_metadata_parameters = self.context.apricot_metadata_parameters
-        self.gc_type = gc_type
-        self.response_type = response_type
-
-        # Fixed values for both single training and ray tune runs
-        self.epochs = 5
-        self.lr_step_size = 20  # Learning rate decay step size (in epochs)
-        self.lr_gamma = 0.9  # Learning rate decay (multiplier for learning rate)
-        # how many times to get the data, applied only if augmentation_dict is not None
-        self.resolution_hw = 13  # Both x and y. Images will be sampled to this space.
+        self.dog_metadata_parameters = self.context.dog_metadata_parameters
+        vae_train_parameters = self.context.retina_parameters["vae_train_parameters"]
+        self.epochs = vae_train_parameters["epochs"]
+        self.lr_step_size = vae_train_parameters["lr_step_size"]
+        self.lr_gamma = vae_train_parameters["lr_gamma"]
+        self.resolution_hw = vae_train_parameters["resolution_hw"]
 
         # For ray tune only
-        # If grid_search is True, time_budget and grace_period are ignored
-        self.grid_search = True  # False for tune by Optuna, True for grid search
-        self.time_budget = 60 * 60 * 24 * 4  # in seconds
-        self.grace_period = 50  # epochs. ASHA stops earliest at grace period.
+        self.grid_search = vae_train_parameters["grid_search"]
+        self.time_budget = vae_train_parameters["time_budget"]
+        self.grace_period = vae_train_parameters["grace_period"]
 
         #######################
         # Single run parameters
         #######################
-        # Set common VAE model parameters
-        self.latent_dim = 32  # 32  # 2**1 - 2**6, use powers of 2 btw 2 and 128
-        self.channels = 16
-        # lr will be reduced by scheduler down to lr * gamma ** (epochs/step_size)
-        self.lr = 0.0005
-        # self._show_lr_decay(self.lr, self.lr_gamma, self.lr_step_size, self.epochs)
-
-        self.batch_size = 256  # None will take the batch size from test_split size.
-        self.test_split = 0.2  # Split data for validation and testing (both will take this fraction of data)
-
-        self.kernel_stride = "k7s1"  # "k3s1", "k3s2" # "k5s2" # "k5s1"
-        self.conv_layers = 2  # 1 - 5 for s1, 1 - 3 for k3s2 and k5s2
-        self.batch_norm = True
-        self.latent_distribution = "uniform"  # "normal" or "uniform"
-
-        # Augment training and validation data.
-        augmentation_dict = {
-            "rotation": 0,  # rotation in degrees
-            "translation": (
-                0,  # 0.07692307692307693,
-                0,  # 0.07692307692307693,
-            ),  # fraction of image, (x, y) -directions
-            "noise": 0,  # 0.005,  # noise float in [0, 1] (noise is added to the image)
-            "flip": 0.5,  # flip probability, both horizontal and vertical
-            "data_multiplier": 4,  # how many times to get the data w/ augmentation
-        }
-        self.augmentation_dict = augmentation_dict  # None
+        self.latent_dim = vae_train_parameters["latent_dim"]
+        self.channels = vae_train_parameters["channels"]
+        self.lr = vae_train_parameters["lr"]  # 0.0005
+        self.batch_size = vae_train_parameters["batch_size"]
+        self.test_split = vae_train_parameters["test_split"]
+        self.kernel_stride = vae_train_parameters["kernel_stride"]
+        self.conv_layers = vae_train_parameters["conv_layers"]
+        self.batch_norm = vae_train_parameters["batch_norm"]
+        self.latent_distribution = vae_train_parameters["latent_distribution"]
+        self.augmentation_dict = vae_train_parameters["augmentation_dict"]
 
         ####################
         # Utility parameters
         ####################
-        self.train_by = [[gc_type], [response_type]]  # Train by these factors
-
-        # Set the random seed for reproducible results for both torch and numpy
-        self.random_seed = self.context.numpy_seed
-        torch.manual_seed(self.random_seed)
-        np.random.seed(self.random_seed)
-
         self.latent_space_plot_scale = 15.0  # Scale for plotting latent space
-
         self.models_folder = self._set_models_folder(self.context)
         self.train_log_folder = self.models_folder / "train_logs"
-
         self.dependent_variables = [
             "train_loss",
             "val_loss",
@@ -920,55 +894,86 @@ class RetinaVAE(RetinaMath):
             "kid_std",
             "kid_mean",
         ]
-
         self.device = self.context.device
 
-        # torch.serialization.add_safe_globals([VariationalAutoencoder])
-        # torch.serialization.add_safe_globals([retina.vae_module.VariationalAutoencoder])
-        self._get_and_split_apricot_data()
-
         match self.training_mode:
+
+            case "load_model":
+                # After tune_model
+                if self.context.retina_parameters["ray_tune_trial_id"] is not None:
+                    self.ray_dir = self._set_ray_folder(self.context)
+                    trial_name = self.context.retina_parameters["ray_tune_trial_id"]
+                    self.vae, result_grid, trial_folder = self._load_model(
+                        trial_name=trial_name
+                    )
+
+                    [this_result] = [
+                        result
+                        for result in result_grid
+                        if trial_name in result.metrics["trial_id"]
+                    ]
+                    self._update_retinavae_to_ray_result(this_result)
+
+                # After train_model
+                elif self.context.retina_parameters["ray_tune_trial_id"] is None:
+                    if self.context.retina_parameters["model_file_name"] is None:
+                        self.vae = self._load_model(model_path=self.models_folder)
+                        self._load_logging()
+                    else:
+                        model_file_name = self.context.retina_parameters[
+                            "model_file_name"
+                        ]
+                        self._validate_model_file_name(model_file_name)
+                        model_path_full = self.models_folder / model_file_name
+                        self.vae = self._load_model(model_path=model_path_full)
+                        self._load_logging(model_file_name=model_file_name)
+
+                else:
+                    raise ValueError(
+                        "No output path (models_folder) or trial name given, cannot load model, aborting..."
+                    )
+
+                summary(
+                    self.vae.to(self.device),
+                    input_size=(1, self.resolution_hw, self.resolution_hw),
+                    batch_size=-1,
+                )
+
             case "train_model":
+                self.get_and_split_apricot_data()
 
                 self.timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-                # Create datasets and dataloaders
-
-                self.train_loader = self._augment_and_get_dataloader(
+                self.train_loader = self.augment_and_get_dataloader(
                     data_type="train",
                     augmentation_dict=self.augmentation_dict,
                     batch_size=self.batch_size,
                     shuffle=True,
                 )
-                self.val_loader = self._augment_and_get_dataloader(
+                self.val_loader = self.augment_and_get_dataloader(
                     data_type="val",
                     augmentation_dict=self.augmentation_dict,
                     batch_size=self.batch_size,
                     shuffle=True,
                 )
-                # Create model and set optimizer and learning rate scheduler
+
                 self._prep_training()
-
-                # # Init tensorboard. This cleans up the folder.
-                # self._prep_tensorboard_logging()
-                # Init logging.
                 self._prep_logging()
-
-                # Train
                 self._train()
-
                 self._save_logging()
-
-                # Save model
                 model_path = self._save_model()
                 summary(
                     self.vae,
                     input_size=(1, self.resolution_hw, self.resolution_hw),
                     batch_size=-1,
                 )
+                self.test_loader = self.augment_and_get_dataloader(
+                    data_type="test", shuffle=False
+                )
 
             case "tune_model":
-                # self._get_and_split_apricot_data()
+                self.get_and_split_apricot_data()
+
                 self.ray_dir = self._set_ray_folder(self.context)
 
                 # This will be captured at _set_ray_tuner
@@ -1048,65 +1053,9 @@ class RetinaVAE(RetinaMath):
 
                 # Give one second to write the checkpoint to disk
                 time.sleep(1)
-
-            case "load_model":
-                # Load previously calculated model for vizualization
-                # Load model to self.vae
-
-                if (
-                    self.context.retina_parameters["ray_tune_trial_id"] is not None
-                ):  # After tune_model
-                    self.ray_dir = self._set_ray_folder(self.context)
-                    trial_name = self.context.retina_parameters["ray_tune_trial_id"]
-                    self.vae, result_grid, trial_folder = self._load_model(
-                        trial_name=trial_name
-                    )
-
-                    [this_result] = [
-                        result
-                        for result in result_grid
-                        if trial_name in result.metrics["trial_id"]
-                    ]
-                    self._update_retinavae_to_ray_result(this_result)
-
-                elif (
-                    self.context.retina_parameters["ray_tune_trial_id"] is None
-                ):  # After train_model
-                    if self.context.retina_parameters["model_file_name"] is None:
-                        self.vae = self._load_model(model_path=self.models_folder)
-                        self._load_logging()
-                    else:
-                        model_file_name = self.context.retina_parameters[
-                            "model_file_name"
-                        ]
-                        self._validate_model_file_name(model_file_name)
-                        model_path_full = self.models_folder / model_file_name
-                        self.vae = self._load_model(model_path=model_path_full)
-                        self._load_logging(model_file_name=model_file_name)
-                    # Get datasets for RF generation and vizualization
-                    # Original augmentation and data multiplication is applied to train and val ds
-                    self.train_loader = self._augment_and_get_dataloader(
-                        data_type="train", augmentation_dict=self.vae.augmentation_dict
-                    )
-                    self.val_loader = self._augment_and_get_dataloader(
-                        data_type="val", augmentation_dict=self.vae.augmentation_dict
-                    )
-
-                else:
-                    raise ValueError(
-                        "No output path (models_folder) or trial name given, cannot load model, aborting..."
-                    )
-
-                summary(
-                    self.vae.to(self.device),
-                    input_size=(1, self.resolution_hw, self.resolution_hw),
-                    batch_size=-1,
+                self.test_loader = self.augment_and_get_dataloader(
+                    data_type="test", shuffle=False
                 )
-
-        # This attaches test data to the model.
-        self.test_loader = self._augment_and_get_dataloader(
-            data_type="test", shuffle=False
-        )
 
     def _validate_model_file_name(self, model_file_name):
         assert (
@@ -1162,13 +1111,13 @@ class RetinaVAE(RetinaMath):
             except KeyError:
                 print(f"WARNING: Key '{config_key}' is missing and will not be updated")
 
-        self.train_loader = self._augment_and_get_dataloader(
+        self.train_loader = self.augment_and_get_dataloader(
             data_type="train",
             augmentation_dict=self.augmentation_dict,
             batch_size=self.batch_size,
             shuffle=True,
         )
-        self.val_loader = self._augment_and_get_dataloader(
+        self.val_loader = self.augment_and_get_dataloader(
             data_type="val",
             augmentation_dict=self.augmentation_dict,
             batch_size=self.batch_size,
@@ -1231,7 +1180,7 @@ class RetinaVAE(RetinaMath):
             methods={
                 "_train_epoch": self._train_epoch,
                 "_validate_epoch": self._validate_epoch,
-                "_augment_and_get_dataloader": self._augment_and_get_dataloader,
+                "augment_and_get_dataloader": self.augment_and_get_dataloader,
             },
             fixed_params={
                 "lr_step_size": self.lr_step_size,
@@ -1428,23 +1377,19 @@ class RetinaVAE(RetinaMath):
         """
         filename = f"model_{self.gc_type}_{self.response_type}_{self.device}_{self.timestamp}.pt"
         model_path = f"{self.models_folder}/{filename}"
-        # Create models folder if it does not exist using pathlib
 
-        # Get key VAE structural parameters and save them with the full model
-        # This is only partial config data, but only latent_dims are needed for loading
         self.vae.config = {
             "latent_dims": self.latent_dim,
         }
         print(f"Saving model to {model_path}")
-        # torch.save(self.vae.state_dict(), model_path)
-        torch.save(self.vae, model_path)
-        # model_scripted = torch.jit.script(self.vae)  # Export to TorchScript
-        # model_scripted.save(model_path)  # Save
+        torch.save(self.vae.state_dict(), model_path)
 
         return model_path
 
     def _load_model(self, model_path=None, best_result=None, trial_name=None):
         """Load model if exists. Use either model_path, best_result, or trial_name to load model"""
+
+        vae_model = self._create_empty_model()
 
         if best_result is not None:
             # ref https://medium.com/distributed-computing-with-ray/simple-end-to-end-ml-from-selection-to-serving-with-ray-tune-and-ray-serve-10f5564d33ba
@@ -1454,7 +1399,7 @@ class RetinaVAE(RetinaMath):
             ][0]
             checkpoint_path = os.path.join(log_dir, checkpoint_dir, "model.pth")
 
-            vae_model = torch.load(checkpoint_path, weights_only=False)
+            vae_model.load_state_dict(torch.load(checkpoint_path, weights_only=True))
 
         elif model_path is not None:
             model_path = Path(model_path)
@@ -1462,7 +1407,7 @@ class RetinaVAE(RetinaMath):
                 print(
                     f"Loading model from {model_path}. \nWARNING: This will replace the current model in-place."
                 )
-                vae_model = torch.load(model_path, weights_only=False)
+                vae_model.load_state_dict(torch.load(model_path, weights_only=True))
             elif Path.exists(model_path) and model_path.is_dir():
                 try:
                     prefix = f"model_{self.gc_type}_{self.response_type}_{self.device}_"
@@ -1472,7 +1417,9 @@ class RetinaVAE(RetinaMath):
                     if not model_path.is_file():
                         raise FileNotFoundError("VAE model not found, aborting...")
                     try:
-                        vae_model = torch.load(model_path, weights_only=False)
+                        vae_model.load_state_dict(
+                            torch.load(model_path, weights_only=True)
+                        )
                     except ModuleNotFoundError:
                         raise ModuleNotFoundError(
                             "Module path changed, you need to train VAE model. Aborting..."
@@ -1515,7 +1462,7 @@ class RetinaVAE(RetinaMath):
                     f"Could not find checkpoint folder in {correct_trial_folder}. Aborting..."
                 )
             model_path = Path.joinpath(checkpoint_folder_name, "model.pth")
-            vae_model = torch.load(model_path, weights_only=False)
+            vae_model.load_state_dict(torch.load(model_path, weights_only=True))
 
             # Move new model to same device as the input data
             vae_model.to(self.device)
@@ -1528,7 +1475,7 @@ class RetinaVAE(RetinaMath):
                 print(f"Most recent model is {model_path}.")
             except ValueError:
                 raise FileNotFoundError("No model files found. Aborting...")
-            vae_model = torch.load(model_path, weights_only=False)
+            vae_model.load_state_dict(torch.load(model_path, weights_only=True))
 
         vae_model.to(self.device)
 
@@ -1607,7 +1554,7 @@ class RetinaVAE(RetinaMath):
         plt.show()
         exit()
 
-    def _get_and_split_apricot_data(self):
+    def get_and_split_apricot_data(self):
         """
         Load data
         Split into training, validation and testing
@@ -1647,7 +1594,7 @@ class RetinaVAE(RetinaMath):
         self.test_data = test_data_np
         self.test_labels = test_labels_np
 
-    def _augment_and_get_dataloader(
+    def augment_and_get_dataloader(
         self, data_type="train", augmentation_dict=None, batch_size=32, shuffle=True
     ):
         """
@@ -1714,7 +1661,7 @@ class RetinaVAE(RetinaMath):
 
         # Get requested data
         self.apricot_data = ApricotData(
-            self.apricot_metadata_parameters, self.gc_type, self.response_type
+            self.dog_metadata_parameters, self.gc_type, self.response_type
         )
 
         # Log requested label
@@ -1723,10 +1670,12 @@ class RetinaVAE(RetinaMath):
         ]
 
         # We train by more data, however.
-        # Build a list of combinations of gc types and response types from self.train_by
+        # Build a list of combinations of gc types and response types from self.gc_response_types
         train_by_combinations = [
             f"{gc}_{response}"
-            for (gc, response) in product(self.train_by[0], self.train_by[1])
+            for (gc, response) in product(
+                self.gc_response_types[0], self.gc_response_types[1]
+            )
         ]
 
         response_labels = [
@@ -1758,7 +1707,7 @@ class RetinaVAE(RetinaMath):
         ):
             print(f"Loading data for {gc_type}_{response_type} (label {label})")
             apricot_data = ApricotData(
-                self.apricot_metadata_parameters, gc_type, response_type
+                self.dog_metadata_parameters, gc_type, response_type
             )
             bad_data_idx = apricot_data.manually_picked_bad_data_idx
             (
@@ -1789,8 +1738,8 @@ class RetinaVAE(RetinaMath):
             apricot_data.data_names2labels_dict,
         )
 
-    def _prep_training(self):
-        self.vae = VariationalAutoencoder(
+    def _create_empty_model(self):
+        vae = VariationalAutoencoder(
             latent_dims=self.latent_dim,
             resolution_hw=self.resolution_hw,
             ksp_key=self.kernel_stride,
@@ -1800,6 +1749,10 @@ class RetinaVAE(RetinaMath):
             latent_distribution=self.latent_distribution,
             device=self.device,
         )
+        return vae
+
+    def _prep_training(self):
+        self.vae = self._create_empty_model()
 
         # Will be saved with model for later eval and viz
         self.vae.test_data = self.test_data
@@ -2118,14 +2071,14 @@ class RetinaVAE(RetinaMath):
 
             return kid_mean_epoch, kid_std_epoch
 
-        dataloader_real = self._augment_and_get_dataloader(
+        dataloader_real = self.augment_and_get_dataloader(
             data_type="train",
             augmentation_dict=None,
             batch_size=self.batch_size,
             shuffle=True,
         )
 
-        dataloader_fake = self._augment_and_get_dataloader(
+        dataloader_fake = self.augment_and_get_dataloader(
             data_type="train",
             augmentation_dict=self.augmentation_dict,
             # augmentation_dict=None,

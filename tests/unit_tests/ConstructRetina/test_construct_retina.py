@@ -71,9 +71,7 @@ class TestConstructRetina:
             "cone_noise_path": "path/to/cone_noise.npz",
             "parasol_some_response_RI_values_fullpath": "path/to/RI_values.npz",
         }
-        self.context_mock.apricot_metadata_parameters = {
-            "metadata_key": "metadata_value"
-        }
+        self.context_mock.dog_metadata_parameters = {"metadata_key": "metadata_value"}
         self.context_mock.output_folder = MagicMock()
 
         # Initialize the ConstructRetina instance with the mocks
@@ -192,11 +190,11 @@ class TestConstructRetina:
         for key in expected_keys:
             assert key in literature
 
-    def test_append_apricot_metadata_parameters(self):
+    def test_append_dog_metadata_parameters(self):
         data = {"some_data": 123}
-        updated_data = self.construct_retina._append_apricot_metadata_parameters(data)
-        assert "apricot_metadata_parameters" in updated_data
-        assert updated_data["apricot_metadata_parameters"] == {
+        updated_data = self.construct_retina._append_dog_metadata_parameters(data)
+        assert "dog_metadata_parameters" in updated_data
+        assert updated_data["dog_metadata_parameters"] == {
             "metadata_key": "metadata_value"
         }
 
@@ -204,14 +202,14 @@ class TestConstructRetina:
         # Test when build exists
         self.construct_retina._build_exists = MagicMock(return_value=True)
         self.construct_retina._get_literature_data = MagicMock()
-        self.construct_retina._append_apricot_metadata_parameters = MagicMock()
+        self.construct_retina._append_dog_metadata_parameters = MagicMock()
         self.construct_retina.save_retina = MagicMock()
 
         self.construct_retina.build_retina_client()
 
         # Verify that methods after _build_exists are not called
         self.construct_retina._get_literature_data.assert_not_called()
-        self.construct_retina._append_apricot_metadata_parameters.assert_not_called()
+        self.construct_retina._append_dog_metadata_parameters.assert_not_called()
         self.construct_retina.save_retina.assert_not_called()
 
     def test_builder_client_build_does_not_exist(self):
@@ -220,8 +218,8 @@ class TestConstructRetina:
         self.construct_retina._get_literature_data = MagicMock(
             return_value={"data": "value"}
         )
-        self.construct_retina._append_apricot_metadata_parameters = MagicMock(
-            return_value={"data": "value", "apricot_metadata_parameters": {}}
+        self.construct_retina._append_dog_metadata_parameters = MagicMock(
+            return_value={"data": "value", "dog_metadata_parameters": {}}
         )
         self.construct_retina.save_retina = MagicMock()
 
@@ -251,7 +249,7 @@ class TestConstructRetina:
 
             # Verify that methods are called
             self.construct_retina._get_literature_data.assert_called_once()
-            self.construct_retina._append_apricot_metadata_parameters.assert_called_once()
+            self.construct_retina._append_dog_metadata_parameters.assert_called_once()
             self.construct_retina.save_retina.assert_called_once_with(
                 retina_instance, gc_instance
             )

@@ -754,7 +754,7 @@ class TestConcreteRetinaBuilder:
 
         # Mock experimental archive data
         self.retina_builder.experimental_archive = {
-            "apricot_metadata_parameters": {
+            "dog_metadata_parameters": {
                 "data_microm_per_pix": 1.5,  # Example micrometers per pixel
                 "data_spatialfilter_height": 128,  # Example pixel side length of the original data
             }
