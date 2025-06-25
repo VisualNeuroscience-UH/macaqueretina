@@ -155,7 +155,7 @@ Computing device
 For small retinas cpu is faster. Use cpu if you do not have cuda (and NVidia GPU).
 """
 # After training a VAE model with a device, the model must be loaded to same device. Pytorch quirk.
-device = "cuda"  # "cpu" or "cuda"
+device = "cpu"  # "cpu" or "cuda"
 
 """
 ### Housekeeping ###. Do not comment out.
@@ -193,8 +193,8 @@ path = Path.joinpath(model_root_path, Path(project), experiment)
 # Note: DOG model ellipse independent does not correlate the center and surround parameters. Thus they are independent, which
 # is not the case in the VAE model, and not very physiological.
 
-gc_type = "midget"  # "parasol", "midget"
-response_type = "off"  # "on", "off"
+gc_type = "parasol"  # "parasol", "midget"
+response_type = "on"  # "on", "off"
 spatial_model_type = "VAE"  # "DOG", "VAE"
 temporal_model_type = "fixed"  # "fixed", "dynamic", "subunit"
 

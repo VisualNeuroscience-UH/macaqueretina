@@ -5069,7 +5069,7 @@ class ConstructRetina(Printable):
         """
 
         filepath = self._get_vae_statistics_filepath()
-        retina_vae.build()
+        retina_vae.client()
 
         try:
             vae_latent_data = np.load(filepath)

@@ -1,6 +1,5 @@
 # Built-in
 import os
-import subprocess
 import time
 from collections import OrderedDict
 from copy import deepcopy
@@ -813,13 +812,11 @@ class TrainableVAE(tune.Trainable):
     def save_checkpoint(self, tmp_checkpoint_dir):
         checkpoint_path = os.path.join(tmp_checkpoint_dir, "model.pth")
         torch.save(self.model.state_dict(), checkpoint_path)
-        # torch.save(self.model, checkpoint_path)
         return tmp_checkpoint_dir
 
     def load_checkpoint(self, tmp_checkpoint_dir):
         checkpoint_path = os.path.join(tmp_checkpoint_dir, "model.pth")
-        # self.model.load_state_dict(torch.load(checkpoint_path, weights_only=True))
-        self.model = torch.load_state_dict(checkpoint_path, weights_only=False)
+        self.model.load_state_dict(torch.load(checkpoint_path, weights_only=True))
 
 
 class RetinaVAE(RetinaMath):
@@ -849,7 +846,7 @@ class RetinaVAE(RetinaMath):
     def context(self):
         return self._context
 
-    def build(
+    def client(
         self,
         save_tuned_models=False,
     ):
@@ -871,7 +868,7 @@ class RetinaVAE(RetinaMath):
         #######################
         self.latent_dim = vae_train_parameters["latent_dim"]
         self.channels = vae_train_parameters["channels"]
-        self.lr = vae_train_parameters["lr"]  # 0.0005
+        self.lr = vae_train_parameters["lr"]
         self.batch_size = vae_train_parameters["batch_size"]
         self.test_split = vae_train_parameters["test_split"]
         self.kernel_stride = vae_train_parameters["kernel_stride"]
@@ -883,7 +880,7 @@ class RetinaVAE(RetinaMath):
         ####################
         # Utility parameters
         ####################
-        self.latent_space_plot_scale = 15.0  # Scale for plotting latent space
+        self.latent_space_plot_scale = 15.0
         self.models_folder = self._set_models_folder(self.context)
         self.train_log_folder = self.models_folder / "train_logs"
         self.dependent_variables = [
@@ -1065,14 +1062,6 @@ class RetinaVAE(RetinaMath):
             self.response_type in model_file_name
         ), "response_type not in model_file_name, aborting..."
 
-    def _show_lr_decay(self, lr, gamma, step_size, epochs):
-        lrs = np.zeros(epochs)
-        for this_epoch in range(epochs):
-            lrs[this_epoch] = lr * gamma ** np.floor(this_epoch / step_size)
-        plt.plot(lrs)
-        plt.show()
-        exit()
-
     def _update_retinavae_to_ray_result(self, this_result):
         """
         Update the VAE to match the one model found by ray tune.
@@ -1122,20 +1111,6 @@ class RetinaVAE(RetinaMath):
             augmentation_dict=self.augmentation_dict,
             batch_size=self.batch_size,
             shuffle=True,
-        )
-
-    def _run_tensorboard(self, tb_dir):
-        """Run tensorboard in a new subprocess"""
-        subprocess.run(
-            [
-                "tensorboard",
-                "--logdir",
-                tb_dir,
-                "--host",
-                "localhost",
-                "--port",
-                "6006",
-            ]
         )
 
     def _set_ray_tuner(self, grid_search=True):
@@ -1347,7 +1322,7 @@ class RetinaVAE(RetinaMath):
     def _set_models_folder(self, context=None):
         """Set the folder where models are saved"""
 
-        # If output_folder is Path instance or string, use it as models_folder
+        # If input_folder is Path instance or string, use it as models_folder
         if isinstance(self.context.input_folder, Path) or isinstance(
             self.context.input_folder, str
         ):
@@ -1554,109 +1529,10 @@ class RetinaVAE(RetinaMath):
         plt.show()
         exit()
 
-    def get_and_split_apricot_data(self):
-        """
-        Load data
-        Split into training, validation and testing
-        """
-
-        # Get numpy data
-        data_np, labels_np, data_names2labels_dict = self._get_spatial_apricot_data()
-
-        # Split to training+validation and testing
-        (
-            train_val_data_np,
-            test_data_np,
-            train_val_labels_np,
-            test_labels_np,
-        ) = train_test_split(
-            data_np,
-            labels_np,
-            test_size=self.test_split,
-            random_state=self.random_seed,
-            stratify=labels_np,
-        )
-
-        # Split into train and validation
-        train_data_np, val_data_np, train_labels_np, val_labels_np = train_test_split(
-            train_val_data_np,
-            train_val_labels_np,
-            test_size=self.test_split,
-            random_state=self.random_seed,
-            stratify=train_val_labels_np,
-        )
-
-        # These are all numpy arrays
-        self.train_data = train_data_np
-        self.train_labels = train_labels_np
-        self.val_data = val_data_np
-        self.val_labels = val_labels_np
-        self.test_data = test_data_np
-        self.test_labels = test_labels_np
-
-    def augment_and_get_dataloader(
-        self, data_type="train", augmentation_dict=None, batch_size=32, shuffle=True
-    ):
-        """
-        Augmenting data
-        Creating dataloaders
-
-        Parameters:
-            data_type (str): "train", "val" or "test"
-            augmentation_dict (dict): augmentation dictionary
-            batch_size (int): batch size
-            shuffle (bool): shuffle data
-
-        Returns:
-            dataloader (torch.utils.data.DataLoader): dataloader
-        """
-
-        # Assert that data_type is "train", "val" or "test"
-        assert data_type in [
-            "train",
-            "val",
-            "test",
-        ], "data_type must be 'train', 'val' or 'test', aborting..."
-
-        # Assert that self. has attribute "train_data", "val_data" or "test_data"
-        assert hasattr(self, data_type + "_data"), (
-            "\nself has no attribute '" + data_type + "_data', aborting...\n"
-        )
-
-        data = getattr(self, data_type + "_data")
-        labels = getattr(self, data_type + "_labels")
-
-        # Augment training and validation data
-        data_ds = AugmentedDataset(
-            data,
-            labels,
-            self.resolution_hw,
-            augmentation_dict=augmentation_dict,
-        )
-
-        # set self. attribute "n_train", "n_val" or "n_test"
-        setattr(self, "n_" + data_type, len(data_ds))
-
-        # set self. attribute "train_ds", "val_ds" or "test_ds"
-        setattr(self, data_type + "_ds", data_ds)
-
-        data_loader = DataLoader(data_ds, batch_size=batch_size, shuffle=shuffle)
-
-        return data_loader
-
     def _get_spatial_apricot_data(self):
         """
         Get spatial ganglion cell data from file using the apricot_data method read_spatial_filter_data().
         All data is returned, the requested data is logged in the class attributes gc_type and response_type.
-
-        Returns
-        -------
-        collated_gc_spatial_data_np : np.ndarray
-            Spatial data with shape (n_gc, 1, ydim, xdim)
-        collated_gc_spatial_labels_np : np.ndarray
-            Labels with shape (n_gc, 1)
-        data_names2labels_dict : dict
-            Dictionary with gc names as keys and labels as values
         """
 
         # Get requested data
@@ -1754,7 +1630,6 @@ class RetinaVAE(RetinaMath):
     def _prep_training(self):
         self.vae = self._create_empty_model()
 
-        # Will be saved with model for later eval and viz
         self.vae.test_data = self.test_data
         self.vae.test_labels = self.test_labels
         self.vae.augmentation_dict = self.augmentation_dict
@@ -1763,7 +1638,6 @@ class RetinaVAE(RetinaMath):
             self.vae.parameters(), lr=self.lr, weight_decay=1e-5
         )
 
-        # Define the scheduler with a step size and gamma factor
         self.scheduler = lr_scheduler.StepLR(
             self.optim, step_size=self.lr_step_size, gamma=self.lr_gamma
         )
@@ -1775,12 +1649,10 @@ class RetinaVAE(RetinaMath):
         """
         Save logging to train_log_folder
         """
-        # Save log_df as csv
         self.log_df.to_csv(
             self.train_log_folder / f"train_log_{self.timestamp}.csv", index=False
         )
 
-        # Save log_df as pickle
         self.log_df.to_pickle(self.train_log_folder / f"train_log_{self.timestamp}.pkl")
 
     def _load_logging(self, model_file_name=None):
@@ -1827,12 +1699,12 @@ class RetinaVAE(RetinaMath):
             columns=self.dependent_variables, index=range(self.epochs)
         )
 
-    ### Training function
     def _train_epoch(self, vae, device, dataloader, optimizer, scheduler):
+        """Train model"""
+
         # Set train mode for both the encoder and the decoder
         vae.train()
         train_loss = 0.0
-        # Iterate the dataloader (we do not need the label values, this is unsupervised learning)
 
         for x, _ in dataloader:
             x = x.to(device)
@@ -1857,8 +1729,9 @@ class RetinaVAE(RetinaMath):
 
         return train_loss_out / len(dataloader.dataset)
 
-    ### Testing function
     def _validate_epoch(self, vae, device, dataloader):
+        """Test model"""
+
         # Set evaluation mode for encoder and decoder
         vae.eval()
         val_loss = 0.0
@@ -1962,31 +1835,95 @@ class RetinaVAE(RetinaMath):
             self.log_df.loc[epoch, "kid_mean"] = kid_mean_out
             self.log_df.loc[epoch, "kid_std"] = kid_std_out
 
-    def _show_image(self, img, latent=None):
-        npimg = img.numpy()
-        # Enc 0 as x-axis, 1 as y-axis
-        npimg_transposed = np.transpose(npimg, (2, 1, 0))
-        sidelength = int(npimg_transposed.shape[0] / 10)
-        npimg_transposed = np.flip(npimg_transposed, 0)  # flip the image ud
-        plt.imshow(npimg_transposed)
-        plt.xticks([])
-        plt.yticks([])
-        if latent is not None:
-            # Make x and y ticks from latent space (rows, cols) values
-            x_ticks = np.linspace(latent[:, 1].min(), latent[:, 1].max(), 10)
-            y_ticks = np.linspace(latent[:, 0].max(), latent[:, 0].min(), 10)
-            # Limit both x and y ticks to 2 significant digits
-            x_ticks = np.around(x_ticks, 2)
-            y_ticks = np.around(y_ticks, 2)
-            plt.xticks(
-                np.arange(0 + sidelength / 2, sidelength * 10, sidelength), x_ticks
-            )
-            plt.yticks(
-                np.arange(0 + sidelength / 2, sidelength * 10, sidelength), y_ticks
-            )
-            # X label and Y label
-            plt.xlabel("EncVariable 0")
-            plt.ylabel("EncVariable 1")
+    def get_and_split_apricot_data(self):
+        """
+        Load data
+        Split into training, validation and testing
+        """
+
+        # Get numpy data
+        data_np, labels_np, data_names2labels_dict = self._get_spatial_apricot_data()
+
+        # Split to training+validation and testing
+        (
+            train_val_data_np,
+            test_data_np,
+            train_val_labels_np,
+            test_labels_np,
+        ) = train_test_split(
+            data_np,
+            labels_np,
+            test_size=self.test_split,
+            random_state=self.random_seed,
+            stratify=labels_np,
+        )
+
+        # Split into train and validation
+        train_data_np, val_data_np, train_labels_np, val_labels_np = train_test_split(
+            train_val_data_np,
+            train_val_labels_np,
+            test_size=self.test_split,
+            random_state=self.random_seed,
+            stratify=train_val_labels_np,
+        )
+
+        # These are all numpy arrays
+        self.train_data = train_data_np
+        self.train_labels = train_labels_np
+        self.val_data = val_data_np
+        self.val_labels = val_labels_np
+        self.test_data = test_data_np
+        self.test_labels = test_labels_np
+
+    def augment_and_get_dataloader(
+        self, data_type="train", augmentation_dict=None, batch_size=32, shuffle=True
+    ):
+        """
+        Augmenting data
+        Creating dataloaders
+
+        Parameters:
+            data_type (str): "train", "val" or "test"
+            augmentation_dict (dict): augmentation dictionary
+            batch_size (int): batch size
+            shuffle (bool): shuffle data
+
+        Returns:
+            dataloader (torch.utils.data.DataLoader): dataloader
+        """
+
+        # Assert that data_type is "train", "val" or "test"
+        assert data_type in [
+            "train",
+            "val",
+            "test",
+        ], "data_type must be 'train', 'val' or 'test', aborting..."
+
+        # Assert that self. has attribute "train_data", "val_data" or "test_data"
+        assert hasattr(self, data_type + "_data"), (
+            "\nself has no attribute '" + data_type + "_data', aborting...\n"
+        )
+
+        data = getattr(self, data_type + "_data")
+        labels = getattr(self, data_type + "_labels")
+
+        # Augment training and validation data
+        data_ds = AugmentedDataset(
+            data,
+            labels,
+            self.resolution_hw,
+            augmentation_dict=augmentation_dict,
+        )
+
+        # set self. attribute "n_train", "n_val" or "n_test"
+        setattr(self, "n_" + data_type, len(data_ds))
+
+        # set self. attribute "train_ds", "val_ds" or "test_ds"
+        setattr(self, data_type + "_ds", data_ds)
+
+        data_loader = DataLoader(data_ds, batch_size=batch_size, shuffle=shuffle)
+
+        return data_loader
 
     def get_encoded_samples(self, ds_name=None, dataset=None):
         """Get encoded samples from a dataset.
@@ -1995,6 +1932,8 @@ class RetinaVAE(RetinaMath):
         ----------
         ds_name : str, optional
             Dataset name
+        dataset : torch.utils.data.Dataset, optional
+            Dataset to encode. If ds_name is given, this is ignored.
 
         Returns
         -------
@@ -2036,72 +1975,3 @@ class RetinaVAE(RetinaMath):
         encoded_samples = pd.DataFrame(encoded_samples)
 
         return encoded_samples
-
-    def check_kid_and_exit(self):
-        """
-        Check KernelInceptionDistance between real and fake data and exit.
-        """
-
-        def kid_compare(dataloader_real, dataloader_fake, n_features=64):
-            # Set evaluation mode for encoder and decoder
-            kid = KernelInceptionDistance(
-                feature=n_features,
-                reset_real_features=True,
-                normalize=True,
-                subset_size=16,
-            )
-
-            kid.reset()
-            kid.to(self.device)
-
-            with torch.no_grad():  # No need to track the gradients
-                # for x, _ in dataloader_real:
-                for real_batch, fake_batch in zip(dataloader_real, dataloader_fake):
-                    # Move tensor to the proper device
-                    real_img_batch = real_batch[0].to(self.device)
-                    fake_img_batch = fake_batch[0].to(self.device)
-                    # Expand dim 1 to 3 for x and x_hat
-                    real_img_batch_expanded = real_img_batch.expand(-1, 3, -1, -1)
-                    fake_img_batch_hat_expanded = fake_img_batch.expand(-1, 3, -1, -1)
-
-                    kid.update(real_img_batch_expanded, real=True)  # KID
-                    kid.update(fake_img_batch_hat_expanded, real=False)  # KID
-
-            kid_mean_epoch, kid_std_epoch = kid.compute()
-
-            return kid_mean_epoch, kid_std_epoch
-
-        dataloader_real = self.augment_and_get_dataloader(
-            data_type="train",
-            augmentation_dict=None,
-            batch_size=self.batch_size,
-            shuffle=True,
-        )
-
-        dataloader_fake = self.augment_and_get_dataloader(
-            data_type="train",
-            augmentation_dict=self.augmentation_dict,
-            # augmentation_dict=None,
-            batch_size=self.batch_size,
-            shuffle=True,
-        )
-
-        kid_mean, kid_std = kid_compare(dataloader_real, dataloader_fake, n_features=64)
-        print(f"KID mean: {kid_mean}, KID std: {kid_std} for 64 features")
-
-        kid_mean, kid_std = kid_compare(
-            dataloader_real, dataloader_fake, n_features=192
-        )
-        print(f"KID mean: {kid_mean}, KID std: {kid_std} for 192 features")
-
-        kid_mean, kid_std = kid_compare(
-            dataloader_real, dataloader_fake, n_features=768
-        )
-        print(f"KID mean: {kid_mean}, KID std: {kid_std} for 768 features")
-
-        kid_mean, kid_std = kid_compare(
-            dataloader_real, dataloader_fake, n_features="2048"
-        )
-        print(f"KID mean: {kid_mean}, KID std: {kid_std} for 2048 features")
-
-        exit()
