@@ -916,6 +916,7 @@ class RetinaVAE(RetinaMath):
                     if self.context.retina_parameters["model_file_name"] is None:
                         self.vae = self._load_model(model_path=self.models_folder)
                         self._load_logging()
+                        self._load_latent_stats()
                     else:
                         model_file_name = self.context.retina_parameters[
                             "model_file_name"
@@ -924,6 +925,7 @@ class RetinaVAE(RetinaMath):
                         model_path_full = self.models_folder / model_file_name
                         self.vae = self._load_model(model_path=model_path_full)
                         self._load_logging(model_file_name=model_file_name)
+                        self._load_latent_stats()
 
                 else:
                     raise ValueError(
@@ -957,15 +959,18 @@ class RetinaVAE(RetinaMath):
                 self._prep_training()
                 self._prep_logging()
                 self._train()
-                self._save_logging()
+
+                self.test_loader = self.augment_and_get_dataloader(
+                    data_type="test", shuffle=False
+                )
                 model_path = self._save_model()
+                self._save_logging()
+                self._save_latent_stats()
+
                 summary(
                     self.vae,
                     input_size=(1, self.resolution_hw, self.resolution_hw),
                     batch_size=-1,
-                )
-                self.test_loader = self.augment_and_get_dataloader(
-                    data_type="test", shuffle=False
                 )
 
             case "tune_model":
@@ -1350,8 +1355,8 @@ class RetinaVAE(RetinaMath):
         """
         Save model for single trial, a.k.a. 'train_model' training_mode
         """
-        filename = f"model_{self.gc_type}_{self.response_type}_{self.device}_{self.timestamp}.pt"
-        model_path = f"{self.models_folder}/{filename}"
+        model_filename = f"model_{self.gc_type}_{self.response_type}_{self.device}_{self.timestamp}.pt"
+        model_path = f"{self.models_folder}/{model_filename}"
 
         self.vae.config = {
             "latent_dims": self.latent_dim,
@@ -1359,7 +1364,70 @@ class RetinaVAE(RetinaMath):
         print(f"Saving model to {model_path}")
         torch.save(self.vae.state_dict(), model_path)
 
-        return model_path
+    def _save_latent_stats(self):
+        """
+        Save latent data after 'train_model' training_mode
+        """
+        latent_stats_filename = f"latent_stats_{self.gc_type}_{self.response_type}_{self.device}_{self.timestamp}.npy"
+        latent_stats_path = f"{self.models_folder}/{latent_stats_filename}"
+
+        vae_latent_stats = self._get_vae_latent_stats()
+        print(f"Saving latent data to {latent_stats_path}")
+        np.save(latent_stats_path, vae_latent_stats)
+
+        self.vae_latent_stats = vae_latent_stats  # Save to self for use after training
+
+    def _get_vae_latent_stats(self):
+        # Get the latent space data
+        train_df = self.get_encoded_samples(dataset=self.train_loader.dataset)
+        valid_df = self.get_encoded_samples(dataset=self.val_loader.dataset)
+        test_df = self.get_encoded_samples(dataset=self.test_loader.dataset)
+        latent_df = pd.concat([train_df, valid_df, test_df], axis=0, ignore_index=True)
+
+        # Extract data from latent_df into a numpy array from columns whose title include "EncVariable"
+        vae_latent_stats = latent_df.filter(regex="EncVariable").to_numpy()
+
+        return vae_latent_stats
+
+    def _parse_timestamp_from_model_filename(self, model_file_name):
+        """
+        Parse the timestamp from the model file name.
+        The timestamp is expected to be in the format 'YYYYMMDD_HHMMSS'.
+        """
+        # Get the time stamp from the file name
+        name_stem = model_file_name.split(".")[0]
+        times = name_stem.split("_")[-2:]
+        timestamp = "_".join(times)
+
+        return timestamp
+
+    def _load_latent_stats(self, model_file_name=None):
+        # Load latent data after 'load_model' training_mode
+        if model_file_name is None:
+            latent_stats_file_name = f"latent_stats_{self.gc_type}_{self.response_type}_{self.device}_{self.timestamp_for_loading}.npy"  # timestamp_for_loading is set in _load_model
+            timestamp = self.timestamp_for_loading
+        else:
+            timestamp = self._parse_timestamp_from_model_filename(model_file_name)
+
+        try:
+            if timestamp is not None:
+                # latent data file name is of type latent_stats_[TIMESTAMP].npy
+                latent_stats_file_name = f"latent_stats_{self.gc_type}_{self.response_type}_{self.device}_{timestamp}.npy"
+            else:
+                # Get the most recent latent data file
+                latent_stats_file_name = max(
+                    Path(self.models_folder).glob(
+                        f"latent_stats_{self.gc_type}_{self.response_type}_{self.device}_*.npy"
+                    )
+                )
+                print(f"Most recent latent data file is {latent_stats_file_name}.")
+        except ValueError:
+            raise FileNotFoundError("No latent data files found. Aborting...")
+
+        latent_stats_path = self.models_folder / latent_stats_file_name
+
+        print(f"Loading latent data from {latent_stats_path}")
+        self.vae_latent_stats = np.load(latent_stats_path)
 
     def _load_model(self, model_path=None, best_result=None, trial_name=None):
         """Load model if exists. Use either model_path, best_result, or trial_name to load model"""
@@ -1661,18 +1729,13 @@ class RetinaVAE(RetinaMath):
         """
 
         if model_file_name is None:
-            # This is set in _load_model, when there is no model_file_name
             timestamp = self.timestamp_for_loading
         else:
-            # Get the time stamp from the file name
-            name_stem = model_file_name.split(".")[0]
-            times = name_stem.split("_")[-2:]
-            timestamp = "_".join(times)
+            timestamp = self._parse_timestamp_from_model_filename(model_file_name)
 
         # Get the most recent log file
         try:
             if timestamp is not None:
-                # log file name is of type train_log_[TIMESTAMP].csv
                 log_file_name = f"train_log_{timestamp}.csv"
                 log_path = Path(self.train_log_folder) / log_file_name
                 print(f"Loading log file from {log_path}.")
@@ -1682,7 +1745,6 @@ class RetinaVAE(RetinaMath):
         except ValueError:
             raise FileNotFoundError("No log files found. Aborting...")
 
-        # Load the log file
         self.log_df = pd.read_csv(log_path)
 
     def _prep_logging(self):

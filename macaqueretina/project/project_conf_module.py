@@ -120,7 +120,7 @@ project = "macaqueretina"
 """
 Current experiment. Use distinct folders for distinct stimuli.
 """
-experiment = "amplitude_calibration_testi"
+experiment = "test"
 
 
 """
@@ -132,7 +132,7 @@ input_folder = "../in"  # input figs, videos, models
 """
 Data context for output. 
 """
-output_folder = "testi"
+output_folder = "test_0"
 # output_folder_stem = f"{gc_type}_{response_type}_{spatial_model_type}_{temporal_model_type}_{contrast}_gain{signal_gain}_temporal_frequency"
 
 
@@ -250,7 +250,8 @@ retina_parameters = {
     "retina_center": 5.0 + 0j,  # degrees, this is stimulus_position (0, 0)
     "force_retina_build": True,  # False or True. If True, rebuilds retina even if the hash matches
     "training_mode": "load_model",  # "load_model", "train_model" or "tune_model". Applies to VAE only
-    "model_file_name": None,  # None for most recent or "model_[GC TYPE]_[RESPONSE TYPE]_[DEVICE]_[TIME_STAMP].pt" at input_folder. Applies to VAE "load_model" only
+    "model_file_name": None,  # None for most recent or "model_[GC TYPE]_[RESPONSE TYPE]_[DEVICE]_[TIMESTAMP].pt" at input_folder. Applies to VAE "load_model" only
+    # "model_file_name": "model_parasol_on_cpu_20250625_143013.pt",  # None for most recent or "model_[GC TYPE]_[RESPONSE TYPE]_[DEVICE]_[TIMESTAMP].pt" at input_folder. Applies to VAE "load_model" only
     "ray_tune_trial_id": None,  # Trial_id for tune, None for loading single run after "train_model". Applies to VAE "load_model" only
 }
 
@@ -306,10 +307,8 @@ the median is removed to get the zero level to approximately match the original 
 
 Note that in experiments (below), tuple values are captured for varying each tuple value separately.
 """
-# TÄHÄN JÄIT: REFRACTORY DYSSYNCRHRONY. DYNAMIC FR > MUUT. -- TÄSSÄKÖ SYY APPARENTTIIN DYSSYNKRONIAAN?
-# GENERAATTORIPOTENTIAALI NÄYTTI NOUSEVAN HITAASTI AINAKIN MUISSA.
 visual_stimulus_parameters = {
-    "pattern": "sine_grating",  # One of the StimulusPatterns
+    "pattern": "temporal_square_pattern",  # One of the StimulusPatterns
     "image_width": 240,  # 752 for nature1.avi
     "image_height": 240,  # 432 for nature1.avi
     "pix_per_deg": 60,
@@ -443,8 +442,11 @@ dog_metadata_parameters = {
     "data_spatialfilter_width": 13,
     "data_fps": 30,
     "data_temporalfilter_samples": 15,
-    "exp_dog_data_folder": git_repo_root_path.joinpath(r"retina/apricot_data"),
-    "exp_rf_stat_folder": git_repo_root_path.joinpath(r"retina/apricot_statistics"),
+    "exp_dog_data_folder": git_repo_root_path.joinpath(
+        r"../../experimental_data/Chichilnisky_lab/apricot_data"
+    ),
+    # "exp_dog_data_folder": git_repo_root_path.joinpath(r"retina/apricot_data"),
+    "exp_rf_stat_folder": git_repo_root_path.joinpath(r"retina/dog_statistics"),
     "mask_noise": retina_parameters_append["apricot_data_noise_mask"],
 }
 
@@ -618,8 +620,6 @@ bipolar2gc_dict = {
 
 # Auxiliary retina parameters not included in the hash
 retina_parameters_append_the_rest = {
-    "mosaic_file": gc_type + "_" + response_type + "_mosaic.csv",
-    "spatial_rfs_file": gc_type + "_" + response_type + "_spatial_rfs.npz",
     "proportion_of_parasol_gc_type": proportion_of_parasol_gc_type,
     "proportion_of_midget_gc_type": proportion_of_midget_gc_type,
     "proportion_of_ON_response_type": proportion_of_ON_response_type,
@@ -905,7 +905,7 @@ if __name__ == "__main__":
     ########################
 
     # Based on visual_stimulus_parameters above
-    # PM.stimulate.make_stimulus_video()
+    PM.stimulate.make_stimulus_video()
 
     ####################################
     ### Run multiple trials or units ###

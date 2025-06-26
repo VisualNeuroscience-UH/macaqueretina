@@ -897,19 +897,9 @@ class FitDataTypeTemplate(ABC, Printable):
                     }
 
                 case "skewnorm":
-                    try:
-                        shape, loc[index], scale[index] = stats.skewnorm.fit(
-                            experimental_data[:, index], loc=0
-                        )
-                    except:
-                        # For some parameters, the fit might fail, e.g., if all values are the same
-                        # In this case, we can use a normal distribution fit as a fallback
-                        d = experimental_data[:, index]
-                        loc[index], scale[index] = stats.norm.fit(
-                            d, loc=np.mean(d), scale=np.std(d)
-                        )
-                        shape = 0  # skewness is zero for normal distribution
-
+                    shape, loc[index], scale[index] = stats.skewnorm.fit(
+                        experimental_data[:, index], loc=0
+                    )
                     x_model_fit[:, index] = np.linspace(
                         stats.skewnorm.ppf(
                             0.001, shape, loc=loc[index], scale=scale[index]

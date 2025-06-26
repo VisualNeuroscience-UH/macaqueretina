@@ -1997,12 +1997,12 @@ class SpatialModelVAE(SpatialModelBase):
             Raw image stack, shape (n_samples, img_size, img_size).
         """
         # 1. Make a probability density function of the latent space
-        vae_latent_data = self.vae_latent_data
+        vae_latent_stats = retina_vae.vae_latent_stats
 
-        # Make a probability density function of the vae_latent_data
+        # Make a probability density function of the vae_latent_stats
         # Both uniform and normal distributions during learning are sampled
         # using Gaussian KDE estimate.
-        latent_pdf = stats.gaussian_kde(vae_latent_data.T)
+        latent_pdf = stats.gaussian_kde(vae_latent_stats.T)
 
         # 2. Sample from the pdf
         latent_samples = torch.tensor(latent_pdf.resample(n_samples).T).to(
@@ -2015,7 +2015,7 @@ class SpatialModelVAE(SpatialModelBase):
         self.project_data["gen_latent_space"] = {
             "samples": latent_samples.to("cpu").numpy(),
             "dim": latent_dim,
-            "data": vae_latent_data,
+            "data": vae_latent_stats,
         }
 
         # 3. Decode the samples
@@ -2062,7 +2062,9 @@ class SpatialModelVAE(SpatialModelBase):
 
         # 1) Get variational autoencoder to generate receptive fields
         print("\nGetting VAE model...")
-        self.vae_latent_data = ret.experimental_archive["vae_statistics"]
+        # self.vae_latent_stats = ret.experimental_archive["vae_statistics"]
+
+        self.retina_vae.client()
 
         # 2) "Bad fit loop", provides eccentricity-scaled vae rfs with good DoG fits (error < 3SD from mean).
         print("\nBad fit loop: Generating receptive fields with good DoG fits...")
@@ -2073,8 +2075,7 @@ class SpatialModelVAE(SpatialModelBase):
 
         viz_gc_vae_img = gc.img.copy()
         viz_gc_vae_img_mask = gc.img_mask.copy()
-        if gc.df.xoc_pix.values.std() > 0.6:
-            breakpoint()  # TMP, REMOVEME
+
         # 4) Sum separate rf images onto one retina pixel matrix.
         ret, gc, ret.whole_ret_img = self._get_full_retina_with_rf_images(
             ret, gc, gc.img, apply_pix_scaler=True
@@ -5046,70 +5047,72 @@ class ConstructRetina(Printable):
 
         return dog_statistics
 
-    def _update_latent_data(self, vae_latent_data: np.ndarray) -> None:
+    # def _update_latent_stats(self, vae_latent_stats: np.ndarray) -> None:
 
-        filepath = self._get_vae_statistics_filepath()
-        np.save(filepath, vae_latent_data)
+    #     filepath = self._get_vae_statistics_filepath()
+    #     np.save(filepath, vae_latent_stats)
 
-    def _get_vae_statistics_filepath(self) -> str:
-        """
-        Returns the file path for the VAE statistics based on the context.
-        """
-        path = self.vae_context["path"]
-        filename_stem = self.vae_context["filename_stem"]
-        return str(path / f"{filename_stem}_vae_latent_data.npy")
+    # def _get_vae_statistics_filepath(self) -> str:
+    #     """
+    #     Returns the file path for the VAE statistics based on the context.
+    #     """
+    #     # breakpoint()
+    #     path = self.vae_context["path"]
+    #     filename_stem = self.vae_context["filename_stem"]
+    #     return str(path / f"{filename_stem}_vae_latent_stats.npy")
 
-    def _get_vae_statistics(self, retina_vae: Any) -> np.ndarray:
-        """
-        Loads the VAE statistics from disk. If not found, recalculates the statistics
-        by augmenting the original data and getting the encoded samples from the VAE model.
-        Saves the statistics on disk.
-        """
+    # def _get_vae_statistics(self, retina_vae: Any) -> np.ndarray:
+    #     """
+    #     Loads the VAE statistics from disk. If not found, recalculates the statistics
+    #     by augmenting the original data and getting the encoded samples from the VAE model.
+    #     Saves the statistics on disk.
+    #     """
 
-        filepath = self._get_vae_statistics_filepath()
-        retina_vae.client()
+    #     filepath = self._get_vae_statistics_filepath()
+    #     retina_vae.client()
 
-        try:
-            vae_latent_data = np.load(filepath)
-            print("Loaded VAE statistics from disk.")
+    #     try:
+    #         raise FileNotFoundError("Bypassing VAE statistics loading for testing.")
+    #         vae_latent_stats = np.load(filepath)
+    #         print("Loaded VAE statistics from disk.")
 
-        except FileNotFoundError:
-            vae_train_parameters = self.context.retina_parameters[
-                "vae_train_parameters"
-            ]
-            augmentation_dict = vae_train_parameters.get("augmentation_dict", {})
+    #     except FileNotFoundError:
+    #         vae_train_parameters = self.context.retina_parameters[
+    #             "vae_train_parameters"
+    #         ]
+    #         augmentation_dict = vae_train_parameters.get("augmentation_dict", {})
 
-            retina_vae.get_and_split_apricot_data()
-            retina_vae.train_loader = retina_vae.augment_and_get_dataloader(
-                data_type="train", augmentation_dict=augmentation_dict
-            )
-            retina_vae.val_loader = retina_vae.augment_and_get_dataloader(
-                data_type="val", augmentation_dict=augmentation_dict
-            )
-            retina_vae.test_loader = retina_vae.augment_and_get_dataloader(
-                data_type="test", shuffle=False
-            )
+    #         retina_vae.get_and_split_apricot_data()
+    #         retina_vae.train_loader = retina_vae.augment_and_get_dataloader(
+    #             data_type="train", augmentation_dict=augmentation_dict
+    #         )
+    #         retina_vae.val_loader = retina_vae.augment_and_get_dataloader(
+    #             data_type="val", augmentation_dict=augmentation_dict
+    #         )
+    #         retina_vae.test_loader = retina_vae.augment_and_get_dataloader(
+    #             data_type="test", shuffle=False
+    #         )
 
-            # Get the latent space data
-            train_df = retina_vae.get_encoded_samples(
-                dataset=retina_vae.train_loader.dataset
-            )
-            valid_df = retina_vae.get_encoded_samples(
-                dataset=retina_vae.val_loader.dataset
-            )
-            test_df = retina_vae.get_encoded_samples(
-                dataset=retina_vae.test_loader.dataset
-            )
-            latent_df = pd.concat(
-                [train_df, valid_df, test_df], axis=0, ignore_index=True
-            )
+    #         # Get the latent space data
+    #         train_df = retina_vae.get_encoded_samples(
+    #             dataset=retina_vae.train_loader.dataset
+    #         )
+    #         valid_df = retina_vae.get_encoded_samples(
+    #             dataset=retina_vae.val_loader.dataset
+    #         )
+    #         test_df = retina_vae.get_encoded_samples(
+    #             dataset=retina_vae.test_loader.dataset
+    #         )
+    #         latent_df = pd.concat(
+    #             [train_df, valid_df, test_df], axis=0, ignore_index=True
+    #         )
 
-            # Extract data from latent_df into a numpy array from columns whose title include "EncVariable"
-            vae_latent_data = latent_df.filter(regex="EncVariable").to_numpy()
+    #         # Extract data from latent_df into a numpy array from columns whose title include "EncVariable"
+    #         vae_latent_stats = latent_df.filter(regex="EncVariable").to_numpy()
 
-            self._update_latent_data(vae_latent_data)
+    #         self._update_latent_stats(vae_latent_stats)
 
-        return vae_latent_data
+    #     return vae_latent_stats
 
     def _get_all_experimental_statistics(
         self, experimental_archive: dict, retina_parameters: dict
@@ -5139,14 +5142,14 @@ class ConstructRetina(Printable):
 
         experimental_archive["dog_statistics"] = dog_statistics
 
-        # VAE statistics
-        try:
-            vae_latent_data = self._get_vae_statistics(self.retina_vae)
-        except FileNotFoundError:
-            print("No VAE statistics found on disk.")
-            raise
+        # # VAE statistics
+        # try:
+        #     vae_latent_stats = self._get_vae_statistics(self.retina_vae)
+        # except FileNotFoundError:
+        #     print("No VAE statistics found on disk.")
+        #     raise
 
-        experimental_archive["vae_statistics"] = vae_latent_data
+        # experimental_archive["vae_statistics"] = vae_latent_stats
 
         return experimental_archive
 

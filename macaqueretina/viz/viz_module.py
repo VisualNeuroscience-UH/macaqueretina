@@ -1533,7 +1533,7 @@ class Viz:
         gen_latent_space = self.project_data.construct_retina["gen_latent_space"]
 
         latent_samples = gen_latent_space["samples"]
-        latent_data = gen_latent_space["data"]
+        latent_stats = gen_latent_space["data"]
         latent_dim = gen_latent_space["dim"]
 
         # Make a grid of subplots
@@ -1556,7 +1556,7 @@ class Viz:
                 break
 
             # Get only two dimensions at a time
-            values = latent_data[:, [i, i + 1]].T
+            values = latent_stats[:, [i, i + 1]].T
             # Evaluate the kde using only the same two dimensions
             # Both uniform and normal distr during learning is sampled
             # using gaussian kde estimate. The kde estimate is basically smooth histogram,
@@ -1564,9 +1564,9 @@ class Viz:
             kernel = stats.gaussian_kde(values)
 
             # Construct X and Y grids using the same two dimensions
-            x = np.linspace(latent_data[:, i].min(), latent_data[:, i].max(), 100)
+            x = np.linspace(latent_stats[:, i].min(), latent_stats[:, i].max(), 100)
             y = np.linspace(
-                latent_data[:, i + 1].min(), latent_data[:, i + 1].max(), 100
+                latent_stats[:, i + 1].min(), latent_stats[:, i + 1].max(), 100
             )
             X, Y = np.meshgrid(x, y)
             positions = np.vstack([X.ravel(), Y.ravel()])
@@ -1575,7 +1575,7 @@ class Viz:
             # Plot the estimated kde and samples on top of it
             axes[ax_idx].contour(X, Y, Z, levels=10)
             axes[ax_idx].scatter(latent_samples[:, i], latent_samples[:, i + 1])
-            # axes[ax_idx].scatter(latent_data[:, i], latent_data[:, i + 1])
+            # axes[ax_idx].scatter(latent_stats[:, i], latent_stats[:, i + 1])
 
             # Make marginal plots of the contours as contours and samples as histograms.
             # Place the marginal plots on the right and top of the main plot

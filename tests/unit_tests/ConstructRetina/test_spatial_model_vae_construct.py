@@ -190,11 +190,11 @@ class TestSpatialModelVAE(unittest.TestCase):
         self.mock_retina_vae.get_encoded_samples.return_value = encoded_samples
 
         # Call the method
-        latent_data = self.model._get_data_at_latent_space(self.mock_retina_vae)
+        latent_stats = self.model._get_data_at_latent_space(self.mock_retina_vae)
 
         # Assertions
-        self.assertEqual(latent_data.shape[1], self.mock_retina_vae.latent_dim)
-        self.assertFalse(np.any(np.isnan(latent_data)))
+        self.assertEqual(latent_stats.shape[1], self.mock_retina_vae.latent_dim)
+        self.assertFalse(np.any(np.isnan(latent_stats)))
 
     @patch("macaqueretina.retina.construct_retina_module.apply_rf_repulsion")
     def test_create(self, mock_apply_rf_repulsion):
