@@ -2073,7 +2073,8 @@ class SpatialModelVAE(SpatialModelBase):
 
         viz_gc_vae_img = gc.img.copy()
         viz_gc_vae_img_mask = gc.img_mask.copy()
-
+        if gc.df.xoc_pix.values.std() > 0.6:
+            breakpoint()  # TMP, REMOVEME
         # 4) Sum separate rf images onto one retina pixel matrix.
         ret, gc, ret.whole_ret_img = self._get_full_retina_with_rf_images(
             ret, gc, gc.img, apply_pix_scaler=True

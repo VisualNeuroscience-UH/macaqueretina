@@ -4813,7 +4813,7 @@ class Viz:
                     data_df_compiled,
                     independent_var_col_list,
                     dependent_var_col_list,
-                    time_stamp,
+                    timestamp,
                 ) = self.data_io.get_csv_as_df(
                     folder_name=this_folder, csv_path=csv_path, include_only=None
                 )

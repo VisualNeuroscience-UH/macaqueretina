@@ -1387,8 +1387,8 @@ class RetinaVAE(RetinaMath):
                 try:
                     prefix = f"model_{self.gc_type}_{self.response_type}_{self.device}_"
                     model_path = max(Path(self.models_folder).glob(f"{prefix}*.pt"))
-                    time_stamp = "_".join(model_path.stem.split("_")[-2:])
-                    self.timestamp_for_loading = time_stamp
+                    timestamp = "_".join(model_path.stem.split("_")[-2:])
+                    self.timestamp_for_loading = timestamp
                     if not model_path.is_file():
                         raise FileNotFoundError("VAE model not found, aborting...")
                     try:
@@ -1662,18 +1662,18 @@ class RetinaVAE(RetinaMath):
 
         if model_file_name is None:
             # This is set in _load_model, when there is no model_file_name
-            time_stamp = self.timestamp_for_loading
+            timestamp = self.timestamp_for_loading
         else:
             # Get the time stamp from the file name
             name_stem = model_file_name.split(".")[0]
             times = name_stem.split("_")[-2:]
-            time_stamp = "_".join(times)
+            timestamp = "_".join(times)
 
         # Get the most recent log file
         try:
-            if time_stamp is not None:
-                # log file name is of type train_log_[TIME_STAMP].csv
-                log_file_name = f"train_log_{time_stamp}.csv"
+            if timestamp is not None:
+                # log file name is of type train_log_[TIMESTAMP].csv
+                log_file_name = f"train_log_{timestamp}.csv"
                 log_path = Path(self.train_log_folder) / log_file_name
                 print(f"Loading log file from {log_path}.")
             else:
