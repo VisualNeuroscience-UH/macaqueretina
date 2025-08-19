@@ -1,8 +1,6 @@
 # Built-in
 import math
-import os
 import random
-import sys
 import time
 import warnings
 from pathlib import Path
@@ -155,7 +153,7 @@ Computing device
 For small retinas cpu is faster. Use cpu if you do not have cuda (and NVidia GPU).
 """
 # After training a VAE model with a device, the model must be loaded to same device. Pytorch quirk.
-device = "cuda"  # "cpu" or "cuda"
+device = "cpu"  # "cpu" or "cuda"
 
 """
 ### Housekeeping ###. Do not comment out.
@@ -171,10 +169,6 @@ if not model_root_path.exists():
         f"\033[91m \nModel root path {model_root_path} does not exist. \nUpdate project/project_conf_module.py model_root_path. \nUsing current working directory. \033[0m\n"
     )
 path = Path.joinpath(model_root_path, Path(project), experiment)
-
-# When training or tuning generative VAE model, multiple hyperparameters are set at the RetinaVAE class.
-# For training, see __init__ method. For tuning, the __init__ contains search space and
-# _set_ray_tuner contains the starting point.
 
 # For "load_model" training_mode, the model is loaded from model_file_name at output_folder (primary)
 # or input_folder. The correct model name (including time stamp) must be given in the model_file_name.
@@ -242,16 +236,11 @@ retina_parameters = {
     # Auxiliary model type variants included into the hash
     "ecc_limits_deg": [4.5, 5.5],  # eccentricity in degrees MIDGET
     "pol_limits_deg": [-1.5, 1.5],  # polar angle in degrees
-    # "ecc_limits_deg": [4.0, 6.0],  # eccentricity in degrees PARASOL
-    # "pol_limits_deg": [-6, 6],  # polar angle in degrees
-    # "ecc_limits_deg": [3.5, 6.5],  # eccentricity in degrees PARASOL
-    # "pol_limits_deg": [-15, 15],  # polar angle in degrees
     "model_density": 1.0,  # 1.0 for 100% of the literature density of ganglion cells
     "retina_center": 5.0 + 0j,  # degrees, this is stimulus_position (0, 0)
     "force_retina_build": True,  # False or True. If True, rebuilds retina even if the hash matches
     "training_mode": "load_model",  # "load_model", "train_model" or "tune_model". Applies to VAE only
     "model_file_name": None,  # None for most recent or "model_[GC TYPE]_[RESPONSE TYPE]_[DEVICE]_[TIMESTAMP].pt" at input_folder. Applies to VAE "load_model" only
-    # "model_file_name": "model_parasol_on_cpu_20250625_143013.pt",  # None for most recent or "model_[GC TYPE]_[RESPONSE TYPE]_[DEVICE]_[TIMESTAMP].pt" at input_folder. Applies to VAE "load_model" only
     "ray_tune_trial_id": None,  # Trial_id for tune, None for loading single run after "train_model". Applies to VAE "load_model" only
 }
 
@@ -328,7 +317,6 @@ visual_stimulus_parameters = {
     "orientation": 90,  # degrees
     "phase_shift": 0,  # math.pi + 0.1,  # radians
     "stimulus_video_name": f"{stimulus_folder}.mp4",
-    # "contrast": 0.035,  # mean +- contrast * mean
     "contrast": 1.0,  # mean +- contrast * mean
     "mean": 128,  # Mean luminance in  cd/m2 and adaptation level
     # "intensity": (0, 255),  # intensity overrides contrast and mean if not commented out
@@ -348,13 +336,13 @@ stimulus_metadata_parameters = {
 n_files = 1
 
 # Running multiple trials on multiple units is not supported
+# "save_variables": "spikes", "cone_noise", "cone_bipo_gen_fir"
 run_parameters = {
     "n_sweeps": 1,  # For each of the response files
     "spike_generator_model": "poisson",  # poisson or refractory
     "save_data": True,
     "gc_response_filenames": [f"gc_response_{x:02}" for x in range(n_files)],
     "simulation_dt": 0.0001,  # in sec 0.001 = 1 ms
-    # ["spikes", "cone_noise", "cone_bipo_gen_fir"],
     "save_variables": ["spikes", "cone_noise"],
 }
 
@@ -393,11 +381,8 @@ vae_train_parameters = {
     # Augment training and validation data.
     "augmentation_dict": {
         "rotation": 0,  # rotation in degrees
-        "translation": (
-            0,  # 0.07692307692307693,
-            0,  # 0.07692307692307693,
-        ),  # fraction of image, (x, y) -directions
-        "noise": 0,  # 0.005,  # noise float in [0, 1] (noise is added to the image)
+        "translation": (0, 0),  # fraction of image, in (x, y) -directions
+        "noise": 0,  # noise float in [0, 1] (noise is added to the image)
         "flip": 0.5,  # flip probability, both horizontal and vertical
         "data_multiplier": 4,  # how many times to get the data w/ augmentation
     },
@@ -409,12 +394,12 @@ vae_train_parameters = {
 # personal communication).
 noise_gain = {
     "on": {
-        "parasol": 16.3,  # 16.3
-        "midget": 5.4,  # 5.4
+        "parasol": 16.3,
+        "midget": 5.4,
     },
     "off": {
-        "parasol": 3.8,  # 3.8
-        "midget": 1.5,  # 1.5
+        "parasol": 3.8,
+        "midget": 1.5,
     },
 }
 
@@ -450,7 +435,7 @@ dog_metadata_parameters = {
     "mask_noise": retina_parameters_append["apricot_data_noise_mask"],
 }
 
-# Proportion from all ganglion cells. Density of all ganglion cells is given later as a function of ecc from literature.
+# Proportion from all ganglion cells.
 proportion_of_parasol_gc_type = 0.08
 proportion_of_midget_gc_type = 0.64
 
@@ -522,8 +507,7 @@ bipolar_general_parameters = {
     "bipo2gc_cutoff_SD": 2,  # Multiplier for above value
     "cone2bipo_cen_sd": 10,  # um, Turner_2018_eLife
     "cone2bipo_sur_sd": 150,
-    # Surround / Center amplitude ratio.
-    "bipo_sub_sur2cen": 0.9,  # 0.9 avoids cancellation for fullfield stimuli
+    "bipo_sub_sur2cen": 0.9,  # Surround / Center amplitude ratio.
 }
 
 # Recovery function from Berry_1998_JNeurosci, Uzzell_2004_JNeurophysiol
@@ -971,8 +955,7 @@ if __name__ == "__main__":
 
     # Get uniformity data and exit
     # See Gauthier_2009_PLoSBiol for details
-    # TÄHÄN JÄIT: TEE UNITY MAX EXPERIMENT, ASETA CENTER MASK TH TO UNITY MAX
-    # EKAKSI TARKISTA DYNAMIC JA SUBUNIT MALLIEN NORMALISOINTI. NYT FIXED ASETETTU P1 AREA UNDER CURVE MUKAAN, MUIDEN PITÄISI TEHDÄ SAMANKALTAISESTI
+    # TODO: MAKE UNITY MAX EXPERIMENT, SET CENTER MASK TH TO UNITY MAX
     # PM.simulate_retina.client(unity=True)
     # PM.viz.show_unity(savefigname=None)
 
@@ -992,15 +975,15 @@ if __name__ == "__main__":
     # # Note that tuple values from visual_stimulus_parameters are captured for varying each tuple value separately.
 
     # # from visual_stimulus_parameters, safe up to two variables
-    exp_variables = ["temporal_frequency"]
+    # exp_variables = ["temporal_frequency"]
     # experiment_parameters = {
     #     "exp_variables": exp_variables,
     #     # two vals below for each exp_variable, even is it is not changing
     #     # "min_max_values": [[5, 5]],
     #     "min_max_values": [[1, 32]],
     #     # "min_max_values": [[1, 32], [0.015, 0.5]],
-    #     # "n_steps": [1],  # [6 ,10]
-    #     "n_steps": [16],  # [6 ,10]
+    #     "n_steps": [2],  # [6 ,10]
+    #     # "n_steps": [16],  # [6 ,10]
     #     "logarithmic": [True],
     #     # "logarithmic": [True, True],
     #     "n_sweeps": 1,
