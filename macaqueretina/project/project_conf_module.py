@@ -187,9 +187,11 @@ path = Path.joinpath(model_root_path, Path(project), experiment)
 # Note: DOG model ellipse independent does not correlate the center and surround parameters. Thus they are independent, which
 # is not the case in the VAE model, and not very physiological.
 
+# Fluid parameters
+
 gc_type = "parasol"  # "parasol", "midget"
 response_type = "on"  # "on", "off"
-spatial_model_type = "VAE"  # "DOG", "VAE"
+spatial_model_type = "DOG"  # "DOG", "VAE"
 temporal_model_type = "fixed"  # "fixed", "dynamic", "subunit"
 
 print(f"{gc_type=}")
@@ -239,7 +241,7 @@ retina_parameters = {
     "model_density": 1.0,  # 1.0 for 100% of the literature density of ganglion cells
     "retina_center": 5.0 + 0j,  # degrees, this is stimulus_position (0, 0)
     "force_retina_build": True,  # False or True. If True, rebuilds retina even if the hash matches
-    "training_mode": "load_model",  # "load_model", "train_model" or "tune_model". Applies to VAE only
+    "training_mode": "train_model",  # "load_model", "train_model" or "tune_model". Applies to VAE only
     "model_file_name": None,  # None for most recent or "model_[GC TYPE]_[RESPONSE TYPE]_[DEVICE]_[TIMESTAMP].pt" at input_folder. Applies to VAE "load_model" only
     "ray_tune_trial_id": None,  # Trial_id for tune, None for loading single run after "train_model". Applies to VAE "load_model" only
 }
@@ -311,7 +313,7 @@ visual_stimulus_parameters = {
     "size_outer": 1,  # deg, applies to annulus only
     "stimulus_position": (0.0, 0.0),  # relative to stimuls center in retina
     "stimulus_size": 1.5,  # 2.2,  # deg, radius for circle, sidelen/2 for rectangle.
-    "temporal_frequency": 0,  # 0.01,  # 4.0,  # 40,  # Hz
+    "temporal_frequency": 0.01,  # 0.01,  # 4.0,  # 40,  # Hz
     "temporal_frequency_range": (0.5, 50),  # Hz, applies to temporal chirp only
     "spatial_frequency": 2,  # cpd
     "orientation": 90,  # degrees
@@ -746,6 +748,12 @@ if __name__ == "__main__":
         numpy_seed=numpy_seed,
         project_conf_module_file_path=project_conf_module_file_path,
     )
+
+    #################################
+    #################################
+    ###   Utility functions       ###
+    #################################
+    #################################
 
     # PM.countlines(Path("macaqueretina"))
     # PM.countlines(Path("tests"))
