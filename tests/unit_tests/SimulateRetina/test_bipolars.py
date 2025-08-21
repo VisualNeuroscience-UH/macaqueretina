@@ -29,7 +29,7 @@ class TestBipolars(unittest.TestCase):
             "deg_per_mm": 1.0,
         }
         self.mock_ret_npz = {
-            "bipolar_to_gcs_weights": np.random.rand(5, 10),
+            "bipolar_to_gcs_cen_weights": np.random.rand(5, 10),
             "bipolar_nonlinearity_parameters": np.array([1, 2, 3]),
             "cones_to_bipolars_center_weights": np.random.rand(10, 5),
             "cones_to_bipolars_surround_weights": np.random.rand(10, 5),

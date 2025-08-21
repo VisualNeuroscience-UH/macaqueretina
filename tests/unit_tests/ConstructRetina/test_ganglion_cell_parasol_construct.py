@@ -26,8 +26,8 @@ def test_initialization(ganglion_cell_parasol):
     assert ganglion_cell_parasol.img is None
     assert ganglion_cell_parasol.img_mask is None
     assert ganglion_cell_parasol.img_lu_pix is None
-    assert ganglion_cell_parasol.X_grid_mm is None
-    assert ganglion_cell_parasol.Y_grid_mm is None
+    assert ganglion_cell_parasol.X_grid_cen_mm is None
+    assert ganglion_cell_parasol.Y_grid_cen_mm is None
     assert ganglion_cell_parasol.cones_to_gcs_weights is None
 
 

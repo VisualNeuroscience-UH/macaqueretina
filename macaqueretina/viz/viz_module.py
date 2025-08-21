@@ -2162,8 +2162,8 @@ class Viz:
             gc_df[["pos_ecc_mm"]].values, gc_df[["pos_polar_deg"]].values
         )
         gc_pos_mm = np.column_stack((x_mm, y_mm))
-        X_grid_mm = gc_npz["X_grid_mm"]
-        Y_grid_mm = gc_npz["Y_grid_mm"]
+        X_grid_cen_mm = gc_npz["X_grid_cen_mm"]
+        Y_grid_cen_mm = gc_npz["Y_grid_cen_mm"]
         gc_img_mask = gc_npz["gc_img_mask"]
 
         ret_npz = self.data_io.get_data(self.context.retina_parameters["ret_file"])
@@ -2225,8 +2225,8 @@ class Viz:
             )
 
             mask = gc_img_mask[this_sample, ...]
-            x_mm = X_grid_mm[this_sample, ...] * mask
-            y_mm = Y_grid_mm[this_sample, ...] * mask
+            x_mm = X_grid_cen_mm[this_sample, ...] * mask
+            y_mm = Y_grid_cen_mm[this_sample, ...] * mask
             x_mm = x_mm[x_mm != 0]
             y_mm = y_mm[y_mm != 0]
 
@@ -2259,13 +2259,13 @@ class Viz:
             gc_df[["pos_ecc_mm"]].values, gc_df[["pos_polar_deg"]].values
         )
         gc_pos_mm = np.column_stack((x_mm, y_mm))
-        X_grid_mm = gc_npz["X_grid_mm"]
-        Y_grid_mm = gc_npz["Y_grid_mm"]
+        X_grid_cen_mm = gc_npz["X_grid_cen_mm"]
+        Y_grid_cen_mm = gc_npz["Y_grid_cen_mm"]
         gc_img_mask = gc_npz["gc_img_mask"]
 
         ret_npz = self.data_io.get_data(self.context.retina_parameters["ret_file"])
 
-        weights = ret_npz["bipolar_to_gcs_weights"]
+        weights = ret_npz["bipolar_to_gcs_cen_weights"]
         bipolar_positions = ret_npz["bipolar_optimized_pos_mm"]
 
         if isinstance(gc_list, list):
@@ -2311,8 +2311,8 @@ class Viz:
                 ax[idx].scatter(*bipolar_pos, alpha=prob, color="blue")
 
             mask = gc_img_mask[this_sample, ...]
-            x_mm = X_grid_mm[this_sample, ...] * mask
-            y_mm = Y_grid_mm[this_sample, ...] * mask
+            x_mm = X_grid_cen_mm[this_sample, ...] * mask
+            y_mm = Y_grid_cen_mm[this_sample, ...] * mask
             x_mm = x_mm[x_mm != 0]
             y_mm = y_mm[y_mm != 0]
 
@@ -2425,7 +2425,7 @@ class Viz:
             "cones_to_bipolars_surround": ret_data[
                 "cones_to_bipolars_surround_weights"
             ],
-            "bipolar_to_gcs": ret_data["bipolar_to_gcs_weights"],
+            "bipolar_to_gcs": ret_data["bipolar_to_gcs_cen_weights"],
             "cones_to_gcs": ret_data["cones_to_gcs_weights"],
         }
 
@@ -2474,7 +2474,7 @@ class Viz:
             "cones_to_bipolars_surround": ret_data[
                 "cones_to_bipolars_surround_weights"
             ],
-            "bipolar_to_gcs": ret_data["bipolar_to_gcs_weights"],
+            "bipolar_to_gcs": ret_data["bipolar_to_gcs_cen_weights"],
             "cones_to_gcs": ret_data["cones_to_gcs_weights"],
         }
 
@@ -2537,8 +2537,8 @@ class Viz:
             gc_df[["pos_ecc_mm"]].values, gc_df[["pos_polar_deg"]].values
         )
         gc_pos_mm = np.column_stack((x_mm, y_mm))
-        X_grid_mm = gc_npz["X_grid_mm"]
-        Y_grid_mm = gc_npz["Y_grid_mm"]
+        X_grid_cen_mm = gc_npz["X_grid_cen_mm"]
+        Y_grid_cen_mm = gc_npz["Y_grid_cen_mm"]
         gc_img_mask = gc_npz["gc_img_mask"]
         gc_img = gc_npz["gc_img"]
 
@@ -2560,17 +2560,17 @@ class Viz:
             # Plot each rf image
 
             # extent (left, right, bottom, top)
-            left = X_grid_mm[this_sample, ...].min() - half_pix_mm
-            right = X_grid_mm[this_sample, ...].max() + half_pix_mm
-            bottom = Y_grid_mm[this_sample, ...].min() - half_pix_mm
-            top = Y_grid_mm[this_sample, ...].max() + half_pix_mm
+            left = X_grid_cen_mm[this_sample, ...].min() - half_pix_mm
+            right = X_grid_cen_mm[this_sample, ...].max() + half_pix_mm
+            bottom = Y_grid_cen_mm[this_sample, ...].min() - half_pix_mm
+            top = Y_grid_cen_mm[this_sample, ...].max() + half_pix_mm
             extent = (left, right, bottom, top)
             ax[idx].imshow(gc_img[this_sample, ...], extent=extent)
 
             # Center grid points
             mask = gc_img_mask[this_sample, ...]
-            x_mm = X_grid_mm[this_sample, ...] * mask
-            y_mm = Y_grid_mm[this_sample, ...] * mask
+            x_mm = X_grid_cen_mm[this_sample, ...] * mask
+            y_mm = Y_grid_cen_mm[this_sample, ...] * mask
             x_mm = x_mm[x_mm != 0]
             y_mm = y_mm[y_mm != 0]
             ax[idx].plot(x_mm, y_mm, ".g", label="center mask")

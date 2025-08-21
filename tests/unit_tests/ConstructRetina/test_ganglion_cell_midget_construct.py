@@ -23,8 +23,8 @@ def test_initialization(ganglion_cell_midget):
     assert ganglion_cell_midget.img is None
     assert ganglion_cell_midget.img_mask is None
     assert ganglion_cell_midget.img_lu_pix is None
-    assert ganglion_cell_midget.X_grid_mm is None
-    assert ganglion_cell_midget.Y_grid_mm is None
+    assert ganglion_cell_midget.X_grid_cen_mm is None
+    assert ganglion_cell_midget.Y_grid_cen_mm is None
     assert ganglion_cell_midget.cones_to_gcs_weights is None
 
 

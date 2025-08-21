@@ -265,8 +265,8 @@ class TestConstructRetina:
         gc_mock = MagicMock()
         gc_mock.img = np.array([1, 2, 3])
         gc_mock.img_mask = np.array([True, False, True])
-        gc_mock.X_grid_mm = np.array([0.1, 0.2, 0.3])
-        gc_mock.Y_grid_mm = np.array([0.4, 0.5, 0.6])
+        gc_mock.X_grid_cen_mm = np.array([0.1, 0.2, 0.3])
+        gc_mock.Y_grid_cen_mm = np.array([0.4, 0.5, 0.6])
         gc_mock.um_per_pix = 0.01
         gc_mock.pix_per_side = 64
         gc_mock.df = pd.DataFrame({"A": [1, 2, 3]})
@@ -286,7 +286,7 @@ class TestConstructRetina:
             "cone_noise_power_fit": np.array([0.9]),
             "cones_to_bipolars_center_weights": np.array([1.0]),
             "cones_to_bipolars_surround_weights": np.array([1.1]),
-            "bipolar_to_gcs_weights": np.array([1.2]),
+            "bipolar_to_gcs_cen_weights": np.array([1.2]),
             "bipolar_optimized_pos_mm": np.array([1.3]),
             "bipolar_nonlinearity_parameters": np.array([1.4]),
             "bipolar_nonlinearity_fit": np.array([1.5]),

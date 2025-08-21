@@ -68,8 +68,8 @@ def test_get_img_grid_mm(mock_spatial_model):
     result_gc = mock_spatial_model._get_img_grid_mm(mock_ret, mock_gc)
 
     # Check the shapes of the result grids
-    assert result_gc.X_grid_mm.shape == (3, 10, 10)
-    assert result_gc.Y_grid_mm.shape == (3, 10, 10)
+    assert result_gc.X_grid_cen_mm.shape == (3, 10, 10)
+    assert result_gc.Y_grid_cen_mm.shape == (3, 10, 10)
 
 
 def test_get_retina_corners(mock_spatial_model):

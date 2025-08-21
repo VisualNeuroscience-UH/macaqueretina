@@ -24,8 +24,8 @@ class GanglionCell:
     df = pd.DataFrame({"cell_id": range(5), "den_diam_um": [100, 110, 120, 130, 140]})
     img = np.random.rand(5, 10, 10)
     img_mask = np.ones((5, 10, 10))
-    X_grid_mm = np.random.rand(5, 10, 10)
-    Y_grid_mm = np.random.rand(5, 10, 10)
+    X_grid_cen_mm = np.random.rand(5, 10, 10)
+    Y_grid_cen_mm = np.random.rand(5, 10, 10)
     n_units = 5
 
 
@@ -136,7 +136,7 @@ class TemporalModelSubunit(TemporalModelBase):
 
     def _link_bipolar_units_to_gcs(self, ret, gc):
         # Simplified implementation for testing
-        ret.bipolar_to_gcs_weights = np.random.rand(
+        ret.bipolar_to_gcs_cen_weights = np.random.rand(
             ret.bipolar_optimized_pos_mm.shape[0], gc.n_units
         )
         return ret
@@ -266,13 +266,13 @@ class TestTemporalModelSubunit(unittest.TestCase):
         self.gc.n_units = 5
         self.gc.img = np.random.rand(5, 10, 10)
         self.gc.img_mask = np.ones((5, 10, 10))
-        self.gc.X_grid_mm = np.random.rand(5, 10, 10)
-        self.gc.Y_grid_mm = np.random.rand(5, 10, 10)
+        self.gc.X_grid_cen_mm = np.random.rand(5, 10, 10)
+        self.gc.Y_grid_cen_mm = np.random.rand(5, 10, 10)
         self.gc.df = pd.DataFrame({"den_diam_um": [100, 110, 120, 130, 140]})
 
         result = self.temporal_model._link_bipolar_units_to_gcs(self.retina, self.gc)
         self.assertIsNotNone(result)
-        self.assertTrue(hasattr(result, "bipolar_to_gcs_weights"))
+        self.assertTrue(hasattr(result, "bipolar_to_gcs_cen_weights"))
 
     def test_link_cone_noise_units_to_gcs(self):
         # This method is inherited from TemporalModelBase and already tested

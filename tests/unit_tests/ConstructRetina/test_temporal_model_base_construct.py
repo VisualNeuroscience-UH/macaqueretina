@@ -20,8 +20,8 @@ class GanglionCell:
     df = pd.DataFrame()
     img = np.random.rand(5, 10, 10)
     img_mask = np.ones((5, 10, 10))
-    X_grid_mm = np.random.rand(5, 10, 10)
-    Y_grid_mm = np.random.rand(5, 10, 10)
+    X_grid_cen_mm = np.random.rand(5, 10, 10)
+    Y_grid_cen_mm = np.random.rand(5, 10, 10)
 
 
 class DoGModel:
@@ -95,8 +95,8 @@ class TestTemporalModelBase(unittest.TestCase):
         self.gc.df = pd.DataFrame({"cell_id": range(5)})
         self.gc.img = np.random.rand(5, 10, 10)
         self.gc.img_mask = np.ones((5, 10, 10))
-        self.gc.X_grid_mm = np.random.rand(5, 10, 10)
-        self.gc.Y_grid_mm = np.random.rand(5, 10, 10)
+        self.gc.X_grid_cen_mm = np.random.rand(5, 10, 10)
+        self.gc.Y_grid_cen_mm = np.random.rand(5, 10, 10)
 
         with patch("numpy.zeros", return_value=np.zeros((10, 5))) as mock_zeros:
             result = self.temporal_model._link_cone_noise_units_to_gcs(
