@@ -1458,9 +1458,10 @@ class TemporalModelSubunit(TemporalModelBase):
         """
         vs = self._create_dynamic_contrast(vs, gcs)
         vs = self.cones.create_signal(vs)
-        vs = self.bipolars.create_signal(vs)
-        # breakpoint()
-        # vs.generator_potentials
+        vs = self.bipolars.create_signal(
+            vs, gcs
+        )  # create bipolar signals from cone input -- linear
+        # Extract here the logic from bipo output to rectifying nonlinearity -- apply RI
         return vs, gcs
 
 
@@ -1785,6 +1786,9 @@ class ConcreteSimulationBuilder(SimulationBuildInterface):
         )
 
         firing_rates = np.maximum(firing_rates_light + firing_rates_cone_noise, 0)
+        # plt.figure()
+        # plt.plot(vs.generator_potentials.T)
+        # plt.title("gc_nonlinear_center_activation")
 
         vs.firing_rates = firing_rates
 
@@ -3108,7 +3112,7 @@ class BipolarProduct(ReceptiveFieldsBase):
         super().__init__(retina_parameters)
         self.retina_parameters = retina_parameters
         self.ret_npz = ret_npz
-        self.n_units = self.ret_npz["bipolar_to_gcs_weights"].shape[0]
+        self.n_units = self.ret_npz["bipolar_to_gcs_cen_weights"].shape[0]
         self.target_gc_for_multiple_trials = target_gc_for_multiple_trials
 
     def create_signal(self, vs: "VisualSignal") -> "VisualSignal":
@@ -3144,7 +3148,8 @@ class BipolarProduct(ReceptiveFieldsBase):
         """
 
         popt = self.ret_npz["bipolar_nonlinearity_parameters"]
-        bipolar_to_gcs_weights = self.ret_npz["bipolar_to_gcs_weights"]
+        bipolar_to_gcs_cen_weights = self.ret_npz["bipolar_to_gcs_cen_weights"]
+        bipolar_to_gcs_sur_weights = self.ret_npz["bipolar_to_gcs_sur_weights"]
 
         # Get constructed weights [n_cones, n_bipolars]
         cones_to_bipolars_cen_w = self.ret_npz["cones_to_bipolars_center_weights"]
@@ -3162,41 +3167,50 @@ class BipolarProduct(ReceptiveFieldsBase):
 
         # Turn bipolar input signal to bipolar contrast signal, cmp Weber contrast
 
-        # This solution gets B from the baseline, unitwise.
-        bg = np.mean(bipolar_input_signal[:, : vs.baseline_len_tp], axis=1)[
-            :, np.newaxis
-        ]
+        # This solution gets B from the baseline, unitwise. If no baseline is present, use 10 first timepoints.
+        baseline_len_tp = np.max([vs.baseline_len_tp, 10])
+        bg = np.mean(bipolar_input_signal[:, :baseline_len_tp], axis=1)[:, np.newaxis]
 
-        # This prevents 0-lum bg, would lead to division by zero
-        bipolar_input_contrast = (bipolar_input_signal - bg) / bg
+        # This prevents 0-lum bg, would lead to division by zero, range [-1, 1]
+        bipolar_input_contrast = (
+            bipolar_input_signal - bg
+        ) / bg  # this should probably be sur/cen contrast for the scaler?
 
-        # [n_bipolars, n_timepoints]
+        # [n_bipolars, n_timepoints], subunit center and surround
         bipolar_cen_sum = cones_to_bipolars_cen_w.T @ bipolar_input_contrast
         bipolar_sur_sum = cones_to_bipolars_sur_w.T @ bipolar_input_contrast
-        bipolar_input_sum = bipolar_cen_sum - bipolar_sur_sum
+        subunit_inputs = bipolar_cen_sum - bipolar_sur_sum
 
-        vs.bipolar_signal = bipolar_input_sum
+        vs.bipolar_signal = subunit_inputs
 
         # Apply synaptic input scaling for negative responses (rectification/nonlinearity)
         # See Turner_2018_eLife for the model and parabola data in their Fig 5C
-        bipolar_output_sum = bipolar_to_gcs_weights.T @ bipolar_input_sum
-        bipolar_scaler_sum = bipolar_to_gcs_weights.T @ bipolar_sur_sum
+        gc_linear_center_activation = bipolar_to_gcs_cen_weights.T @ subunit_inputs
 
-        # RI is Rectification Index
-        RI = self.parabola(bipolar_scaler_sum, *popt)
+        # MILLOIN TURNER ET AL 2018 SURROUND AKTIVAATIO ON ZERO?
+        # invert polarity for surround
+        gc_surround_activation = bipolar_to_gcs_sur_weights.T @ (-1 * subunit_inputs)
 
-        # [n_gcs, n_timepoints]
+        # RI is Rectification Index = 1 -(r0 - rmin) / (rmax - r0). The values in Turner 2018
+        # are scaled to [-1, 1], to match min and max bipolar_input_contrast.
+        # r0 is bg activation, rmin is max center deactivation, rmax is max center activation
+        RI = self.parabola(gc_surround_activation, *popt)
+
+        # [n_gcs, n_timepoints].  Inverts RI: neg_scaler zero is strong rectifier, whereas neg_scaler one is linear
         neg_scaler = 1 - RI
-        neg_idx = bipolar_output_sum < 0
+        # For threshold-linear model, only negative gc rf center values are scaled.
+        neg_idx = gc_linear_center_activation < 0
 
-        gc_synaptic_input = bipolar_output_sum.copy()
-        gc_synaptic_input[neg_idx] = bipolar_output_sum[neg_idx] * neg_scaler[neg_idx]
+        gc_nonlinear_center_activation = gc_linear_center_activation.copy()
+        gc_nonlinear_center_activation[neg_idx] = (
+            gc_linear_center_activation[neg_idx] * neg_scaler[neg_idx]
+        )
 
         if self.target_gc_for_multiple_trials is not None:
             gc_index = self.target_gc_for_multiple_trials
-            gc_synaptic_input = gc_synaptic_input[gc_index, :]
+            gc_nonlinear_center_activation = gc_nonlinear_center_activation[gc_index, :]
 
-        vs.generator_potentials = gc_synaptic_input
+        vs.generator_potentials = gc_nonlinear_center_activation
 
         return vs
 

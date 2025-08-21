@@ -290,9 +290,9 @@ class GanglionCellBase(ABC, Printable):
         Receptive field center mask, computed later.
     img_lu_pix : np.ndarray | None
         Left upper corner of the receptive field image in pixels, computed later.
-    X_grid_mm : np.ndarray | None
+    X_grid_cen_mm : np.ndarray | None
         X grid in millimeters, computed later.
-    Y_grid_mm : np.ndarray | None
+    Y_grid_cen_mm : np.ndarray | None
         Y grid in millimeters, computed later.
     cones_to_gcs_weights : np.ndarray | None
         Weights mapping cones' noise to ganglion cells, necessary for models without bipolar cells.
@@ -314,8 +314,8 @@ class GanglionCellBase(ABC, Printable):
         self.img: np.ndarray | None = None
         self.img_mask: np.ndarray | None = None
         self.img_lu_pix: np.ndarray | None = None
-        self.X_grid_mm: np.ndarray | None = None
-        self.Y_grid_mm: np.ndarray | None = None
+        self.X_grid_cen_mm: np.ndarray | None = None
+        self.Y_grid_cen_mm: np.ndarray | None = None
         self.cones_to_gcs_weights: np.ndarray | None = None
 
         columns: list[str] = [
@@ -1148,24 +1148,27 @@ class SpatialModelBase(ABC):
         pix_scaled = -zoom * ((epps / 2) - pix) + (pps / 2)
         return pix_scaled
 
-    def _get_img_grid_mm(self, ret: Any, gc: Any) -> Any:
+    def _get_img_grid_from_selected_img_stack(
+        self, ret: Any, gc: Any, mask: Any
+    ) -> Any:
         """
-        Get receptive field center x and y coordinate grids in millimeters for downstream distance calculations.
+        Get the image grid from the selected image stack.
 
         Parameters
         ----------
-        ret : Any
-            Retina instance.
         gc : Any
-            Ganglion cell object with the attributes `img_mask`, `um_per_pix`, `n_units`, and `img_lu_pix`.
+            Ganglion cell object.
+        mask : Any
+            Mask to extract the grid from.
 
         Returns
         -------
         Any
-            Updated ganglion cell object with X and Y coordinate grids (X_grid_mm and Y_grid_mm) in millimeters.
+            Extracted image grid.
         """
-        rf_pix_y = gc.img_mask.shape[1]
-        rf_pix_x = gc.img_mask.shape[2]
+
+        rf_pix_y = mask.shape[1]
+        rf_pix_x = mask.shape[2]
 
         Y_grid, X_grid = np.meshgrid(
             np.arange(rf_pix_y), np.arange(rf_pix_x), indexing="ij"
@@ -1195,18 +1198,47 @@ class SpatialModelBase(ABC):
         _rf_lu_mm_x = _rf_lu_pix_x * mm_per_pix
         _rf_lu_mm_y = _rf_lu_pix_y * mm_per_pix
 
-        X_grid_mm = ret.whole_ret_lu_mm[0] + _rf_lu_mm_x + X_grid_local_mm
-        Y_grid_mm = ret.whole_ret_lu_mm[1] - _rf_lu_mm_y - Y_grid_local_mm
+        X_grid_cen_mm = ret.whole_ret_lu_mm[0] + _rf_lu_mm_x + X_grid_local_mm
+        Y_grid_cen_mm = ret.whole_ret_lu_mm[1] - _rf_lu_mm_y - Y_grid_local_mm
 
-        # Rotate X_grid_mm and Y_grid_mm according to polar angle limits,
+        # Rotate X_grid_cen_mm and Y_grid_cen_mm according to polar angle limits,
         # i.e. the rotation of the retina patch
         rot_deg = (ret.polar_lim_deg[1] + ret.polar_lim_deg[0]) / 2
         X_grid_rot_mm, Y_grid_rot_mm = self.DoG_model.retina_math.rotate_image_grids(
-            X_grid_mm, Y_grid_mm, rot_deg, gc.n_units, rf_pix_x, rf_pix_y
+            X_grid_cen_mm, Y_grid_cen_mm, rot_deg, gc.n_units, rf_pix_x, rf_pix_y
         )
 
-        gc.X_grid_mm = X_grid_rot_mm
-        gc.Y_grid_mm = Y_grid_rot_mm
+        X_grid_cen_mm = X_grid_rot_mm
+        Y_grid_cen_mm = Y_grid_rot_mm
+
+        return X_grid_cen_mm, Y_grid_cen_mm
+
+    def _get_img_grid_mm(self, ret: Any, gc: Any) -> Any:
+        """
+        Get receptive field center x and y coordinate grids in millimeters for downstream distance calculations.
+
+        Parameters
+        ----------
+        ret : Any
+            Retina instance.
+        gc : Any
+            Ganglion cell object with the attributes `img_mask`, `um_per_pix`, `n_units`, and `img_lu_pix`.
+
+        Returns
+        -------
+        Any
+            Updated ganglion cell object with X and Y coordinate grids (X_grid_cen_mm and Y_grid_cen_mm) in millimeters.
+        """
+
+        # Get center mask grid
+        gc.X_grid_cen_mm, gc.Y_grid_cen_mm = self._get_img_grid_from_selected_img_stack(
+            ret, gc, gc.img_mask
+        )
+
+        # Get surround mask grid
+        gc.X_grid_sur_mm, gc.Y_grid_sur_mm = self._get_img_grid_from_selected_img_stack(
+            ret, gc, gc.img_mask_sur
+        )
 
         return gc
 
@@ -1435,6 +1467,40 @@ class SpatialModelBase(ABC):
             masks.append(mask)
 
         gc.img_mask = np.array(masks)
+        return gc
+
+    def _generate_surround_masks(self, ret: Any, gc: Any) -> Any:
+        """
+        Extract contours around the receptive field surround based on the mask threshold.
+
+        Parameters
+        ----------
+        ret : Any
+            Retina instance.
+        gc : Any
+            Ganglion cell object with the attribute `img` containing the receptive fields.
+
+        Returns
+        -------
+        Any
+            Updated ganglion cell object with surround masks added.
+        """
+        img_stack = gc.img
+        mask_threshold = ret.mask_threshold
+        assert 0 <= mask_threshold <= 1, "mask_threshold must be between 0 and 1."
+
+        masks = []
+        for img in img_stack:
+            min_val = np.min(img)
+            mask = img <= min_val * mask_threshold
+
+            labeled_mask, _ = ndimage.label(mask)
+            min_label = labeled_mask[np.unravel_index(np.argmin(img), img.shape)]
+            mask = labeled_mask == min_label
+
+            masks.append(mask)
+        gc.img_mask_sur = np.array(masks)
+
         return gc
 
     def _add_center_mask_area_to_df(self, gc: Any) -> Any:
@@ -1716,6 +1782,7 @@ class SpatialModelDOG(SpatialModelBase):
         # 8) Get final center masks for the generated spatial rfs
         print("\nGetting final masked rfs and retina...")
         gc = self._generate_center_masks(ret, gc)
+        gc = self._generate_surround_masks(ret, gc)
         # Add center mask area (mm^2) to gc_vae_df for visualization
         gc = self._add_center_mask_area_to_df(gc)
 
@@ -2123,6 +2190,8 @@ class SpatialModelVAE(SpatialModelBase):
         # 8) Get final center masks for the generated spatial rfs
         print("\nGetting final masked rfs and retina...")
         gc = self._generate_center_masks(ret, gc)
+        gc = self._generate_surround_masks(ret, gc)
+
         # Add center mask area (mm^2) to gc_vae_df for visualization
         gc = self._add_center_mask_area_to_df(gc)
 
@@ -2257,8 +2326,8 @@ class TemporalModelBase(ABC):
         # Convert inputs to PyTorch tensors and move to the appropriate device
         device = self.device
         cone_pos_mm = torch.tensor(cone_pos_mm, dtype=torch.float32).to(device)
-        gc_X_grid_mm = torch.tensor(gc.X_grid_mm, dtype=torch.float32).to(device)
-        gc_Y_grid_mm = torch.tensor(gc.Y_grid_mm, dtype=torch.float32).to(device)
+        gc_X_grid_mm = torch.tensor(gc.X_grid_cen_mm, dtype=torch.float32).to(device)
+        gc_Y_grid_mm = torch.tensor(gc.Y_grid_cen_mm, dtype=torch.float32).to(device)
         img_prob = torch.tensor(img_prob, dtype=torch.float32).to(device)
         weights = torch.zeros((n_cones, n_gcs), dtype=torch.float32).to(device)
 
@@ -2724,12 +2793,15 @@ class TemporalModelSubunit(TemporalModelBase):
 
         RI_function = self.retina_math.parabola
 
-        # Scale g_sur_values to [-1, 1].
+        # Define the target range
+        g_sur_range = (-1, 1)
+
+        # Scale g_sur_values to g_sur_range
         g_sur_min: float = np.min(g_sur_values)
         g_sur_max: float = np.max(g_sur_values)
-        g_sur_scaled: np.ndarray = (
-            2 * (g_sur_values - g_sur_min) / (g_sur_max - g_sur_min) - 1
-        )
+        g_sur_scaled: np.ndarray = (g_sur_values - g_sur_min) / (
+            g_sur_max - g_sur_min
+        ) * (g_sur_range[1] - g_sur_range[0]) + g_sur_range[0]
 
         # Exclude the first value as an outlier.
         popt, _ = opt.curve_fit(RI_function, g_sur_scaled[1:], target_RI_values[1:])
@@ -2867,6 +2939,48 @@ class TemporalModelSubunit(TemporalModelBase):
 
         return ret
 
+    def _link_bipo_to_gc(
+        self, ret: Retina, gc: Any, X_grid_cen_mm: np.ndarray, Y_grid_cen_mm: np.ndarray
+    ) -> np.ndarray:
+        """
+        Link bipolar units to ganglion cells worker function.
+        """
+        bipo_pos_mm: np.ndarray = ret.bipolar_optimized_pos_mm
+        n_bipos: int = bipo_pos_mm.shape[0]
+
+        rf_div: float = ret.bipolar_general_parameters["bipo2gc_div"]
+        sd_bipo: np.ndarray = gc.df.den_diam_um / rf_div
+        sd_bipo = sd_bipo / 1000  # Convert from micrometers to millimeters.
+        sd_bipo = sd_bipo.values[:, None, None]  # Shape: (N, 1, 1).
+        cutoff_SD: np.ndarray = (
+            ret.bipolar_general_parameters["bipo2gc_cutoff_SD"] * sd_bipo
+        )
+
+        weights: np.ndarray = np.zeros((n_bipos, gc.n_units))
+
+        # Normalize center activation to probability distribution.
+        img_cen: np.ndarray = gc.img * gc.img_mask  # Shape: (N, H, W).
+        img_prob: np.ndarray = img_cen / np.sum(img_cen, axis=(1, 2))[:, None, None]
+
+        desc_str = f"Calculating {n_bipos} x {gc.n_units} connections"
+        for this_bipo in tqdm(range(n_bipos), desc=desc_str):
+            this_bipo_pos = bipo_pos_mm[this_bipo]
+            dist_x_mtx = X_grid_cen_mm - this_bipo_pos[0]
+            dist_y_mtx = Y_grid_cen_mm - this_bipo_pos[1]
+            dist_mtx = np.sqrt(dist_x_mtx**2 + dist_y_mtx**2)
+
+            # Drop weight as a Gaussian function of distance with sd = sd_bipo.
+            probability = np.exp(-((dist_mtx**2) / (2 * sd_bipo**2)))
+            probability[dist_mtx > cutoff_SD] = 0
+
+            weights_mtx = probability * img_prob
+            weights[this_bipo, :] = weights_mtx.sum(axis=(1, 2))
+
+        # Normalize weights so that the input to each ganglion cell sums to 1.0.
+        weights_out: np.ndarray = weights / weights.sum(axis=0)
+
+        return weights_out
+
     def _link_bipolar_units_to_gcs(self, ret: Retina, gc: Any) -> Retina:
         """
         Connect bipolar units to ganglion cell units for shared subunit model.
@@ -2888,43 +3002,17 @@ class TemporalModelSubunit(TemporalModelBase):
         """
         print("Connecting bipolar units to ganglion cells...")
 
-        bipo_pos_mm: np.ndarray = ret.bipolar_optimized_pos_mm
-        n_bipos: int = bipo_pos_mm.shape[0]
-
-        rf_div: float = ret.bipolar_general_parameters["bipo2gc_div"]
-        sd_bipo: np.ndarray = (
-            gc.df.den_diam_um / rf_div
-        )  # Center diameter divided by rf_div.
-        sd_bipo = sd_bipo / 1000  # Convert from micrometers to millimeters.
-        sd_bipo = sd_bipo.values[:, None, None]  # Shape: (N, 1, 1).
-        cutoff_SD: np.ndarray = (
-            ret.bipolar_general_parameters["bipo2gc_cutoff_SD"] * sd_bipo
+        # link gc center
+        weights_out_cen = self._link_bipo_to_gc(
+            ret, gc, gc.X_grid_cen_mm, gc.Y_grid_cen_mm
         )
+        ret.bipolar_to_gcs_cen_weights = weights_out_cen
 
-        weights: np.ndarray = np.zeros((n_bipos, gc.n_units))
-
-        # Normalize center activation to probability distribution.
-        img_cen: np.ndarray = gc.img * gc.img_mask  # Shape: (N, H, W).
-        img_prob: np.ndarray = img_cen / np.sum(img_cen, axis=(1, 2))[:, None, None]
-
-        desc_str = f"Calculating {n_bipos} x {gc.n_units} connections"
-        for this_bipo in tqdm(range(n_bipos), desc=desc_str):
-            this_bipo_pos = bipo_pos_mm[this_bipo]
-            dist_x_mtx = gc.X_grid_mm - this_bipo_pos[0]
-            dist_y_mtx = gc.Y_grid_mm - this_bipo_pos[1]
-            dist_mtx = np.sqrt(dist_x_mtx**2 + dist_y_mtx**2)
-
-            # Drop weight as a Gaussian function of distance with sd = sd_bipo.
-            probability = np.exp(-((dist_mtx**2) / (2 * sd_bipo**2)))
-            probability[dist_mtx > cutoff_SD] = 0
-
-            weights_mtx = probability * img_prob
-            weights[this_bipo, :] = weights_mtx.sum(axis=(1, 2))
-
-        # Normalize weights so that the input to each ganglion cell sums to 1.0.
-        weights_out: np.ndarray = weights / weights.sum(axis=0)
-
-        ret.bipolar_to_gcs_weights = weights_out
+        # link gc surround
+        weights_out_sur = self._link_bipo_to_gc(
+            ret, gc, gc.X_grid_sur_mm, gc.Y_grid_sur_mm
+        )
+        ret.bipolar_to_gcs_sur_weights = weights_out_sur
 
         return ret
 
@@ -5209,8 +5297,8 @@ class ConstructRetina(Printable):
         spatial_rfs_dict = {
             "gc_img": gc.img,
             "gc_img_mask": gc.img_mask,
-            "X_grid_mm": gc.X_grid_mm,
-            "Y_grid_mm": gc.Y_grid_mm,
+            "X_grid_cen_mm": gc.X_grid_cen_mm,
+            "Y_grid_cen_mm": gc.Y_grid_cen_mm,
             "um_per_pix": gc.um_per_pix,
             "pix_per_side": gc.pix_per_side,
         }
@@ -5232,7 +5320,8 @@ class ConstructRetina(Printable):
             "cone_noise_power_fit",
             "cones_to_bipolars_center_weights",
             "cones_to_bipolars_surround_weights",
-            "bipolar_to_gcs_weights",
+            "bipolar_to_gcs_cen_weights",
+            "bipolar_to_gcs_sur_weights",
             "bipolar_optimized_pos_mm",
             "bipolar_nonlinearity_parameters",
             "bipolar_nonlinearity_fit",
