@@ -1,0 +1,53 @@
+retina_parameters:
+  gc_type: "parasol"  # "parasol", "midget"
+  response_type: "on"  # "on", "off"
+  spatial_model_type: "DOG"  # "DOG", "VAE"
+  temporal_model_type: "fixed"  # "fixed", "dynamic", "subunit"
+  ecc_limits_deg: [4.5, 5.5]  # eccentricity in degrees MIDGET
+  pol_limits_deg: [-1.5, 1.5]  # polar angle in degrees
+  model_density: 1.0  # 1.0 for 100% of the literature density of ganglion cells
+  retina_center: 5.0 + 0j  # degrees, this is stimulus_position (0, 0)
+  force_retina_build: True  # False or True. If True, rebuilds retina even if the hash matches
+  training_mode: "train_model"  # "load_model", "train_model" or "tune_model". Applies to VAE only
+  model_file_name: None  # None for most recent or "model_[GC TYPE]_[RESPONSE TYPE]_[DEVICE]_[TIMESTAMP].pt" at input_folder. Applies to VAE "load_model" only
+  ray_tune_trial_id: None  # Trial_id for tune, None for loading single run after "train_model". Applies to VAE "load_model" only
+  signal_gain:
+    threshold: 10 # Hz
+    parasol:
+      on:
+        DOG:
+          fixed: 1.51
+          dynamic: 1.32
+          subunit: 20.36
+        VAE:
+          fixed: 1.06
+          dynamic: 1.33
+          subunit: 19.17
+      off:
+        DOG:
+          fixed: 1.74
+          dynamic: 1.44
+          subunit: 37.03
+        VAE:
+          fixed: 1.27
+          dynamic: 1.60
+          subunit: 37.31
+    midget:
+      on:
+        DOG:
+          fixed: 5.33
+          dynamic: 4.50
+          subunit: 37.33
+        VAE:
+          fixed: 3.73
+          dynamic: 4.97
+          subunit: 37.39
+      off:
+        DOG:
+          fixed: 6.48
+          dynamic: 4.58
+          subunit: 74.98
+        VAE:
+          fixed: 3.76
+          dynamic: 4.77
+          subunit: 74.48

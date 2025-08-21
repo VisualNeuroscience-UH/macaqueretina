@@ -1,0 +1,45 @@
+visual_stimulus_parameters:
+  pattern: "temporal_square_pattern"  # One of the StimulusPatterns
+  image_width: 240  # 752 for nature1.avi
+  image_height: 240  # 432 for nature1.avi
+  pix_per_deg: 60
+  dtype_name: "float16"  # low contrast needs "float16", for performance, use "uint8",
+  fps: 300  # >=200 for good dynamic model integration
+  duration_seconds: 0.5  # actual frames = floor(duration_seconds * fps)
+  baseline_start_seconds: 0.1  # Total duration is duration + both baselines
+  baseline_end_seconds: 0.5
+  stimulus_form: "circular"
+  size_inner: 0.1  # deg, applies to annulus only
+  size_outer: 1  # deg, applies to annulus only
+  stimulus_position: (0.0, 0.0)  # relative to stimuls center in retina
+  stimulus_size: 1.5  # 2.2,  # deg, radius for circle, sidelen/2 for rectangle.
+  temporal_frequency: 0.01  # 0.01,  # 4.0,  # 40,  # Hz
+  temporal_frequency_range: (0.5, 50)  # Hz, applies to temporal chirp only
+  spatial_frequency: 2  # cpd
+  orientation: 90  # degrees
+  phase_shift: 0  # math.pi + 0.1,  # radians
+  stimulus_video_name: f"{stimulus_folder}.mp4"  # TODO: implement in pydantic
+  contrast: 1.0  # mean +- contrast * mean
+  mean: 128  # Mean luminance in  cd/m2 and adaptation level
+  #intensity: (0, 255)  # intensity overrides contrast and mean if not commented out
+  background: "mean"  # "mean", "intensity_min", "intensity_max" or value.
+  ND_filter: 0.0  # 0.0, log10 neutral density filter factor, can be negative
+
+# For external video and image input. See visual_stimulus_module.VideoBaseClass for more options.
+stimulus_metadata_parameters:
+  stimulus_file: "testi.jpg"  # nature1.avi, testi.jpg
+  pix_per_deg: 30  # VanHateren_1998_ProcRSocLondB 2 arcmin per pixel
+  apply_cone_filter: False
+  fps: 25
+
+# Each gc response file contain n_sweeps with independent cone noise and spike generator.
+n_files: 1
+
+# Running multiple trials on multiple units is not supported
+# "save_variables": "spikes", "cone_noise", "cone_bipo_gen_fir"
+run_parameters:
+  n_sweeps: 1 # For each of the response files
+  spike_generator_model: "poisson"  # poisson or refractory
+  save_data: True
+  simulation_dt: 0.0001  # in sec 0.001 = 1 ms
+  save_variables: ["spikes", "cone_noise"]
