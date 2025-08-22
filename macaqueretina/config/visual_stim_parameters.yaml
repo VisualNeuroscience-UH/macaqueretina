@@ -11,17 +11,17 @@ visual_stimulus_parameters:
   stimulus_form: "circular"
   size_inner: 0.1  # deg, applies to annulus only
   size_outer: 1  # deg, applies to annulus only
-  stimulus_position: (0.0, 0.0)  # relative to stimuls center in retina
+  stimulus_position: [0.0, 0.0]  # relative to stimuls center in retina
   stimulus_size: 1.5  # 2.2,  # deg, radius for circle, sidelen/2 for rectangle.
   temporal_frequency: 0.01  # 0.01,  # 4.0,  # 40,  # Hz
-  temporal_frequency_range: (0.5, 50)  # Hz, applies to temporal chirp only
+  temporal_frequency_range: [0.5, 50]  # Hz, applies to temporal chirp only
   spatial_frequency: 2  # cpd
   orientation: 90  # degrees
   phase_shift: 0  # math.pi + 0.1,  # radians
   stimulus_video_name: f"{stimulus_folder}.mp4"  # TODO: implement in pydantic
   contrast: 1.0  # mean +- contrast * mean
   mean: 128  # Mean luminance in  cd/m2 and adaptation level
-  #intensity: (0, 255)  # intensity overrides contrast and mean if not commented out
+  intensity: null  # intensity overrides contrast and mean if provided as a tuple like (0, 255)
   background: "mean"  # "mean", "intensity_min", "intensity_max" or value.
   ND_filter: 0.0  # 0.0, log10 neutral density filter factor, can be negative
 

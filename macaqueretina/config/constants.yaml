@@ -8,7 +8,7 @@ vae_train_parameters:
   # For ray tune only
   # If grid_search is True, time_budget and grace_period are
   grid_search: True  # False for tune by Optuna, True for grid search
-  time_budget: 60 * 60 * 24 * 4  # in seconds
+  time_budget: 345600  # in seconds
   grace_period: 50  # epochs. ASHA stops earliest at grace period.
   # Set common VAE model parameters
   latent_dim: 32  # 32  # 2**1 - 2**6, use powers of 2 btw 2 and 128
@@ -25,7 +25,7 @@ vae_train_parameters:
   # Augment training and validation data.
   augmentation_dict: 
     rotation: 0  # rotation in degrees
-    translation: (0, 0)  # fraction of image, in (x, y) -directions
+    translation: [0, 0]  # fraction of image, in (x, y) -directions
     noise: 0  # noise float in [0, 1] (noise is added to the image)
     flip: 0.5  # flip probability, both horizontal and vertical
     data_multiplier: 4  # how many times to get the data w/ augmentation
@@ -34,11 +34,11 @@ vae_train_parameters:
 # Cone noise gain induces ~25Hz spontaneous firing rates for the ON parasol and
 # midget gc units, and ~5Hz for the OFF parasol and midget units. (Raunak Sinha,
 # personal communication).
-noise_gain:
-  on: 
+noise_gain_default:
+  "on": 
     parasol: 16.3
     midget: 5.4
-  off:
+  "off":
     parasol: 3.8
     midget: 1.5
 
@@ -51,7 +51,7 @@ dd_regr_model:
 
 retina_parameters_append:
   noise_type: "shared"  # "shared" or "independent"
-  noise_gain: noise_gain[response_type][gc_type]  # 0 for no noise # TODO: fix
+  noise_gain: null # # 0 for no noise, null for choosing noise level from the noise_gain_default values above
   fixed_mask_threshold: 0.1  # 0.1,  # Applies to rf volume normalization. This value is also the only surround mask threshold.
   center_mask_threshold: 0.1  # 0.1,  Limits rf center extent to values above this proportion of the peak values after volume normalization.
   apricot_data_noise_mask: 0.1  # 0.1,  # 0.1 for +-10% from abs max removed, 0 for no noise removal. Applies to DOG spatial model statistics.
@@ -85,9 +85,9 @@ proportion_of_OFF_response_type: 0.60
 # Goodchild_1996_JCompNeurol 0.038 * x**2 + 4.21 * x + 0.1
 # gives 229 um/degree. The R2 (constant vs quadratic) is
 # > 0.999 for ecc 0.1 - 4 mm, and > 0.97 for ecc 0.1 - 20 mm.
-deg_per_mm: 1 / 0.229 # TODO: Fix ratio
+deg_per_mm: 0.00436681222707423580786
 
-optical_aberration: 2 / 60  # deg , 2 arcmin, Navarro 1993 JOSAA # TODO
+optical_aberration: 0.0333333333333333333333333  # deg , 2 arcmin, Navarro 1993 JOSAA 
 
 # Parameters for cortical - visual coordinate transformation.
 # a for macaques between 0.3 - 0.9, Schwartz 1994 citing Wilson et al 1990 "The perception of form"
@@ -96,8 +96,8 @@ optical_aberration: 2 / 60  # deg , 2 arcmin, Navarro 1993 JOSAA # TODO
 # However, if we relate 1/M = (a/k) + (1/k) * E and M = (1/0.077) + (1/(0.082 * E)), we get
 # Andrew James, personal communication: k=1/.082, a=.077/.082
 visual2cortical_params: # TODO
-  a: 0.077 / 0.082,  # ~0.94
-  k: 1 / 0.082,  # ~12.2
+  a: 0.93902439024390243902439024390244 # 0.077 / 0.082,  # ~0.94
+  k: 12.1951219512195 # 1 / 0.082,  # ~12.2
 
 
 # Compressing cone nonlinearity. Parameters are manually scaled to give dynamic cone ouput.
@@ -122,18 +122,18 @@ cone_signal_parameters: # TODO below
   A_pupil: 9.0  # * b2u.mm2,  # mm^2
   lambda_nm: 555  # nm 555 monkey Clark models: DN 650
   input_gain: 1.0  # unitless
-  r_dark: -136 * b2u.pA  # dark current # TODO
-  max_response: 116.8 * b2u.pA,  # "pA", measured for a strong flash
+  r_dark: -136 # dark current # TODO
+  max_response: 116.8  # "pA", measured for a strong flash
   # Angueyra: unitless; Clark: mV * microm^2 * ms / photon
-  alpha: 19.4 * b2u.pA * b2u.ms
-  beta: 0.36 * b2u.ms,  # unitless
-  gamma: 0.448,  # unitless
-  tau_y: 4.49 * b2u.ms
-  n_y: 4.33,  # unitless
-  tau_z: 166 * b2u.ms
-  n_z: 1.0,  # unitless
-  tau_r: 4.78 * b2u.ms
-  filter_limit_time: 3.0 * b2u.second
+  alpha: 19.4 # pA
+  beta: 0.36 # ms
+  gamma: 0.448 # unitless
+  tau_y: 4.49 # ms
+  n_y: 4.33  # unitless
+  tau_z: 166 # ms
+  n_z: 1.0  # unitless
+  tau_r: 4.78 # ms
+  filter_limit_time: 3.0 # seconds
 
 
 bipolar_general_parameters:
@@ -214,9 +214,9 @@ receptive_field_repulsion_parameters:
   cooling_rate: 0.999  # each iteration change_rate = change_rate * cooling_rate
   border_repulsion_stength: 5
   show_repulsion_progress: False  # True False
-  show_only_unit: None  # None or int for unit idx
+  show_only_unit: null  # null or int for unit idx
   show_skip_steps: 5
-  savefigname: None  # f"Layout_{gc_type}_{response_type}_FIT.eps",  # # string w/ type suffix or None, None for no save
+  savefigname: null  # f"Layout_{gc_type}_{response_type}_FIT.eps",  # # string w/ type suffix or null, null for no save
 
 
 # For subunit model we assume constant bipolar to cone ratio as function of ecc.
@@ -229,11 +229,11 @@ receptive_field_repulsion_parameters:
 
 bipolar2gc_dict: # TODO
   midget: 
-    on: ["IMB"] 
-    off: ["FMB"]
+    "on": ["IMB"] 
+    "off": ["FMB"]
   parasol: 
-    on: ["DB4", "DB5"]
-    off: ["DB2", "DB3"]
+    "on": ["DB4", "DB5"]
+    "off": ["DB2", "DB3"]
 
 literature_data_folder: git_repo_root_path.joinpath(r"retina/literature_data") # TODO
 
@@ -254,19 +254,19 @@ gc_density_1_datafile_scaling_data_and_function: [[0, 0.75, 3],[3.34, 2, 1],"sin
 gc_density_2_datafile: "Wässle_1989_Nature_Fig3_gcData_c.npz"
 gc_density_control_datafile: "Wässle_1989_Nature_Fig3_c.npz"
 
-# TODO
-# if retina_parameters["gc_type"] == "parasol":
-#     dendr_diam1_datafile = "Perry_1984_Neurosci_ParasolDendrDiam_Fig6A_c.npz"
-#     dendr_diam2_datafile = "Watanabe_1989_JCompNeurol_ParasolDendrDiam_Fig7_c.npz"
-#     dendr_diam3_datafile = "Goodchild_1996_JCompNeurol_Parasol_DendDiam_Fig2A_c.npz"
-#     temporal_BK_model_datafile = "Benardete_1999_VisNeurosci_parasol.csv"
-#     spatial_DoG_datafile = "Schottdorf_2021_JPhysiol_CenRadius_Fig4C_parasol_c.npz"
-# elif retina_parameters["gc_type"] == "midget":
-#     dendr_diam1_datafile = "Perry_1984_Neurosci_MidgetDendrDiam_Fig6B_c.npz"
-#     dendr_diam2_datafile = "Watanabe_1989_JCompNeurol_MidgetDendrDiam_Fig7_c.npz"
-#     dendr_diam3_datafile = "Goodchild_1996_JCompNeurol_Midget_DendDiam_Fig2B_c.npz"
-#     temporal_BK_model_datafile = "Benardete_1997_VisNeurosci_midget.csv"
-#     spatial_DoG_datafile = "Schottdorf_2021_JPhysiol_CenRadius_Fig4C_midget_c.npz"
+
+dendr_diam1_datafile_parasol: "Perry_1984_Neurosci_ParasolDendrDiam_Fig6A_c.npz"
+dendr_diam2_datafile_parasol: "Watanabe_1989_JCompNeurol_ParasolDendrDiam_Fig7_c.npz"
+dendr_diam3_datafile_parasol: "Goodchild_1996_JCompNeurol_Parasol_DendDiam_Fig2A_c.npz"
+temporal_BK_model_datafile_parasol: "Benardete_1999_VisNeurosci_parasol.csv"
+spatial_DoG_datafile_parasol: "Schottdorf_2021_JPhysiol_CenRadius_Fig4C_parasol_c.npz"
+
+dendr_diam1_datafile_midget: "Perry_1984_Neurosci_MidgetDendrDiam_Fig6B_c.npz"
+dendr_diam2_datafile_midget: "Watanabe_1989_JCompNeurol_MidgetDendrDiam_Fig7_c.npz"
+dendr_diam3_datafile_midget: "Goodchild_1996_JCompNeurol_Midget_DendDiam_Fig2B_c.npz"
+temporal_BK_model_datafile_midget: "Benardete_1997_VisNeurosci_midget.csv"
+spatial_DoG_datafile_midget: "Schottdorf_2021_JPhysiol_CenRadius_Fig4C_midget_c.npz"
+
 dendr_diam_units:
   data1: ["mm", "um"]
   data2: ["mm", "um"]
@@ -284,32 +284,6 @@ parasol_off_RI_values_datafile: "Turner_2018_eLife_Fig5C_OFF_c.npz"
 
 temporal_pattern_datafile: "Angueyra_2022_JNeurosci_Fig2B_c.npz"
 
-# TODO
-# literature_data_files = {
-#     "gc_density_1_path": gc_density_1_datafile,
-#     "gc_density_2_path": gc_density_2_datafile,
-#     "gc_density_control_path": gc_density_control_datafile,
-#     "dendr_diam1_path": dendr_diam1_datafile,
-#     "dendr_diam2_path": dendr_diam2_datafile,
-#     "dendr_diam3_path": dendr_diam3_datafile,
-#     "temporal_BK_model_path": temporal_BK_model_datafile,
-#     "spatial_DoG_path": spatial_DoG_datafile,
-#     "cone_density1_path": cone_density1_datafile,
-#     "cone_density2_path": cone_density2_datafile,
-#     "cone_noise_path": cone_noise_datafile,
-#     "cone_response_path": cone_response_datafile,
-#     "bipolar_table_path": bipolar_table_datafile,
-#     "parasol_on_RI_values_path": parasol_on_RI_values_datafile,
-#     "parasol_off_RI_values_path": parasol_off_RI_values_datafile,
-#     "temporal_pattern_path": temporal_pattern_datafile,
-# }
-# literature_data_files = {
-#     key: f"{literature_data_folder}/{value}"
-#     for key, value in literature_data_files.items()
-# }
-# literature_data_files["dendr_diam_units"] = dendr_diam_units
-# literature_data_files["gc_density_1_scaling_data_and_function"] = (
-#     gc_density_1_datafile_scaling_data_and_function
-# )
+# TODO: maybe provide here literature strings for literature data dict?
 
 profile: False
