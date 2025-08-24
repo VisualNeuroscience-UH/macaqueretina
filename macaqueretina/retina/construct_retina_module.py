@@ -2793,8 +2793,9 @@ class TemporalModelSubunit(TemporalModelBase):
 
         RI_function = self.retina_math.parabola
 
-        # Define the target range
-        g_sur_range = (-1, 1)
+        # Define the target range for parasol on, which in Turner 2018 Fig 5C has the larger range
+        # Measured for max contrast square grating at 4Hz temporal and spatial frequencies
+        g_sur_range = (-0.15, 0.15)
 
         # Scale g_sur_values to g_sur_range
         g_sur_min: float = np.min(g_sur_values)
@@ -2940,7 +2941,12 @@ class TemporalModelSubunit(TemporalModelBase):
         return ret
 
     def _link_bipo_to_gc(
-        self, ret: Retina, gc: Any, X_grid_cen_mm: np.ndarray, Y_grid_cen_mm: np.ndarray
+        self,
+        ret: Retina,
+        gc: Any,
+        mask: np.ndarray,
+        X_grid_cen_mm: np.ndarray,
+        Y_grid_cen_mm: np.ndarray,
     ) -> np.ndarray:
         """
         Link bipolar units to ganglion cells worker function.
@@ -2959,8 +2965,7 @@ class TemporalModelSubunit(TemporalModelBase):
         weights: np.ndarray = np.zeros((n_bipos, gc.n_units))
 
         # Normalize center activation to probability distribution.
-        img_cen: np.ndarray = gc.img * gc.img_mask  # Shape: (N, H, W).
-        img_prob: np.ndarray = img_cen / np.sum(img_cen, axis=(1, 2))[:, None, None]
+        img_masked: np.ndarray = gc.img * mask  # Shape: (N, H, W).
 
         desc_str = f"Calculating {n_bipos} x {gc.n_units} connections"
         for this_bipo in tqdm(range(n_bipos), desc=desc_str):
@@ -2973,13 +2978,11 @@ class TemporalModelSubunit(TemporalModelBase):
             probability = np.exp(-((dist_mtx**2) / (2 * sd_bipo**2)))
             probability[dist_mtx > cutoff_SD] = 0
 
-            weights_mtx = probability * img_prob
+            weights_mtx = probability * img_masked
+            # weights_mtx = probability * img_prob
             weights[this_bipo, :] = weights_mtx.sum(axis=(1, 2))
 
-        # Normalize weights so that the input to each ganglion cell sums to 1.0.
-        weights_out: np.ndarray = weights / weights.sum(axis=0)
-
-        return weights_out
+        return weights
 
     def _link_bipolar_units_to_gcs(self, ret: Retina, gc: Any) -> Retina:
         """
@@ -3003,15 +3006,25 @@ class TemporalModelSubunit(TemporalModelBase):
         print("Connecting bipolar units to ganglion cells...")
 
         # link gc center
-        weights_out_cen = self._link_bipo_to_gc(
-            ret, gc, gc.X_grid_cen_mm, gc.Y_grid_cen_mm
+        weights_cen = self._link_bipo_to_gc(
+            ret, gc, gc.img_mask, gc.X_grid_cen_mm, gc.Y_grid_cen_mm
         )
+
+        # Normalize weights so that the input to each ganglion cell center sums to 1.0.
+        weights_out_cen: np.ndarray = weights_cen / weights_cen.sum(axis=0)[None, :]
+
         ret.bipolar_to_gcs_cen_weights = weights_out_cen
 
         # link gc surround
-        weights_out_sur = self._link_bipo_to_gc(
-            ret, gc, gc.X_grid_sur_mm, gc.Y_grid_sur_mm
+        weights_sur = self._link_bipo_to_gc(
+            ret, gc, gc.img_mask_sur, gc.X_grid_sur_mm, gc.Y_grid_sur_mm
         )
+
+        # Coming from RF img, where surround is negative. We want positive weights.
+        weights_sur = weights_sur * -1
+
+        # Normalize to center weight = 1
+        weights_out_sur: np.ndarray = weights_sur / weights_cen.sum(axis=0)[None, :]
         ret.bipolar_to_gcs_sur_weights = weights_out_sur
 
         return ret
