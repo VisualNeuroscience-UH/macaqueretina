@@ -164,17 +164,15 @@ class VaeTrainParameters(BaseConfigModel):
     )
     channels: int = Field(default=16, description="Number of channels")
     lr: float = Field(default=0.0005, description="Learning rate")
-    batch_size: int = Field(default=256, description="Batch size")
+    batch_size: int | None = Field(default=256, description="Batch size")
     test_split: float = Field(
         default=0.2,
         description="Split data for validation and testing (both will take this fraction of data)",
     )
-    kernel_stride: str = Field(default="k7s1", description="Kernel stride")
+    kernel_stride: Literal["k3s1", "k3s2", "k5s2", "k5s1", "k7s1"]
     conv_layers: int = Field(default=2, description="Number of convolutional layers")
     batch_norm: bool = Field(default=True, description="Use batch normalization")
-    latent_distribution: str = Field(
-        default="uniform", description="Latent distribution"
-    )
+    latent_distribution: Literal["normal", "uniform"]
 
     @field_validator("latent_dim", mode="after")
     @classmethod
