@@ -3,6 +3,7 @@ retina_parameters:
   response_type: "on"  # "on", "off"
   spatial_model_type: "DOG"  # "DOG", "VAE"
   temporal_model_type: "fixed"  # "fixed", "dynamic", "subunit"
+  dog_model_type: "ellipse_fixed" #"ellipse_fixed", "ellipse_independent" or "circular"
   ecc_limits_deg: [4.5, 5.5]  # eccentricity in degrees MIDGET
   pol_limits_deg: [-1.5, 1.5]  # polar angle in degrees
   model_density: 1.0  # 1.0 for 100% of the literature density of ganglion cells
