@@ -412,9 +412,6 @@ class RetinaMath:
         # Calculate the luminance (L) in cd/m²
         L = L_td / A_pupil
 
-        # Drop units for the return value
-        # L = L
-
         return L
 
     def get_photoisomerizations_from_luminance(
