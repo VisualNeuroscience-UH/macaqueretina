@@ -287,11 +287,11 @@ class GanglionCellParasol(GanglionCellBase):
         svecs = self._validate_svec(svec, n_units, n_timepoints, params)
 
         # Time constant for dynamical variable c(t), ms. Victor_1987_JPhysiol
-        _Tc = np.array(15.0)
+        _Tc = np.array(15) * b2u.ms
 
         # parameter_names for parasol gain control ["NL", "TL", "HS", "T0", "Chalf", "D", "A"]
         NL = np.int32(params[:, 0])
-        TL = params[:, 1]
+        TL = params[:, 1]  # ms, control multiplier 0.25
         _HS = params[:, 2]
         _T0 = params[:, 3] * b2u.ms
         _Chalf = params[:, 4]
@@ -323,7 +323,7 @@ class GanglionCellParasol(GanglionCellBase):
             )
         x_input = b2.TimedArray(x_vec.T, dt=_dt)
 
-        # Define and run the high-pass stage
+        # Define and run the high-pass stage. x_input is precalculated, thus "manual" derivative.
         eqs = """
         dy/dt = (-y + Ts * x_derivative + (1 - HS) * x_input(t, i)) / Ts : 1
         x_derivative = (x_input(t, i) - x_input(t-dt, i)) / dt : Hz
@@ -354,7 +354,7 @@ class GanglionCellParasol(GanglionCellBase):
         neuron_group.HS = _HS
         neuron_group.T0 = _T0
         neuron_group.Chalf = _Chalf
-        neuron_group.Tc = _Tc * b2u.ms
+        neuron_group.Tc = _Tc
 
         state_monitor = b2.StateMonitor(neuron_group, ["y"], record=True)
 
@@ -2284,8 +2284,8 @@ class ConcreteSimulationBuilder(SimulationBuildInterface):
         Create noise for the simulation.
         """
         vs = self.vs
-        ndim_cones = (self.cones.n_units, vs.stim_len_tp)
-        ndim_gc = (self.gcs.n_units, vs.stim_len_tp)
+        ndim_cones = (self.cones.n_units, vs.stim_len_tp.item(), self.n_sweeps)
+        ndim_gc = (self.gcs.n_units, vs.stim_len_tp.item(), self.n_sweeps)
 
         if all(
             [
@@ -3012,7 +3012,7 @@ class ConeProduct(ReceptiveFieldsBase):
 
         magn = self.retina_parameters["noise_gain"]
 
-        # invert cone_noise_norm for shape (n_cones, n_timepoints)
+        # Transpose cone_noise_norm for shape (n_cones, n_timepoints)
         params_dict = self.retina_parameters["cone_signal_parameters"]
         max_response = params_dict["max_response"]
 
