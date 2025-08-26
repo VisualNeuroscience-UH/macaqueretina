@@ -249,7 +249,7 @@ literature_data_folder: git_repo_root_path.joinpath(r"retina/literature_data") #
 gc_density_1_datafile: "Wässle_1989_Nature_Fig2a_c.npz"
 # foveal gc density within 3 deg is estimated from cone density, with a decaying exponential multiplier.
 # See Wässle_1989_Nature Fig2a for details.
-gc_density_1_datafile_scaling_data_and_function: [[0, 0.75, 3],[3.34, 2, 1],"single_exponential_func",]
+gc_density_1_scaling_data_and_function: [[0, 0.75, 3],[3.34, 2, 1],"single_exponential_func",]
 
 gc_density_2_datafile: "Wässle_1989_Nature_Fig3_gcData_c.npz"
 gc_density_control_datafile: "Wässle_1989_Nature_Fig3_c.npz"

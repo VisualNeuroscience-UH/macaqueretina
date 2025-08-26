@@ -14,7 +14,10 @@ from pydantic import (
 )
 
 # Local
-from macaqueretina.project.project_conf_module import git_repo_root_path
+from macaqueretina.project.project_conf_module import (
+    project_conf_module_file_path,
+    git_repo_root_path,
+)
 
 
 class BaseConfigModel(BaseModel):
@@ -484,7 +487,7 @@ class ConfigParams(BaseConfigModel):
         return git_repo_root_path.joinpath(r"retina/literature_data")
 
     gc_density_1_datafile: str
-    gc_density_1_datafile_scaling_data_and_function: list
+    gc_density_1_scaling_data_and_function: list
     gc_density_2_datafile: str
     gc_density_control_datafile: str
     dendr_diam_units: DendrDiamUnits
@@ -533,6 +536,7 @@ class ConfigParams(BaseConfigModel):
     @model_validator(mode="after")
     def set_derived_values(self):
         # Set parameters that depend on another value in a different class
+        self.project_conf_module_file_path = project_conf_module_file_path
         self.visual_stimulus_parameters.stimulus_video_name = (
             f"{self.stimulus_folder}.mp4"
         )
@@ -547,9 +551,9 @@ class ConfigParams(BaseConfigModel):
         self.receptive_field_repulsion_parameters.n_iterations = getattr(
             self.n_iterations, self.retina_parameters.gc_type
         )
-        self.run_parameters.gc_response_filenames = (
+        self.run_parameters.gc_response_filenames = [
             f"gc_response_{x:02}" for x in range(self.n_files)
-        )
+        ]
         self.retina_parameters.signal_gain = (
             self.retina_parameters.signal_gain.get(self.retina_parameters.gc_type)
             .get(self.retina_parameters.response_type)
@@ -572,24 +576,6 @@ class ConfigParams(BaseConfigModel):
             self.temporal_BK_model_datafile = self.temporal_BK_model_datafile_midget
             self.spatial_DoG_datafile = self.spatial_DoG_datafile_midget
 
-        self.literature_data_files = {
-            "gc_density_1_path": "Wässle_1989_Nature_Fig2a_c.npz",
-            "gc_density_2_path": "Wässle_1989_Nature_Fig3_gcData_c.npz",
-            "gc_density_control_path": "Wässle_1989_Nature_Fig3_c.npz",
-            "dendr_diam1_path": self.dendr_diam1_datafile,
-            "dendr_diam2_path": self.dendr_diam2_datafile,
-            "dendr_diam3_path": self.dendr_diam3_datafile,
-            "temporal_BK_model_path": self.temporal_BK_model_datafile,
-            "spatial_DoG_path": self.spatial_DoG_datafile,
-            "cone_density1_path": "Packer_1989_JCompNeurol_ConeDensity_Fig6A_main_c.npz",
-            "cone_density2_path": "Packer_1989_JCompNeurol_ConeDensity_Fig6A_insert_c.npz",
-            "cone_noise_path": "Angueyra_2013_NatNeurosci_Fig6E_c.npz",
-            "cone_response_path": "Angueyra_2013_NatNeurosci_Fig6B_c.npz",
-            "bipolar_table_path": "Boycott_1991_EurJNeurosci_Table1.csv",
-            "parasol_on_RI_values_path": "Turner_2018_eLife_Fig5C_ON_c.npz",
-            "parasol_off_RI_values_path": "Turner_2018_eLife_Fig5C_OFF_c.npz",
-            "temporal_pattern_path": "Angueyra_2022_JNeurosci_Fig2B_c.npz",
-        }
         self.path = self.model_root_path.joinpath(Path(self.project), self.experiment)
         return self
 
