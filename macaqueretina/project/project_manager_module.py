@@ -43,14 +43,14 @@ class ProjectData:
 
 
 class ProjectManager(ProjectUtilities):
-    def __init__(self, **all_properties):
+    def __init__(self, config):
         """
         Main project manager.
         In init we construct other classes and inject necessary dependencies.
         This class is allowed to house project-dependent data and methods.
         """
 
-        context = Context(all_properties)
+        context = Context(config.as_dict())
         context.device = context.validated_properties["device"]
 
         self.context = context
