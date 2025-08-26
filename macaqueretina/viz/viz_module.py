@@ -4126,9 +4126,9 @@ class Viz:
             )
         if n_variables == 2:
             F_popul_long_df = F_popul_long_df[F_popul_long_df["F_peak"] == "F1"]
-            title_prefix = "Population F1 for "
+            title_prefix = "Population mean F1 for "
         else:
-            title_prefix = "Population F1 and F2 for "
+            title_prefix = "Population mean F1 and F2 for "
 
         fig, ax = plt.subplots(1, n_variables, figsize=(8, 4))
 
@@ -4176,7 +4176,6 @@ class Viz:
         exp_variables,
         xlog=False,
         ylog=False,
-        hue="F_peak",
         savefigname=None,
     ):
         """
@@ -4194,14 +4193,15 @@ class Viz:
             If True, the x-axis is shown in logarithmic scale.
         ylog : bool
             If True, the y-axis is shown in logarithmic scale.
-        hue : str
-            The name of the column to be used for hue in the plot.
         savefigname : str or None
             If not empty, the figure is saved to this filename."""
 
         data_folder = self.context.output_folder
         cond_names_string = "_".join(exp_variables)
         n_variables = len(exp_variables)
+
+        if n_variables > 2:
+            raise ValueError("Can only plot up to 2 variables at a time, aborting...")
 
         experiment_df = pd.read_csv(data_folder / filename, index_col=0)
 
@@ -4225,10 +4225,11 @@ class Viz:
                 levels_s
             )
 
-        if not hue == "F_peak":
+        if n_variables == 2:
             F_unit_long_df = F_unit_long_df[F_unit_long_df["F_peak"] == "F1"]
-            exp_variables.remove(hue)
-            n_variables = len(exp_variables)
+            title_prefix = "Unit mean F1 for "
+        else:
+            title_prefix = "Unit mean F1 and F2 for "
 
         fig, ax = plt.subplots(1, n_variables, figsize=(8, 4))
 
@@ -4237,11 +4238,11 @@ class Viz:
                 data=F_unit_long_df,
                 x=exp_variables[0],
                 y="amplitudes",
-                hue=hue,
+                hue="F_peak",
                 palette="tab10",
                 ax=ax,
             )
-            ax.set_title("Unit amplitude spectra for " + exp_variables[0])
+            ax.set_title(title_prefix + exp_variables[0])
             if xlog:
                 ax.set_xscale("log")
             if ylog:
@@ -4249,17 +4250,19 @@ class Viz:
 
         else:
             for i, cond in enumerate(exp_variables):
+                F_unit_long_df = F_unit_long_df[F_unit_long_df["F_peak"] == "F1"]
+                secondary_condition = set(exp_variables) - {cond}
                 sns.lineplot(
                     data=F_unit_long_df,
                     x=cond,
                     y="amplitudes",
-                    hue=hue,
+                    hue=secondary_condition.pop(),
                     palette="tab10",
                     ax=ax[i],
                 )
 
                 # Title
-                ax[i].set_title("Unit amplitude spectra for " + cond)
+                ax[i].set_title(title_prefix + cond)
                 if xlog:
                     ax[i].set_xscale("log")
                 if ylog:
