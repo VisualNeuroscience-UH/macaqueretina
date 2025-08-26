@@ -66,6 +66,7 @@ class ProjectManager(ProjectUtilities):
         project_data = ProjectData()
 
         retina_math = RetinaMath()
+        self.retina_math = retina_math
 
         ana = Analysis(
             # Interfaces
