@@ -4076,7 +4076,6 @@ class Viz:
         exp_variables,
         xlog=False,
         ylog=False,
-        F1_only=False,
         savefigname=None,
     ):
         """
@@ -4093,8 +4092,6 @@ class Viz:
             If True, the x-axis is shown in logarithmic scale.
         ylog : bool
             If True, the y-axis is shown in logarithmic scale.
-        F1_only : bool
-            If True, only F1 response is shown.
         savefigname : str or None
             If not empty, the figure is saved to this filename.
         """
@@ -4102,6 +4099,9 @@ class Viz:
         data_folder = self.context.output_folder
         cond_names_string = "_".join(exp_variables)
         n_variables = len(exp_variables)
+
+        if n_variables > 2:
+            raise ValueError("Can only plot up to 2 variables at a time, aborting...")
 
         experiment_df = pd.read_csv(data_folder / filename, index_col=0)
         F_popul_df = pd.read_csv(
@@ -4124,8 +4124,11 @@ class Viz:
             F_popul_long_df[cond] = F_popul_long_df[f"{cond_names_string}_names"].map(
                 levels_s
             )
-        if F1_only:
+        if n_variables == 2:
             F_popul_long_df = F_popul_long_df[F_popul_long_df["F_peak"] == "F1"]
+            title_prefix = "Population F1 for "
+        else:
+            title_prefix = "Population F1 and F2 for "
 
         fig, ax = plt.subplots(1, n_variables, figsize=(8, 4))
 
@@ -4139,26 +4142,26 @@ class Viz:
                 errorbar=None,
                 ax=ax,
             )
-            ax.set_title("Population amplitude spectra for " + exp_variables[0])
+            ax.set_title(title_prefix + exp_variables[0])
             if xlog:
                 ax.set_xscale("log")
             if ylog:
                 ax.set_yscale("log")
 
-        else:
+        else:  # 2 variables
             for i, cond in enumerate(exp_variables):
+                F_popul_long_df = F_popul_long_df[F_popul_long_df["F_peak"] == "F1"]
+                secondary_condition = set(exp_variables) - {cond}
                 sns.lineplot(
                     data=F_popul_long_df,
                     x=cond,
                     y="amplitudes",
-                    hue="F_peak",
+                    hue=secondary_condition.pop(),
                     palette="tab10",
                     errorbar=None,
                     ax=ax[i],
                 )
-
-                # Title
-                ax[i].set_title("Population amplitude spectra for " + cond)
+                ax[i].set_title(title_prefix + cond)
                 if xlog:
                     ax[i].set_xscale("log")
                 if ylog:
