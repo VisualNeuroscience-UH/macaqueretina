@@ -272,8 +272,8 @@ class RetinaParametersAppend(BaseConfigModel):
         default="multivariate",
         description="Applies only to DOG spatial and fixed temporal model statistics.",
     )
-    dd_regr_model: str = Field(
-        default="", description="Dendritic diameter regression model"
+    dd_regr_model: None = Field(
+        default=None, description="Dendritic diameter regression model"
     )
     ecc_limit_for_dd_fit: float = Field(
         default=20.0, description="degrees, math.inf for no limit"
