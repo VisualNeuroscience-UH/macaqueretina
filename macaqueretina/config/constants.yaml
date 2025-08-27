@@ -234,5 +234,3 @@ bipolar2gc_dict: # TODO
   parasol: 
     "on": ["DB4", "DB5"]
     "off": ["DB2", "DB3"]
-
-profile: False
