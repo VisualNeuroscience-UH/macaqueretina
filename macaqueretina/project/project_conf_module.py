@@ -22,9 +22,7 @@ def main():
     from macaqueretina.config.config_manager import load_project_config_client
 
     retina_yaml: str = os.getcwd() + "/macaqueretina/config/retina_parameters.yaml"
-    experiment_yaml: str = (
-        os.getcwd() + "/macaqueretina/config/experiment_parameters.yaml"
-    )
+    experiment_yaml: str = os.getcwd() + "/macaqueretina/config/core_parameters.yaml"
     visual_stimulus_yaml: str = (
         os.getcwd() + "/macaqueretina/config/visual_stimulus_parameters.yaml"
     )
