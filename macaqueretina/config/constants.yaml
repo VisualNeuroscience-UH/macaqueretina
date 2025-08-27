@@ -85,9 +85,9 @@ proportion_of_OFF_response_type: 0.60
 # Goodchild_1996_JCompNeurol 0.038 * x**2 + 4.21 * x + 0.1
 # gives 229 um/degree. The R2 (constant vs quadratic) is
 # > 0.999 for ecc 0.1 - 4 mm, and > 0.97 for ecc 0.1 - 20 mm.
-deg_per_mm: 0.00436681222707423580786
+deg_per_mm: 4.366812227074235
 
-optical_aberration: 0.0333333333333333333333333  # deg , 2 arcmin, Navarro 1993 JOSAA 
+optical_aberration: 0.03333333333333333  # deg , 2 arcmin, Navarro 1993 JOSAA 
 
 # Parameters for cortical - visual coordinate transformation.
 # a for macaques between 0.3 - 0.9, Schwartz 1994 citing Wilson et al 1990 "The perception of form"
@@ -96,8 +96,8 @@ optical_aberration: 0.0333333333333333333333333  # deg , 2 arcmin, Navarro 1993 
 # However, if we relate 1/M = (a/k) + (1/k) * E and M = (1/0.077) + (1/(0.082 * E)), we get
 # Andrew James, personal communication: k=1/.082, a=.077/.082
 visual2cortical_params: # TODO
-  a: 0.93902439024390243902439024390244 # 0.077 / 0.082,  # ~0.94
-  k: 12.1951219512195 # 1 / 0.082,  # ~12.2
+  a: 0.93902439024 # 0.077 / 0.082,  # ~0.94
+  k: 12.1951219512 # 1 / 0.082,  # ~12.2
 
 
 # Compressing cone nonlinearity. Parameters are manually scaled to give dynamic cone ouput.

@@ -467,8 +467,8 @@ class ConfigParams(BaseConfigModel):
     proportion_of_ON_response_type: float = 0.40
     proportion_of_OFF_response_type: float = 0.60
 
-    deg_per_mm: float = 1 / 0.229
-    optical_aberration: float = 2 / 60
+    deg_per_mm: float
+    optical_aberration: float
     visual2cortical_params: Visual2CorticalParams
     cone_general_parameters: ConeGeneralParameters
     cone_signal_parameters: ConeSignalParameters
