@@ -93,7 +93,7 @@ class YamlLoader:
 
 class NestedConfig:
     """
-    Attribute-style access to nested dictionary values.
+    Allow optional attribute-style access to nested dictionary values.
 
     Notes
     -----
@@ -240,7 +240,8 @@ class ConfigManager:
 
 class ConfigValidator:
     """
-    Validates configuration values against existance and type requirements.
+    Validates parameters defined in yaml files. Calls param_validation.py with
+    pydantic validation scheme and implicit default values.
 
     This class performs comprehensive validation of configuration files,
     including mandatory parameter existence, template existence, and
