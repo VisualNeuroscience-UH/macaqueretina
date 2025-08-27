@@ -27,9 +27,14 @@ def main():
         os.getcwd() + "/macaqueretina/config/visual_stimulus_parameters.yaml"
     )
     constants_yaml: str = os.getcwd() + "/macaqueretina/config/constants.yaml"
+    literature_yaml: str = os.getcwd() + "/macaqueretina/config/literature.yaml"
 
     config = load_project_config_client(
-        retina_yaml, experiment_yaml, visual_stimulus_yaml, constants_yaml
+        retina_yaml,
+        experiment_yaml,
+        visual_stimulus_yaml,
+        constants_yaml,
+        literature_yaml,
     )
     if config.profile is True:
         # Built-in
