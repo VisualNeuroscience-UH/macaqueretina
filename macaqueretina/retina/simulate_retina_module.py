@@ -1776,7 +1776,6 @@ class ConcreteSimulationBuilder(SimulationBuildInterface):
         gain_name = "A_cen" if gcs.gc_type == "midget" else "A"
         gc_gain_raw = params_all[gain_name].values
         gc_gain_adjusted = gc_gain_raw * gcs.gc_gain_adjustment
-        # breakpoint()
         firing_rates_light = vs.generator_potentials * gc_gain_adjusted[:, np.newaxis]
         firing_rates_light = firing_rates_light[:, :, np.newaxis]
         firing_rates_cone_noise = (
@@ -2296,6 +2295,10 @@ class ConcreteSimulationBuilder(SimulationBuildInterface):
             ]
         ):
             return
+        # TODO: Refactor this method:
+        # -  separate the gc_synaptic_noise test from above.
+        # - IF CONE NOISE BUT SEPARATE GC UNIT TYPE, REMAP WITH CONE TO GC WEIGHTS KEEPING THE
+        # ORIGINAL CONE NOISE
 
         self.vs = self.cones.create_noise(vs, self.n_sweeps)
 
