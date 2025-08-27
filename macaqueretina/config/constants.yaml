@@ -56,7 +56,6 @@ retina_parameters_append:
   center_mask_threshold: 0.1  # 0.1,  Limits rf center extent to values above this proportion of the peak values after volume normalization.
   apricot_data_noise_mask: 0.1  # 0.1,  # 0.1 for +-10% from abs max removed, 0 for no noise removal. Applies to DOG spatial model statistics.
   fit_statistics: "multivariate"  # "univariate" or "multivariate" Applies only to DOG spatial and fixed temporal model statistics.
-  dd_regr_model: dd_regr_model[gc_type]
   ecc_limit_for_dd_fit: 20  # 20,  # degrees, math.inf for no limit
 
 dog_metadata_parameters:
@@ -65,10 +64,6 @@ dog_metadata_parameters:
   data_spatialfilter_width: 13
   data_fps: 30
   data_temporalfilter_samples: 15
-  exp_dog_data_folder: git_repo_root_path.joinpath(r"../../experimental_data/Chichilnisky_lab/apricot_data") # TODO
-  # exp_dog_data_folder: git_repo_root_path.joinpath(r"retina/apricot_data")
-  exp_rf_stat_folder: git_repo_root_path.joinpath(r"retina/dog_statistics")
-  mask_noise: retina_parameters_append["apricot_data_noise_mask"]
 
 # Proportion from all ganglion cells.
 proportion_of_parasol_gc_type: 0.08
@@ -209,7 +204,6 @@ n_iterations:
 
 # For VAE, this is enough to have good distribution between units.
 receptive_field_repulsion_parameters:
-  n_iterations: n_iterations[gc_type]  # 200 for parasol, 20 for midget
   change_rate: 0.005
   cooling_rate: 0.999  # each iteration change_rate = change_rate * cooling_rate
   border_repulsion_stength: 5
