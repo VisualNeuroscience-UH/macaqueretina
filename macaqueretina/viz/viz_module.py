@@ -5362,7 +5362,14 @@ class Viz:
                 )
 
     def show_data_and_fit(
-        self, fit_function, x_data, y_data, p0=None, savefigname=None
+        self,
+        fit_function,
+        x_data,
+        y_data,
+        p0=None,
+        xlim=None,
+        ylim=None,
+        savefigname=None,
     ):
         """
         Show the data with the specified function applied.
@@ -5384,12 +5391,19 @@ class Viz:
             print(f"Error occurred during curve fitting: {e}")
             return
 
-        y_fitted = fit_function(x_data, *popt)
+        x_dense = np.linspace(np.min(x_data), np.max(x_data), 100)
+        y_fitted = fit_function(x_dense, *popt)
 
         fig, ax = plt.subplots()
         ax.scatter(x_data, y_data, label=f"Data points")
-        ax.plot(x_data, y_fitted, color="red", label="Fitted Curve")
+        ax.plot(x_dense, y_fitted, color="red", label="Fitted Curve")
         ax.legend()
+
+        if xlim:
+            ax.set_xlim(xlim)
+
+        if ylim:
+            ax.set_ylim(ylim)
 
         if savefigname:
             self._figsave(figurename=savefigname)
