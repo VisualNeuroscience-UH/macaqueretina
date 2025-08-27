@@ -453,19 +453,24 @@ class DataSampler:
         )
         print(f"Saved data into {filename_full}.npz")
 
+    def _load_data(self):
+        """Restores data from file."""
+        namein = self.filename.stem + "_c.npz"
+        data_filename_full = self.filename.parent / namein
+        data = np.load(data_filename_full)
+        self.data_points = [(x, y) for x, y in zip(*[data["Xdata"], data["Ydata"]])]
+        self.calibration_points = [
+            (x, y) for x, y in zip(*[data["calib_x"], data["calib_y"]])
+        ]
+
     def quality_control(self, restore=False):
         """Displays the original image with calibration and data points."""
         imagedata = plt.imread(self.filename)
 
         if restore is True:
-            namein = self.filename.stem + "_c.npz"
-            data_filename_full = self.filename.parent / namein
-            data = np.load(data_filename_full)
-            self.data_points = [(x, y) for x, y in zip(*[data["Xdata"], data["Ydata"]])]
-            self.calibration_points = [
-                (x, y) for x, y in zip(*[data["calib_x"], data["calib_y"]])
-            ]
+            self._load_data()
 
+        # Convert data points to image units for plotting
         data_x, data_y = zip(*[self._to_image_units(x, y) for x, y in self.data_points])
         calib_x = [pt[0] for pt in self.calibration_points]
         calib_y = [pt[1] for pt in self.calibration_points]
@@ -509,6 +514,14 @@ class DataSampler:
         plt.close(fig)
 
         self._save_data()
+
+    def get_data_arrays(self):
+        """Loads the data for plotting."""
+        self._load_data()
+        return (
+            np.array([point[0].item() for point in self.data_points]),
+            np.array([point[1].item() for point in self.data_points]),
+        )
 
 
 class Printable:
