@@ -90,7 +90,7 @@ optical_aberration: 0.033  # deg , 2 arcmin, Navarro 1993 JOSAA
 # k has been pretty open.
 # However, if we relate 1/M = (a/k) + (1/k) * E and M = (1/0.077) + (1/(0.082 * E)), we get
 # Andrew James, personal communication: k=1/.082, a=.077/.082
-visual2cortical_params: # TODO
+visual2cortical_params:
   a: 0.94 # 0.077 / 0.082,  # ~0.94
   k: 12.2 # 1 / 0.082,  # ~12.2
 
@@ -112,12 +112,12 @@ cone_general_parameters:
 
 # Parameters from Angueyra_2022_JNeurosci, model according to Clark_2013_PLoSComputBiol
 # Light intensity photons/microm^2/second
-cone_signal_parameters: # TODO below
+cone_signal_parameters:
   unit: "pA"
   A_pupil: 9.0  # * b2u.mm2,  # mm^2
   lambda_nm: 555  # nm 555 monkey Clark models: DN 650
   input_gain: 1.0  # unitless
-  r_dark: -136 # dark current # TODO
+  r_dark: -136 # dark current 
   max_response: 116.8  # "pA", measured for a strong flash
   # Angueyra: unitless; Clark: mV * microm^2 * ms / photon
   alpha: 19.4 # pA
@@ -221,7 +221,7 @@ receptive_field_repulsion_parameters:
 # -OFF midget: Flat Midget Bipolars, FMB (Wässle_1994_VisRes, Freeman_2015_eLife)
 # -ON midget: Invaginating Midget Bipolars, IMB (Wässle_1994_VisRes)
 
-bipolar2gc_dict: # TODO
+bipolar2gc_dict:
   midget: 
     "on": ["IMB"] 
     "off": ["FMB"]
