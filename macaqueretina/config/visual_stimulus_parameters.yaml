@@ -36,10 +36,9 @@ stimulus_metadata_parameters:
 n_files: 1
 
 # Running multiple trials on multiple units is not supported
-# "save_variables": "spikes", "cone_noise", "cone_bipo_gen_fir"
 run_parameters:
   n_sweeps: 1 # For each of the response files
   spike_generator_model: "poisson"  # poisson or refractory
   save_data: True
   simulation_dt: 0.0001  # in sec 0.001 = 1 ms
-  save_variables: ["spikes", "cone_noise"]
+  save_variables: ["spikes", "cone_noise"] #"spikes", "cone_noise", "cone_bipo_gen_fir"
