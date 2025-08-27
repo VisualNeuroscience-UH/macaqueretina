@@ -5361,6 +5361,39 @@ class Viz:
                     subfolderpath=self.save_figure_to_folder,
                 )
 
+    def show_data_and_fit(
+        self, fit_function, x_data, y_data, p0=None, savefigname=None
+    ):
+        """
+        Show the data with the specified function applied.
+
+        Parameters
+        ----------
+        fit_function : callable
+            The function to fit to the data.
+        x_data : array-like
+            The independent variable data.
+        y_data : array-like
+            The dependent variable data.
+        p0 : list, optional
+            Initial guess for the parameters.
+        """
+        try:
+            popt, pcov = opt.curve_fit(fit_function, x_data, y_data, p0=p0)
+        except Exception as e:
+            print(f"Error occurred during curve fitting: {e}")
+            return
+
+        y_fitted = fit_function(x_data, *popt)
+
+        fig, ax = plt.subplots()
+        ax.scatter(x_data, y_data, label=f"Data points")
+        ax.plot(x_data, y_fitted, color="red", label="Fitted Curve")
+        ax.legend()
+
+        if savefigname:
+            self._figsave(figurename=savefigname)
+
 
 class VizResponse:
     """
