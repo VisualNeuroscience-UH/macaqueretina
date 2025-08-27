@@ -15,8 +15,8 @@ from pydantic import (
 
 # Local
 from macaqueretina.project.project_conf_module import (
-    project_conf_module_file_path,
     git_repo_root_path,
+    project_conf_module_file_path,
 )
 
 
@@ -26,6 +26,21 @@ class BaseConfigModel(BaseModel):
     All models inherit from this class to ensure extra parameters are allowed
     and retained from everywhere in the YAML files.
     """
+
+    def __init__(self, **data: dict):
+        provided_fields = set(data.keys())
+        for field_name, field_content in type(self).model_fields.items():
+            if (
+                field_name not in provided_fields
+                and hasattr(field_content, "default")
+                and field_content.default is not None
+            ):
+                print(
+                    f"Parameter '{field_name}' not provided in the YAML file(s), "
+                    f"using default value: {field_content.default} (set in param_validation.py)",
+                )
+
+        super().__init__(**data)
 
     model_config = ConfigDict(extra="allow")
 
