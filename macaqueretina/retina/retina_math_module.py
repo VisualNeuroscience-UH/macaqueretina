@@ -1014,3 +1014,21 @@ class RetinaMath:
         volume_surround = ampl_s * 2 * np.pi * sigma_xs * sigma_ys
 
         return volume_central, volume_surround
+
+    # Validation
+    def naka_rushton(self, c, Rmax, c50, baseline):
+        """
+        Naka-Rushton function.
+
+        Parameters
+        ----------
+        c : numpy array
+            The independent variable (contrast).
+
+        Returns
+        -------
+        numpy.ndarray
+            The Naka-Rushton function evaluated at each point in c.
+        """
+        # Rmax, c50, baseline = p0
+        return baseline + (Rmax * (c)) / (c50 + c)
