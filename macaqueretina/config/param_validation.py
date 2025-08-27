@@ -105,6 +105,7 @@ class VisualStimulusParameters(BaseConfigModel):
     spatial_frequency: float = Field(default=2.0, description="cpd")
     orientation: float = Field(default=90.0, description="degrees")
     phase_shift: float = Field(default=0.0, description="radians")
+    stimulus_video_name: str | None
     contrast: float = Field(default=1.0)
     mean: float = Field(
         default=128.0, description="Mean luminance in  cd/m2 and adaptation level"
@@ -535,9 +536,10 @@ class ConfigParams(BaseConfigModel):
     def set_derived_values(self):
         # Set parameters that depend on another value in a different class
         self.project_conf_module_file_path = project_conf_module_file_path
-        self.visual_stimulus_parameters.stimulus_video_name = (
-            f"{self.stimulus_folder}.mp4"
-        )
+        if self.visual_stimulus_parameters.stimulus_video_name is None:
+            self.visual_stimulus_parameters.stimulus_video_name = (
+                f"{self.stimulus_folder}.mp4"
+            )
         if self.retina_parameters_append.noise_gain is None:
             self.retina_parameters_append.noise_gain = getattr(
                 getattr(self.noise_gain_default, self.retina_parameters.response_type),

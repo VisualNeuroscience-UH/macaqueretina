@@ -18,7 +18,7 @@ visual_stimulus_parameters:
   spatial_frequency: 2  # cpd
   orientation: 90  # degrees
   phase_shift: 0  # math.pi + 0.1,  # radians
-  stimulus_video_name: f"{stimulus_folder}.mp4"  # TODO: implement in pydantic
+  stimulus_video_name: null # if null, defaults to f"{stimulus_folder}.mp4"  
   contrast: 1.0  # mean +- contrast * mean
   mean: 128  # Mean luminance in  cd/m2 and adaptation level
   intensity: null  # intensity overrides contrast and mean if provided as a tuple like (0, 255)
