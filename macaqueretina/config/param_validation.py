@@ -37,7 +37,7 @@ class RetinaParameters(BaseConfigModel):
     temporal_model_type: Literal["fixed", "dynamic", "subunit"]
     dog_model_type: Literal["ellipse_fixed", "ellipse_independent", "circular"]
     ecc_limits_deg: list[float, float] = Field(
-        default=[4.5, 5.5], description="eccentricity in degrees MIDGET"
+        default=[4.5, 5.5], description="eccentricity in degrees"
     )
     pol_limits_deg: list[float, float] = Field(
         default=[-1.5, 1.5], description="polar angle in degrees"
@@ -77,7 +77,7 @@ class RetinaParameters(BaseConfigModel):
 
 class VisualStimulusParameters(BaseConfigModel):
     pattern: str  # "temporal_square_pattern"  # One of the StimulusPatterns # TODO default "temporal_square_pattern"? Literal?
-    image_width: int = 240
+    image_width: int = Field(default=240, description="image (canvas) width in pixels")
     image_height: int = 240
     pix_per_deg: int = 60
     dtype_name: str = (
@@ -85,11 +85,9 @@ class VisualStimulusParameters(BaseConfigModel):
     )
     fps: int = 300
     duration_seconds: float = Field(
-        default=0.5, description="actual frames = floor(duration_seconds * fps)"
+        default=0.5, description="actual frames will be floor(duration_seconds * fps)"
     )
-    baseline_start_seconds: float = Field(
-        default=0.1, description="Total duration is duration + both baselines"
-    )
+    baseline_start_seconds: float = 0.1
     baseline_end_seconds: float = 0.5
     stimulus_form: str = "circular"
     size_inner: float = Field(default=0.1, description="deg, applies to annulus only")
