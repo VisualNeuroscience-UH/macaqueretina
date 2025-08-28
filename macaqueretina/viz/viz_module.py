@@ -5369,6 +5369,9 @@ class Viz:
         p0=None,
         xlim=None,
         ylim=None,
+        logX=False,
+        logY=False,
+        fit_in_log_space=False,
         savefigname=None,
     ):
         """
@@ -5385,13 +5388,41 @@ class Viz:
         p0 : list, optional
             Initial guess for the parameters.
         """
-        try:
-            popt, pcov = opt.curve_fit(fit_function, x_data, y_data, p0=p0)
-        except Exception as e:
-            print(f"Error occurred during curve fitting: {e}")
-            return
 
-        x_dense = np.linspace(np.min(x_data), np.max(x_data), 100)
+        if fit_in_log_space:
+            # x_data = np.log(x_data)
+            y_data = np.log(y_data)
+            p0 = np.log(p0)
+
+            # Define the objective function in log space that works with vectors
+            def log_objective(x: np.ndarray, *params) -> np.ndarray:
+                y_pred = fit_function(x, *params)
+                # Handle potential negative or zero values
+                # Set minimum value to positive number
+                y_pred = np.maximum(y_pred, 1e-10)
+                return np.log(y_pred)
+
+            popt, pcov = opt.curve_fit(
+                log_objective,
+                x_data,
+                np.log(y_data),
+                p0=p0,
+                maxfev=1000,
+                ftol=1e-11,
+            )
+
+        else:
+            popt, pcov = opt.curve_fit(
+                fit_function,
+                x_data,
+                y_data,
+                p0=p0,
+                maxfev=1000,
+                ftol=1.0e-05,
+            )
+
+        # popt = p0
+        x_dense = np.logspace(-1, 2, 100)
         y_fitted = fit_function(x_dense, *popt)
 
         fig, ax = plt.subplots()
@@ -5399,11 +5430,27 @@ class Viz:
         ax.plot(x_dense, y_fitted, color="red", label="Fitted Curve")
         ax.legend()
 
+        # Annotate the graph with the popt values
+        for i, (param_name, param_value) in enumerate(
+            zip(fit_function.__code__.co_varnames[2:], popt)
+        ):
+            ax.annotate(
+                f"{param_name} = {param_value:.2f}",
+                xy=(0.05, 0.95 - i * 0.05),
+                xycoords="axes fraction",
+            )
+
         if xlim:
             ax.set_xlim(xlim)
 
         if ylim:
             ax.set_ylim(ylim)
+
+        if logX:
+            ax.set_xscale("log")
+
+        if logY:
+            ax.set_yscale("log")
 
         if savefigname:
             self._figsave(figurename=savefigname)
