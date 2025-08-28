@@ -1,5 +1,4 @@
 # Built-in
-import os
 from pathlib import Path
 from typing import Any
 
@@ -152,7 +151,7 @@ class ConfigManager:
     def __init__(self, *args) -> None:
 
         self.config_file_paths: tuple = args
-        self._config: dict[str, Any] = YamlLoader(self.config_file_paths).load_config()
+        self._config = YamlLoader(self.config_file_paths).load_config()
 
     def __getattr__(self, name: str) -> Any:
         """
@@ -238,135 +237,29 @@ class ConfigManager:
         return self._config
 
 
-class ConfigValidator:
-    """
-    Validates parameters defined in yaml files. Calls param_validation.py with
-    pydantic validation scheme and implicit default values.
-
-    This class performs comprehensive validation of configuration files,
-    including mandatory parameter existence, template existence, and
-    type validation.
-    """
-
-    def __init__(self) -> None:
-
-        self.errors = []
-        self.reorganizer = ParamReorganizer()
-
-    def validate(self, config: "ConfigManager") -> "ConfigManager":
-        """
-        Validate configuration data.
-
-        Parameters
-        ----------
-        config : dict
-            Dictionary containing the configuration to validate
-
-        Returns
-        -------
-        ConfigManager
-            The validated configuration object
-        """
-        # Validate the parameters
-        validated_config = validate_params(config.as_dict())
-
-        # Update the configuration with validated parameters
-        validated_config = validated_config.model_dump()
-
-        # Reorganize the configuration as it was before the introduction of YAML files
-        reorganized_config = self.reorganizer.reorganize(validated_config)
-
-        # Validate the properties
-        config._config = reorganized_config
-        self.config = config
-        return self.config
-
-
-class ConfigurationService:
-    """
-    Orchestrates loading and validating configuration from a YAML file.
-    """
-
-    _instance = None
-
-    @classmethod
-    def get_instance(cls) -> "ConfigurationService":
-        """
-        Singleton pattern to ensure one configuration service.
-
-        Returns:
-            ConfigurationService: The singleton instance
-        """
-        if cls._instance is None:
-            cls._instance = ConfigurationService()
-        return cls._instance
-
-    def __init__(self) -> None:
-
-        self.validator = ConfigValidator()
-
-    def process_configuration(self, *args) -> ConfigManager:
-        """
-        Load and validate the configuration from a YAML file.
-
-        Parameters
-        ----------
-        config_file_path : str
-            Path to configuration file
-
-        Returns
-        -------
-        dict
-            Dictionary containing the validated configuration
-
-        Raises
-        ------
-        ValueError
-            If the validation fails
-        """
-
-        # Load configuration file(s)
-        config_object = ConfigManager(*args)
-
-        # Return the configuration object
-        return self.validator.validate(config_object)
-
-
 # Façade for project_conf_module.py
-def load_project_config_client(*args: tuple | None) -> ConfigManager:
+def load_yaml(*args: tuple | None) -> ConfigManager:
     """
-    Load project configuration from a YAML file.
-
-    This is the primary entry point for code needing access to the
-    project configuration. It handles locating, loading, and validating
-    the configuration file through the ConfigurationService.
+    Load project configuration from one or more YAML files.
 
     Returns
     -------
     ConfigManager
-        Configured and validated ConfigManager instance providing
-        access to the configuration parameters
+        Configured ConfigManager instance providing access
+        to the configuration parameters set in YAML files.
     """
+    reorganizer = ParamReorganizer()
 
-    if not args:
-        # No file paths provided, fall to the default YAML path
-        default_yaml_path: Path = Path(os.getcwd()) / Path(
-            "config/project_config.yaml"
-        )  # TODO: change
-
-        if not default_yaml_path.exists():
-            raise FileNotFoundError(
-                f"No path to YAML file provided."
-                f"Default YAML configuration file not found in {default_yaml_path}"
-            )
-
-        service = ConfigurationService.get_instance()
-        return service.process_configuration(default_yaml_path)
-
-    # Unpack args and check if they exist
+    # Unpack args and check if they exist before loading
     for path in args:
         if not Path(path).exists():
             raise FileNotFoundError(f"Found no YAML configuration file in {path}")
 
-    service = ConfigurationService.get_instance()
-    return service.process_configuration(*args)
+    config_object = ConfigManager(*args)
+    validated_config = validate_params(config_object.as_dict())
+    validated_config = validated_config.model_dump()
+    reorganized_config = reorganizer.reorganize(validated_config)
+
+    config_object._config = reorganized_config
+
+    return config_object
