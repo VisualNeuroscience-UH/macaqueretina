@@ -4445,7 +4445,7 @@ class ConcreteRetinaBuilder(RetinaBuildInterface):
                     raise ValueError(f"Unknown cell type: {cell_type}")
 
             # Define the objective function in log space that works with vectors
-            def objective(x: np.ndarray, *params) -> np.ndarray:
+            def log_objective(x: np.ndarray, *params) -> np.ndarray:
                 y_pred = this_function(x, *params)
                 # Handle potential negative or zero values
                 # Set minimum value to positive number
@@ -4458,7 +4458,7 @@ class ConcreteRetinaBuilder(RetinaBuildInterface):
 
             # Fit in log space with better optimization parameters
             fit_parameters, _ = opt.curve_fit(
-                objective,
+                log_objective,
                 eccentricity,
                 np.log(density),
                 p0=p0,
