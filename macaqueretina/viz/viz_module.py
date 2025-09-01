@@ -5372,6 +5372,7 @@ class Viz:
         logX=False,
         logY=False,
         fit_in_log_space=False,
+        bounds=(-np.inf, np.inf),
         savefigname=None,
     ):
         """
@@ -5390,7 +5391,6 @@ class Viz:
         """
 
         if fit_in_log_space:
-            # x_data = np.log(x_data)
             y_data = np.log(y_data)
             p0 = np.log(p0)
 
@@ -5402,14 +5402,20 @@ class Viz:
                 y_pred = np.maximum(y_pred, 1e-10)
                 return np.log(y_pred)
 
+            lower_bounds, upper_bounds = bounds
+            log_bounds = (np.log(lower_bounds), np.log(upper_bounds))
             popt, pcov = opt.curve_fit(
                 log_objective,
                 x_data,
                 np.log(y_data),
                 p0=p0,
+                # bounds=log_bounds,
+                # method="trf",  # lm or trf
                 maxfev=1000,
                 ftol=1e-11,
             )
+            popt = np.exp(popt)  # Convert parameters back to original scale
+            y_data = np.exp(y_data)  # Convert y_data back to original scale
 
         else:
             popt, pcov = opt.curve_fit(
@@ -5417,12 +5423,13 @@ class Viz:
                 x_data,
                 y_data,
                 p0=p0,
+                bounds=bounds,
+                method="lm",
                 maxfev=1000,
-                ftol=1.0e-05,
+                ftol=1.0e-7,
             )
-
-        # popt = p0
-        x_dense = np.logspace(-1, 2, 100)
+        # popt[3] = 3.0
+        x_dense = np.logspace(np.log(np.min(x_data)), np.log(np.max(x_data)), 100)
         y_fitted = fit_function(x_dense, *popt)
 
         fig, ax = plt.subplots()
