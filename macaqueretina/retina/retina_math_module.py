@@ -968,7 +968,13 @@ class RetinaMath:
         return baseline + (Rmax * (c)) / (c50 + c)
 
     def enrothcugell_robson(
-        self, sf: float | np.ndarray, k_c: float, r_c: float, k_s: float, r_s: float
+        self,
+        sf: float | np.ndarray,
+        K: float,
+        k_c: float,
+        r_c: float,
+        k_s: float,
+        r_s: float,
     ):
         """
         Calculate the spatial contrast sensitivity function F(sf) = C(sf) - S(sf),
@@ -979,6 +985,8 @@ class RetinaMath:
         ----------
         sf : float | array
             The variable sf
+        K : float
+            Constant for the overall sensitivity
         k_c : float
             Constant for C(sf)
         r_c : float
@@ -995,7 +1003,7 @@ class RetinaMath:
 
         C = k_c * np.pi * r_c**2 * np.exp(-((np.pi * sf * r_c) ** 2))
         S = k_s * np.pi * r_s**2 * np.exp(-((np.pi * sf * r_s) ** 2))
-        F = C - S
+        F = K * (C - S)
 
         return F
 
