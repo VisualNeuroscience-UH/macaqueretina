@@ -719,6 +719,10 @@ class Analysis:
         gc_type = self.context.retina_parameters["gc_type"]
         response_type = self.context.retina_parameters["response_type"]
 
+        if "temporal_frequency" not in exp_variables:
+            temp_freq = self.context.visual_stimulus_parameters["temporal_frequency"]
+            experiment_df["temporal_frequency"] = temp_freq
+
         # Assert for equal number of trials
         assert np.all(
             n_sweeps_vec == n_sweeps_vec[0]
