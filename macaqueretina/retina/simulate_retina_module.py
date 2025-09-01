@@ -2283,8 +2283,8 @@ class ConcreteSimulationBuilder(SimulationBuildInterface):
         Create noise for the simulation.
         """
         vs = self.vs
-        ndim_cones = (self.cones.n_units, vs.stim_len_tp.item(), self.n_sweeps)
-        ndim_gc = (self.gcs.n_units, vs.stim_len_tp.item(), self.n_sweeps)
+        ndim_cones = (self.cones.n_units, vs.stim_len_tp, self.n_sweeps)
+        ndim_gc = (self.gcs.n_units, vs.stim_len_tp, self.n_sweeps)
 
         if all(
             [
