@@ -21,20 +21,20 @@ project_conf_module_file_path = Path(__file__).resolve()
 git_repo_root_path = project_conf_module_file_path.parent.parent
 
 
-def _load_parameters() -> "ConfigManager":
+def load_parameters() -> "ConfigManager":
     from macaqueretina.config.config_manager import load_yaml
 
-    retina_yaml: str = os.getcwd() + "/macaqueretina/config/retina_parameters.yaml"
-    experiment_yaml: str = os.getcwd() + "/macaqueretina/config/core_parameters.yaml"
-    visual_stimulus_yaml: str = (
-        os.getcwd() + "/macaqueretina/config/visual_stimulus_parameters.yaml"
-    )
-    constants_yaml: str = os.getcwd() + "/macaqueretina/config/constants.yaml"
-    literature_yaml: str = os.getcwd() + "/macaqueretina/config/literature.yaml"
+    base: str = os.getcwd() + "/macaqueretina/config/"
+
+    retina_yaml: str = base + "retina_parameters.yaml"
+    core_yaml: str = base + "core_parameters.yaml"
+    visual_stimulus_yaml: str = base + "visual_stimulus_parameters.yaml"
+    constants_yaml: str = base + "constants.yaml"
+    literature_yaml: str = base + "literature.yaml"
 
     config: ConfigManager = load_yaml(
         retina_yaml,
-        experiment_yaml,
+        core_yaml,
         visual_stimulus_yaml,
         constants_yaml,
         literature_yaml,
@@ -53,7 +53,7 @@ def dispatcher(PM: "ProjectManager", config: "ConfigManager"):
 
 
 def main():
-    config = _load_parameters()
+    config = load_parameters()
 
     if config.profile is True:
         # Built-in
