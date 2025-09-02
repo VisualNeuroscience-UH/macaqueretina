@@ -21,7 +21,7 @@ project_conf_module_file_path = Path(__file__).resolve()
 git_repo_root_path = project_conf_module_file_path.parent.parent
 
 
-def _load_parameters() -> ConfigManager:
+def _load_parameters() -> "ConfigManager":
     from macaqueretina.config.config_manager import load_yaml
 
     retina_yaml: str = os.getcwd() + "/macaqueretina/config/retina_parameters.yaml"
@@ -43,6 +43,16 @@ def _load_parameters() -> ConfigManager:
     return config
 
 
+def dispatcher(PM: "ProjectManager", config: "ConfigManager"):
+    breakpoint()
+    if config.run.build_retina:
+        PM.construct_retina.build_retina_client()
+    if config.run.make_stimulus:
+        PM.stimulate.make_stimulus_video()
+    if config.run.simulate_retina:
+        PM.simulate_retina.client()
+
+
 def main():
     config = _load_parameters()
 
@@ -57,10 +67,9 @@ def main():
 
     PM = ProjectManager(config)
 
-    PM.construct_retina.build_retina_client()
+    dispatcher(PM, config)
+
     PM.viz.show_DoG_img_grid(gc_list=[0, 1, 5, 10], savefigname=None)
-    PM.stimulate.make_stimulus_video()
-    PM.simulate_retina.client()
     PM.viz.show_all_gc_responses(savefigname=None)
 
     end_time = time.time()

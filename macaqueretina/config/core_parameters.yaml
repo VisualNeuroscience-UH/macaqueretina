@@ -8,3 +8,9 @@ testrun: False  # Stops execution before heavy calculations
 numpy_seed: 42  # random.randint(0, 1000000)  # 42
 device: "cpu"  # "cpu" or "cuda"
 profile: False
+
+run:
+  build_retina: True
+  make_stimulus: True
+  simulate_retina: True
+  visualize: null
