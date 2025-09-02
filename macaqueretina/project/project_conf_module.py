@@ -44,7 +44,6 @@ def _load_parameters() -> "ConfigManager":
 
 
 def dispatcher(PM: "ProjectManager", config: "ConfigManager"):
-    breakpoint()
     if config.run.build_retina:
         PM.construct_retina.build_retina_client()
     if config.run.make_stimulus:
