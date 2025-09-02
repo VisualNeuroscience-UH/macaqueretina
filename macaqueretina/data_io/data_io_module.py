@@ -668,7 +668,11 @@ class DataIO:
 
         # load video from hdf5 file
         full_path_in = f"{fullpath_filename}.hdf5"
-        data_dict = self.load_dict_from_hdf5(full_path_in)
+        try:
+            data_dict = self.load_dict_from_hdf5(full_path_in)
+        except Exception as e:
+            print(f"Stimulus not available at {full_path_in}: {e}")
+            return None
 
         # Create a dummy VideoBaseCLass object to create a stimulus object
         class DummyVideoClass:
@@ -1021,7 +1025,6 @@ class DataIO:
             if hasattr(vs, variable):
                 data = getattr(vs, variable)
                 data_dict[variable] = data
-                filename_stem = f"{filename_stem}_{variable[:3]}"
 
         self.save_np_dict_to_npz(
             data_dict,
@@ -1055,7 +1058,23 @@ class DataIO:
                     self._save_additional_variables(
                         vs,
                         f"cone_noise_{cone_noise_hash}",
-                        ["cone_noise", "cone_noise_u", "gc_synaptic_noise"],
+                        ["cone_noise", "cone_noise_u"],
+                        overwrite=False,
+                    )
+
+                case "gc_synaptic_noise":
+                    cone_noise_hash = self.context.retina_parameters["cone_noise_hash"]
+                    gc_type = self.context.retina_parameters["gc_type"]
+                    response_type = self.context.retina_parameters["response_type"]
+
+                    filename_gc_noise = (
+                        f"{gc_type}_{response_type}_noise_{cone_noise_hash}"
+                    )
+
+                    self._save_additional_variables(
+                        vs,
+                        filename_gc_noise,
+                        ["gc_synaptic_noise"],
                         overwrite=False,
                     )
 
