@@ -4271,6 +4271,97 @@ class Viz:
         if savefigname:
             self._figsave(figurename=savefigname)
 
+    def contrast_sensitivity(
+        self,
+        filename,
+        exp_variables,
+        xlog=False,
+        ylog=False,
+        savefigname=None,
+    ):
+        """
+        Fits Naka-Rushton model to drifting grating contrast response.
+        Fit threshold firing rate to the model function.
+        Plot contrast sensitivity function across the spatial/temporal frequencies.
+        """
+
+        data_folder = self.context.output_folder
+        cond_names_string = "_".join(exp_variables)
+        n_variables = len(exp_variables)
+
+        experiment_df = pd.read_csv(data_folder / filename, index_col=0)
+
+        F_unit_ampl_df = pd.read_csv(
+            data_folder / f"{cond_names_string}_F1F2_unit_ampl_means.csv", index_col=0
+        )
+
+        # Delete obsolete F2
+        F_unit_ampl_df = F_unit_ampl_df[F_unit_ampl_df["F_peak"] == "F1"]
+
+        # Average over units
+        F_unit_ampl_df = F_unit_ampl_df.groupby("F_peak").mean()
+
+        # Drop obsolete unit
+        F_unit_ampl_df = F_unit_ampl_df.drop(columns=["unit"])
+        F_unit_long_df = pd.melt(
+            F_unit_ampl_df,
+            id_vars=None,
+            value_vars=F_unit_ampl_df.columns,
+            var_name=f"{cond_names_string}_names",
+            value_name="amplitudes",
+        )
+
+        # Make new columns with conditions' levels
+        for cond in exp_variables:
+            levels_s = experiment_df.loc[:, cond]
+            levels_s = pd.to_numeric(levels_s)
+            levels_s = levels_s.round(decimals=2)
+            F_unit_long_df[cond] = F_unit_long_df[f"{cond_names_string}_names"].map(
+                levels_s
+            )
+        # breakpoint()
+
+        # Loop spatial_frequency, fit naka_rushton
+        fit_function = self.naka_rushton
+        inverse_fit_function = self.naka_rushton_inverse
+        # Rmax: float, c50: float, baseline: float
+        Rmax = F_unit_long_df["amplitudes"].values.max()
+        p0 = [Rmax, 0.5, 0.0]
+        bounds = ((0, 0, 0), (Rmax * 2, 100, Rmax))
+        abscissa = F_unit_long_df["spatial_frequency"].unique()
+        print(f"{abscissa=}")
+        threshold = 10  # Hz
+        cs_all = np.zeros(len(abscissa))
+        for freq_idx, this_freq in enumerate(abscissa):
+            df = F_unit_long_df[F_unit_long_df["spatial_frequency"] == this_freq]
+            x_data = df["contrast"].values
+            y_data = df["amplitudes"].values
+            popt, pcov = opt.curve_fit(
+                fit_function,
+                x_data,
+                y_data,
+                p0=p0,
+                bounds=bounds,
+            )
+            contrast_at_the_threshold = inverse_fit_function(threshold, *popt)
+            cs_all[freq_idx] = 1 / contrast_at_the_threshold
+
+            # plot amplitude as a function of contrast with fit function,
+            x_dense = np.linspace(x_data.min(), x_data.max(), 100)
+            y_dense = fit_function(x_dense, *popt)
+
+        fig, ax = plt.subplots(1, 1, figsize=(8, 4))
+
+        ax.plot(abscissa, cs_all, ".")
+        ax.set_title("Contrast sensitivity for " + exp_variables[-1])
+        if xlog:
+            ax.set_xscale("log")
+        if ylog:
+            ax.set_yscale("log")
+
+        if savefigname:
+            self._figsave(figurename=savefigname)
+
     def ptp_response(
         self, filename, exp_variables, x_of_interest=None, savefigname=None
     ):
