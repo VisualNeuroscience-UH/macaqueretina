@@ -671,8 +671,7 @@ class DataIO:
         try:
             data_dict = self.load_dict_from_hdf5(full_path_in)
         except Exception as e:
-            print(f"Stimulus not available at {full_path_in}: {e}")
-            return None
+            raise FileNotFoundError(f"Stimulus not available at {full_path_in}")
 
         # Create a dummy VideoBaseCLass object to create a stimulus object
         class DummyVideoClass:
