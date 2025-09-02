@@ -964,8 +964,31 @@ class RetinaMath:
         numpy.ndarray
             The Naka-Rushton function evaluated at each point in c.
         """
-        # Rmax, c50, baseline = p0
-        return baseline + (Rmax * (c)) / (c50 + c)
+        return baseline + (Rmax * c) / (c50 + c)
+
+    def naka_rushton_inverse(
+        self, R: np.ndarray, Rmax: float, c50: float, baseline: float
+    ) -> np.ndarray:
+        """
+        Inverse of the Naka-Rushton function.
+
+        Parameters
+        ----------
+        R : numpy array
+            The response values.
+        Rmax : float
+            The maximum response.
+        c50 : float
+            The contrast at which the response is half of Rmax.
+        baseline : float
+            The baseline response.
+
+        Returns
+        -------
+        numpy.ndarray
+            The contrast values corresponding to each response in R.
+        """
+        return (R - baseline) * c50 / (Rmax - R + baseline)
 
     def enrothcugell_robson(
         self,
