@@ -94,6 +94,8 @@ class ProjectManager(ProjectUtilities):
             sector2area_mm2=retina_math.sector2area_mm2,
             interpolate_data=retina_math.interpolate_data,
             lorenzian_function=retina_math.lorenzian_function,
+            naka_rushton=retina_math.naka_rushton,
+            naka_rushton_inverse=retina_math.naka_rushton_inverse,
         )
 
         self.viz = viz
