@@ -2286,21 +2286,16 @@ class ConcreteSimulationBuilder(SimulationBuildInterface):
         ndim_cones = (self.cones.n_units, vs.stim_len_tp, self.n_sweeps)
         ndim_gc = (self.gcs.n_units, vs.stim_len_tp, self.n_sweeps)
 
-        if all(
-            [
-                hasattr(vs, "cone_noise") and vs.cone_noise.shape == ndim_cones,
-                hasattr(vs, "cone_noise_u") and vs.cone_noise_u.shape == ndim_cones,
-                hasattr(vs, "gc_synaptic_noise")
-                and vs.gc_synaptic_noise.shape == ndim_gc,
-            ]
-        ):
-            return
-        # TODO: Refactor this method:
-        # -  separate the gc_synaptic_noise test from above.
-        # - IF CONE NOISE BUT SEPARATE GC UNIT TYPE, REMAP WITH CONE TO GC WEIGHTS KEEPING THE
-        # ORIGINAL CONE NOISE
+        if not hasattr(vs, "cone_noise"):
+            self.vs = self.cones.create_noise(vs, self.n_sweeps)
+        if not hasattr(vs, "gc_synaptic_noise"):
+            self.vs = self.cones.connect_cone_noise_to_gcs(vs, self.n_sweeps)
 
-        self.vs = self.cones.create_noise(vs, self.n_sweeps)
+        # Dimension checks
+        if not vs.cone_noise.shape == ndim_cones:
+            raise ValueError("Cone noise shape mismatch")
+        if not vs.gc_synaptic_noise.shape == ndim_gc:
+            raise ValueError("GC synaptic noise shape mismatch")
 
     def get_generator_potentials(self) -> None:
         """
@@ -3023,16 +3018,25 @@ class ConeProduct(ReceptiveFieldsBase):
         vs.cone_noise = cone_noise_norm_T * magn
         vs.cone_noise_u = cone_noise_norm_T * magn * max_response
 
+        return vs
+
+    def connect_cone_noise_to_gcs(
+        self, vs: "VisualSignal", n_sweeps: int
+    ) -> "VisualSignal":
+
+        # Calculate the synaptic noise for ganglion cells
+        print("\nUsing PyTorch for connecting cone noise to ganglion cells...")
+
         # if model is dynamic or fixed, connect cone noise directly to ganglion cells
         cones_to_gcs_weights = self.cones_to_gcs_weights
+        magn = self.retina_parameters["noise_gain"]
+        cone_noise_norm_T = vs.cone_noise / magn
+        cone_noise_norm = np.moveaxis(cone_noise_norm_T, 0, 1)
 
         if np.any(np.sum(cones_to_gcs_weights, axis=0) == 0):
             raise ValueError("Zero value in cones_to_gcs_weights, aborting...")
         weights_norm = cones_to_gcs_weights / np.sum(cones_to_gcs_weights, axis=0)
         n_gcs = weights_norm.shape[1]
-
-        # Calculate the synaptic noise for ganglion cells
-        print("\nUsing PyTorch for ganglion cell synaptic noise...")
 
         device = self.device
         cone_noise_norm_tensor = torch.tensor(
@@ -3059,6 +3063,7 @@ class ConeProduct(ReceptiveFieldsBase):
 
         noise_type = self.retina_parameters["noise_type"]
 
+        # If noise type is independent, assume Gaussian statistics, independent for each gc unit
         match noise_type:
             case "shared":
                 noise_out = gc_synaptic_noise
@@ -3867,7 +3872,7 @@ class SimulateRetina(RetinaMath):
 
         return cones
 
-    def _get_cone_noise_from_file_if_exists(self, vs: Any) -> Any:
+    def _get_cone_noise_from_file_if_exists(self, vs: Any, gcs: Any) -> Any:
         """
         Load cone noise from file if it exists.
 
@@ -3881,16 +3886,30 @@ class SimulateRetina(RetinaMath):
         Any
             Updated visual signal object.
         """
-        filename_stem = (
-            f"cone_noise_{self.context.retina_parameters['cone_noise_hash']}"
-        )
-        noise_filename_full = self.data_io.parse_path("", substring=filename_stem)
 
-        if noise_filename_full is not None:
-            cone_noise_npz = self.data_io.get_data(full_path=noise_filename_full)
+        cone_noise_hash = self.context.retina_parameters["cone_noise_hash"]
+        filename_stem_cone_noise = f"cone_noise_{cone_noise_hash}"
+        cone_noise_filename_full = self.data_io.parse_path(
+            "", substring=filename_stem_cone_noise
+        )
+
+        if cone_noise_filename_full is not None:
+            cone_noise_npz = self.data_io.get_data(full_path=cone_noise_filename_full)
             vs.cone_noise = cone_noise_npz["cone_noise"]
             vs.cone_noise_u = cone_noise_npz["cone_noise_u"]
-            vs.gc_synaptic_noise = cone_noise_npz["gc_synaptic_noise"]
+
+        gc_type = self.context.retina_parameters["gc_type"]
+        response_type = self.context.retina_parameters["response_type"]
+
+        filename_stem_gc_noise = f"{gc_type}_{response_type}_noise_{cone_noise_hash}"
+        gc_noise_filename_full = self.data_io.parse_path(
+            "", substring=filename_stem_gc_noise
+        )
+
+        if gc_noise_filename_full is not None:
+            gc_noise_npz = self.data_io.get_data(full_path=gc_noise_filename_full)
+
+            vs.gc_synaptic_noise = gc_noise_npz["gc_synaptic_noise"]
 
         return vs
 
@@ -3951,7 +3970,7 @@ class SimulateRetina(RetinaMath):
             stimulus_video=stimulus,
         )
 
-        vs = self._get_cone_noise_from_file_if_exists(vs)
+        vs = self._get_cone_noise_from_file_if_exists(vs, gcs)
 
         # Link ganglion cell receptive fields to visual signal. Eg applies rotation
         gcs.link_gcs_to_vs(vs)
