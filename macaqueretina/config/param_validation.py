@@ -45,6 +45,7 @@ class BaseConfigModel(BaseModel):
     model_config = ConfigDict(extra="allow")
 
 
+## From retina_parameters.yaml
 class RetinaParameters(BaseConfigModel):
     gc_type: Literal["parasol", "midget"]
     response_type: Literal["on", "off"]
@@ -90,6 +91,7 @@ class RetinaParameters(BaseConfigModel):
             return complex(v)
 
 
+## From visual_stimulus_parameters.yaml
 class VisualStimulusParameters(BaseConfigModel):
     pattern: str  # "temporal_square_pattern"  # One of the StimulusPatterns # TODO default "temporal_square_pattern"? Literal?
     image_width: int = Field(default=240, description="image (canvas) width in pixels")
@@ -154,6 +156,7 @@ class RunParameters(BaseConfigModel):
     save_variables: list[str]
 
 
+## From constants.yaml
 class VaeTrainParameters(BaseConfigModel):
     epochs: int = Field(default=500, description="Number of training epochs")
     lr_step_size: int = Field(
@@ -441,6 +444,7 @@ class DendrDiamUnits(BaseConfigModel):
     data3: list[str, str] = ["deg", "um"]
 
 
+## Main validation class
 class ConfigParams(BaseConfigModel):
     # Experiment parameters
     model_root_path: Path = Field(description="Update this to your model root path")
