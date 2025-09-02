@@ -3,12 +3,16 @@ import os
 import time
 import warnings
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 # Third-party
 import matplotlib.pyplot as plt
 
 # Local
 from macaqueretina.project.project_manager_module import ProjectManager
+
+if TYPE_CHECKING:
+    from macaqueretina.config.config_manager import ConfigManager
 
 start_time = time.time()
 warnings.simplefilter("ignore")
@@ -17,9 +21,8 @@ project_conf_module_file_path = Path(__file__).resolve()
 git_repo_root_path = project_conf_module_file_path.parent.parent
 
 
-def main():
-    # Local
-    from macaqueretina.config.config_manager import load_project_config_client
+def _load_parameters() -> ConfigManager:
+    from macaqueretina.config.config_manager import load_yaml
 
     retina_yaml: str = os.getcwd() + "/macaqueretina/config/retina_parameters.yaml"
     experiment_yaml: str = os.getcwd() + "/macaqueretina/config/core_parameters.yaml"
@@ -29,13 +32,20 @@ def main():
     constants_yaml: str = os.getcwd() + "/macaqueretina/config/constants.yaml"
     literature_yaml: str = os.getcwd() + "/macaqueretina/config/literature.yaml"
 
-    config = load_project_config_client(
+    config: ConfigManager = load_yaml(
         retina_yaml,
         experiment_yaml,
         visual_stimulus_yaml,
         constants_yaml,
         literature_yaml,
     )
+
+    return config
+
+
+def main():
+    config = _load_parameters()
+
     if config.profile is True:
         # Built-in
         import cProfile
