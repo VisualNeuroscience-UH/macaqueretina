@@ -4271,127 +4271,6 @@ class Viz:
         if savefigname:
             self._figsave(figurename=savefigname)
 
-    def contrast_sensitivity(
-        self,
-        filename,
-        exp_variables,
-        xlog=False,
-        ylog=False,
-        savefigname=None,
-    ):
-        """
-        Fits Naka-Rushton model to drifting grating contrast response.
-        Fit threshold firing rate to the model function.
-        Plot contrast sensitivity function across the spatial/temporal frequencies.
-        """
-
-        data_folder = self.context.output_folder
-        cond_names_string = "_".join(exp_variables)
-
-        experiment_df = pd.read_csv(data_folder / filename, index_col=0)
-
-        F_unit_ampl_df = pd.read_csv(
-            data_folder / f"{cond_names_string}_F1F2_unit_ampl_means.csv", index_col=0
-        )
-
-        # Delete obsolete rows and columns
-        F_unit_ampl_df = F_unit_ampl_df[F_unit_ampl_df["F_peak"] == "F1"]
-        F_unit_ampl_df = F_unit_ampl_df.drop(columns=["unit"])
-
-        # Average over units
-        std_ampl_df = F_unit_ampl_df.groupby("F_peak").std()
-        std_ampl_df = std_ampl_df.rename(index={"F1": "std"})
-        mean_ampl_df = F_unit_ampl_df.groupby("F_peak").mean()
-        mean_ampl_df = mean_ampl_df.rename(index={"F1": "mean"})
-
-        std_long_df = pd.melt(
-            std_ampl_df,
-            value_vars=std_ampl_df.columns,
-            var_name=f"{cond_names_string}_names",
-            value_name="std",
-        )
-
-        mean_long_df = pd.melt(
-            mean_ampl_df,
-            value_vars=mean_ampl_df.columns,
-            var_name=f"{cond_names_string}_names",
-            value_name="amplitudes",
-        )
-        result_df = mean_long_df.merge(
-            std_long_df, on="contrast_spatial_frequency_names", how="left"
-        )
-        # Make new columns with conditions' levels
-        for cond in exp_variables:
-            levels_s = experiment_df.loc[:, cond]
-            levels_s = pd.to_numeric(levels_s)
-            levels_s = levels_s.round(decimals=2)
-            result_df[cond] = result_df[f"{cond_names_string}_names"].map(levels_s)
-
-        # Create an empty "threshold" column
-        result_df["threshold"] = float("nan")
-
-        # Calculate threshold for contrast == 0.0
-        for sf in result_df["spatial_frequency"].unique():
-            mask = (result_df["contrast"] == 0.0) & (
-                result_df["spatial_frequency"] == sf
-            )
-            if mask.any():
-                threshold_value = (
-                    result_df.loc[mask, "amplitudes"].values[0]
-                    + 2 * result_df.loc[mask, "std"].values[0]
-                )
-                result_df.loc[result_df["spatial_frequency"] == sf, "threshold"] = (
-                    threshold_value
-                )
-
-        # Loop spatial_frequency, fit naka_rushton
-        fit_function = self.naka_rushton
-        inverse_fit_function = self.naka_rushton_inverse
-        # Rmax: float, c50: float, baseline: float
-        Rmax = result_df["amplitudes"].values.max()
-        p0 = [Rmax, 0.5, 0.0]
-        bounds = ((0, 0, 0), (Rmax * 2, 100, Rmax))
-        abscissa = result_df["spatial_frequency"].unique()
-
-        cs_all = np.zeros(len(abscissa))
-        for freq_idx, this_freq in enumerate(abscissa):
-            df = result_df[result_df["spatial_frequency"] == this_freq]
-            x_data = df["contrast"].values
-            y_data = df["amplitudes"].values
-            popt, pcov = opt.curve_fit(
-                fit_function,
-                x_data,
-                y_data,
-                p0=p0,
-                bounds=bounds,
-            )
-            threshold = df["threshold"].values[0]
-            contrast_at_the_threshold = inverse_fit_function(threshold, *popt)
-            cs_all[freq_idx] = 1 / contrast_at_the_threshold
-
-        mask = cs_all < 1
-        abscissa = abscissa[~mask]
-        cs_all = cs_all[~mask]
-
-        xlim = (0.1, 10)
-        ylim = (0.1, 100)
-
-        # K, k_c, r_c, k_s, r_s
-        bounds = ((0, 0, 0, 0, 0), (10000, 1000, 1, 1000, 1))
-        self.show_data_and_fit(
-            self.enrothcugell_robson,
-            abscissa,
-            cs_all,
-            p0=(100, 10, 0.05, 5, 0.1),
-            xlim=xlim,
-            ylim=ylim,
-            logX=True,
-            logY=True,
-            fit_in_log_space=False,
-            bounds=bounds,
-            savefigname=savefigname,
-        )
-
     def ptp_response(
         self, filename, exp_variables, x_of_interest=None, savefigname=None
     ):
@@ -5490,8 +5369,8 @@ class Viz:
         p0=None,
         xlim=None,
         ylim=None,
-        logX=False,
-        logY=False,
+        xlog=False,
+        ylog=False,
         fit_in_log_space=False,
         bounds=(-np.inf, np.inf),
         savefigname=None,
@@ -5568,14 +5447,157 @@ class Viz:
         if ylim:
             ax.set_ylim(ylim)
 
-        if logX:
+        if xlog:
             ax.set_xscale("log")
 
-        if logY:
+        if ylog:
             ax.set_yscale("log")
 
         if savefigname:
             self._figsave(figurename=savefigname)
+
+    def contrast_sensitivity(
+        self,
+        filename,
+        exp_variables,
+        xlog=False,
+        ylog=False,
+        savefigname=None,
+    ):
+        """
+        Fits Naka-Rushton model to drifting grating contrast response.
+        Fit threshold firing rate to the model function.
+        Plot contrast sensitivity function across the spatial/temporal frequencies.
+
+        Parameters
+        ----------
+        filename : str
+            The name of the file containing the experimental data.
+        exp_variables : list of str
+            The experimental variables to consider for the analysis.
+        xlog : bool
+            Whether to use a logarithmic scale for the x-axis.
+        ylog : bool
+            Whether to use a logarithmic scale for the y-axis.
+        savefigname : str, optional
+            The name of the file to save the figure. If None, the figure
+            will not be saved.
+        """
+
+        data_folder = self.context.output_folder
+        cond_names_string = "_".join(exp_variables)
+
+        experiment_df = pd.read_csv(data_folder / filename, index_col=0)
+
+        F_unit_ampl_df = pd.read_csv(
+            data_folder / f"{cond_names_string}_F1F2_unit_ampl_means.csv", index_col=0
+        )
+
+        # Delete obsolete rows and columns
+        F_unit_ampl_df = F_unit_ampl_df[F_unit_ampl_df["F_peak"] == "F1"]
+        F_unit_ampl_df = F_unit_ampl_df.drop(columns=["unit"])
+
+        # Average over units
+        std_ampl_df = F_unit_ampl_df.groupby("F_peak").std()
+        std_ampl_df = std_ampl_df.rename(index={"F1": "std"})
+        mean_ampl_df = F_unit_ampl_df.groupby("F_peak").mean()
+        mean_ampl_df = mean_ampl_df.rename(index={"F1": "mean"})
+
+        std_long_df = pd.melt(
+            std_ampl_df,
+            value_vars=std_ampl_df.columns,
+            var_name=f"{cond_names_string}_names",
+            value_name="std",
+        )
+
+        mean_long_df = pd.melt(
+            mean_ampl_df,
+            value_vars=mean_ampl_df.columns,
+            var_name=f"{cond_names_string}_names",
+            value_name="amplitudes",
+        )
+        result_df = mean_long_df.merge(
+            std_long_df, on="contrast_spatial_frequency_names", how="left"
+        )
+        # Make new columns with conditions' levels
+        for cond in exp_variables:
+            levels_s = experiment_df.loc[:, cond]
+            levels_s = pd.to_numeric(levels_s)
+            levels_s = levels_s.round(decimals=2)
+            result_df[cond] = result_df[f"{cond_names_string}_names"].map(levels_s)
+
+        # Create an empty "threshold" column
+        result_df["threshold"] = float("nan")
+
+        # Check for existing zero contrast, warn if not found
+        if not (result_df["contrast"] == 0.0).any():
+            print(
+                "Warning, no zero contrast found. Replacing with fixed threshold of 10 Hz."
+            )
+            result_df["threshold"] = 10.0
+        else:
+            # Calculate threshold for contrast == 0.0
+            for sf in result_df["spatial_frequency"].unique():
+                mask = (result_df["contrast"] == 0.0) & (
+                    result_df["spatial_frequency"] == sf
+                )
+                if mask.any():
+                    threshold_value = (
+                        result_df.loc[mask, "amplitudes"].values[0]
+                        + 2 * result_df.loc[mask, "std"].values[0]
+                    )
+                    result_df.loc[result_df["spatial_frequency"] == sf, "threshold"] = (
+                        threshold_value
+                    )
+
+        # Loop spatial_frequency, fit naka_rushton
+        fit_function = self.naka_rushton
+        inverse_fit_function = self.naka_rushton_inverse
+        # Rmax: float, c50: float, baseline: float
+        Rmax = result_df["amplitudes"].values.max()
+        p0 = [Rmax, 0.5, 0.0]
+        bounds = ((0, 0, 0), (Rmax * 2, 100, Rmax))
+        abscissa = result_df["spatial_frequency"].unique()
+
+        cs_all = np.zeros(len(abscissa))
+        for freq_idx, this_freq in enumerate(abscissa):
+            df = result_df[result_df["spatial_frequency"] == this_freq]
+            x_data = df["contrast"].values
+            y_data = df["amplitudes"].values
+            popt, pcov = opt.curve_fit(
+                fit_function,
+                x_data,
+                y_data,
+                p0=p0,
+                bounds=bounds,
+            )
+            threshold = df["threshold"].values[0]
+            contrast_at_the_threshold = inverse_fit_function(threshold, *popt)
+            cs_all[freq_idx] = 1 / contrast_at_the_threshold
+
+        # Remove data points with cs < 1, considered noise
+        mask = cs_all < 1
+        abscissa = abscissa[~mask]
+        cs_all = cs_all[~mask]
+
+        xlim = (0.1, 10)
+        ylim = (0.1, 100)
+
+        # K, k_c, r_c, k_s, r_s
+        bounds = ((0, 0, 0, 0, 0), (10000, 1000, 1, 1000, 1))
+        self.show_data_and_fit(
+            self.enrothcugell_robson,
+            abscissa,
+            cs_all,
+            p0=(100, 10, 0.05, 5, 0.1),
+            xlim=xlim,
+            ylim=ylim,
+            xlog=xlog,
+            ylog=ylog,
+            fit_in_log_space=False,
+            bounds=bounds,
+            savefigname=savefigname,
+        )
 
 
 class VizResponse:
