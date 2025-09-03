@@ -1,5 +1,4 @@
 # Built-in
-import os
 import time
 import warnings
 from pathlib import Path
@@ -24,13 +23,13 @@ git_repo_root_path = project_conf_module_file_path.parent.parent
 def load_parameters() -> "ConfigManager":
     from macaqueretina.config.config_manager import load_yaml
 
-    base: str = os.getcwd() + "/macaqueretina/config/"
+    base: str = git_repo_root_path.joinpath("config/")
 
-    retina_yaml: str = base + "retina_parameters.yaml"
-    core_yaml: str = base + "core_parameters.yaml"
-    visual_stimulus_yaml: str = base + "visual_stimulus_parameters.yaml"
-    constants_yaml: str = base + "constants.yaml"
-    literature_yaml: str = base + "literature.yaml"
+    retina_yaml: str = base.joinpath("retina_parameters.yaml")
+    core_yaml: str = base.joinpath("core_parameters.yaml")
+    visual_stimulus_yaml: str = base.joinpath("visual_stimulus_parameters.yaml")
+    constants_yaml: str = base.joinpath("constants.yaml")
+    literature_yaml: str = base.joinpath("literature.yaml")
 
     config: ConfigManager = load_yaml(
         retina_yaml,
