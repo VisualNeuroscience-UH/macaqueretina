@@ -4725,9 +4725,9 @@ class ConstructRetina(Printable):
         ] in ["VAE"]:
             self.training_mode = retina_parameters["training_mode"]
 
-        self.spatial_rfs_file_filename = retina_parameters["spatial_rfs_file"]
-        self.ret_filename = retina_parameters["ret_file"]
-        self.mosaic_filename = retina_parameters["mosaic_file"]
+        self.spatial_rfs_file_filename = []
+        self.ret_filename = []
+        self.mosaic_filename = [] 
 
     @property
     def context(self):
@@ -5153,6 +5153,36 @@ class ConstructRetina(Printable):
 
         return experimental_archive
 
+    def _get_parameters_for_build(self):
+        """Creates a hash from retina_parameters to be used when 
+        loading/saving the retina file, and changes parameters within 
+        context."""
+        hash = self.context.generate_hash(self.context.retina_parameters)
+        self.context.retina_parameters["retina_parameters_hash"] = hash
+
+        hashstr = self.context.retina_parameters["retina_parameters_hash"]
+        gc_type = self.context.retina_parameters["gc_type"]
+        response_type = self.context.retina_parameters["response_type"]
+
+        self.context.retina_parameters["mosaic_filename"] = (
+            gc_type + "_" + response_type + "_" + hashstr + "_mosaic.csv"
+        )
+        self.context.retina_parameters["spatial_rfs_file"] = (
+            gc_type + "_" + response_type + "_" + hashstr + "_spatial_rfs.npz"
+        )
+        self.context.retina_parameters["ret_file"] = (
+            gc_type + "_" + response_type + "_" + hashstr + "_ret.npz"
+        )
+
+        self.mosaic_filename = self.context.retina_parameters["mosaic_filename"]
+        self.context.retina_parameters["mosaic_file"] = self.context.retina_parameters["mosaic_filename"]
+        self.spatial_rfs_file_filename = self.context.retina_parameters["spatial_rfs_file"]
+        self.ret_filename = self.context.retina_parameters["ret_file"]
+
+        self.context.retina_parameters.update(self.context.retina_parameters_append)
+        del self.context.retina_parameters_append
+
+
     def build_retina_client(self) -> None:
         """
         Build the retina using the builder pattern.
@@ -5160,6 +5190,10 @@ class ConstructRetina(Printable):
         For each call, a new retina is built with the parameters in the `retina_parameters` dictionary.
         After the build, the retina is saved to the output directory.
         """
+
+        self._get_parameters_for_build()
+
+
         retina_parameters = self.context.retina_parameters
 
         if self._build_exists(retina_parameters):

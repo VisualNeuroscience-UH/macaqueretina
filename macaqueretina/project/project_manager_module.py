@@ -54,14 +54,14 @@ class ProjectManager(ProjectUtilities):
         context.device = context.validated_properties["device"]
 
         self.context = context
-        self._get_unique_hashes()
-        self._set_retina_filenames()
+        self._get_cone_hash()
+        # self._set_retina_filenames()
 
         data_io = DataIO(context)
         self.data_io = data_io
 
-        self._save_basic_retina_metadata()
-        self._set_and_drop_retina_parameters_append()
+        # self._save_basic_retina_metadata()
+        #self._set_and_drop_retina_parameters_append()
 
         project_data = ProjectData()
 
@@ -247,36 +247,36 @@ class ProjectManager(ProjectUtilities):
 
         return self.context.generate_hash(cone_noise_dict, n_hashes=1)
 
-    def _get_unique_hashes(self):
-
-        self.context.retina_parameters["retina_parameters_hash"] = (
-            self.context.generate_hash(self.context.retina_parameters)
-        )
-
+    def _get_cone_hash(self):
         self.context.retina_parameters_append["cone_noise_hash"] = (
             self.get_cone_noise_hash(
                 self.context.retina_parameters_append["cone_general_parameters"]
             )
         )
 
-    def _set_retina_filenames(self):
+    # def _set_retina_filenames(self):
+    #     hashstr = self.context.retina_parameters["retina_parameters_hash"]
+    #     gc_type = self.context.retina_parameters["gc_type"]
+    #     response_type = self.context.retina_parameters["response_type"]
+    #     self.context.retina_parameters["mosaic_file"] = (
+    #         gc_type + "_" + response_type + "_" + hashstr + "_mosaic.csv"
+    #     )
+    #     self.context.retina_parameters["spatial_rfs_file"] = (
+    #         gc_type + "_" + response_type + "_" + hashstr + "_spatial_rfs.npz"
+    #     )
+    #     self.context.retina_parameters["ret_file"] = (
+    #         gc_type + "_" + response_type + "_" + hashstr + "_ret.npz"
+    #     )
+
+
+    def _save_basic_retina_metadata(self):
         hashstr = self.context.retina_parameters["retina_parameters_hash"]
         gc_type = self.context.retina_parameters["gc_type"]
         response_type = self.context.retina_parameters["response_type"]
-        self.context.retina_parameters["mosaic_file"] = (
-            gc_type + "_" + response_type + "_" + hashstr + "_mosaic.csv"
-        )
-        self.context.retina_parameters["spatial_rfs_file"] = (
-            gc_type + "_" + response_type + "_" + hashstr + "_spatial_rfs.npz"
-        )
-        self.context.retina_parameters["ret_file"] = (
-            gc_type + "_" + response_type + "_" + hashstr + "_ret.npz"
-        )
         self.context.retina_parameters["retina_metadata_file"] = (
             gc_type + "_" + response_type + "_" + hashstr + "_metadata.yaml"
         )
 
-    def _save_basic_retina_metadata(self):
         retina_parameters = self.context.retina_parameters
         yaml_filename = retina_parameters["retina_metadata_file"]
         yaml_filename_full = self.context.output_folder.joinpath(yaml_filename)
@@ -293,7 +293,7 @@ class ProjectManager(ProjectUtilities):
         # And then we change it back to complex number
         retina_parameters["retina_center"] = complex(retina_parameters["retina_center"])
 
-    def _set_and_drop_retina_parameters_append(self):
+    # def _set_and_drop_retina_parameters_append(self):
 
-        self.context.retina_parameters.update(self.context.retina_parameters_append)
-        del self.context.retina_parameters_append
+    #     self.context.retina_parameters.update(self.context.retina_parameters_append)
+    #     del self.context.retina_parameters_append
