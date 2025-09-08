@@ -876,8 +876,6 @@ class VisualStimulus(VideoBaseClass):
             f'StimulusForm.{self.options["stimulus_form"]}(self)'
         )  # Direct call to class.method() requires the self argument
 
-        # Apply cone filtering to grating frames here
-        # Not implemented yet
         # Natural images are filtered at the StimulusPattern method,
         # because they are typically not evolving over time
         frames_baseline_start = self._create_frames(
