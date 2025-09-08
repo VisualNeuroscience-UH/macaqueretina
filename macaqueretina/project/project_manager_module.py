@@ -60,7 +60,6 @@ class ProjectManager(ProjectUtilities):
         self.data_io = data_io
 
         # self._save_basic_retina_metadata()
-        #self._set_and_drop_retina_parameters_append()
 
         project_data = ProjectData()
 
@@ -277,8 +276,3 @@ class ProjectManager(ProjectUtilities):
 
         # And then we change it back to complex number
         retina_parameters["retina_center"] = complex(retina_parameters["retina_center"])
-
-    # def _set_and_drop_retina_parameters_append(self):
-
-    #     self.context.retina_parameters.update(self.context.retina_parameters_append)
-    #     del self.context.retina_parameters_append
