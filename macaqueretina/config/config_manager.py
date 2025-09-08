@@ -1,3 +1,15 @@
+"""
+Load configuration parameters from YAML files into a ConfigManager object.
+
+Notes
+-----
+Only the load_yaml façade is exposed; call:
+
+>>> from .config.config_manager import load_yaml
+
+to access all the module's functionalities.
+"""
+
 # Built-in
 from pathlib import Path
 from typing import Any
@@ -6,11 +18,32 @@ from typing import Any
 from yaml import YAMLError, safe_load
 
 # Local
-from macaqueretina.config.param_validation import validate_params
 from macaqueretina.config.param_reorganizer import ParamReorganizer
+from macaqueretina.config.param_validation import validate_params
 
 
 class YamlLoader:
+    """
+    Load and merge configuration data from multiple YAML files.
+
+    Handles YAML file loading and merging while checking for
+    duplicate keys across files.
+
+    Parameters
+    ----------
+    yaml_paths : tuple of str
+        Paths to YAML configuration files to load and merge.
+
+    Attributes
+    ----------
+    yaml_paths : tuple of str
+        Paths to YAML files to be loaded and merged.
+
+    Examples
+    --------
+    >>> loader = YamlLoader(('config.yaml', 'override.yaml'))
+    >>> config = loader.load_config()
+    """
 
     def __init__(self, yaml_paths: tuple[str, ...]) -> None:
         self.yaml_paths = yaml_paths
@@ -137,18 +170,23 @@ class NestedConfig:
 
 class ConfigManager:
     """
-    Handles loading and accessing values from the YAML configuration file.
+    Packages the parameters loaded in YamlLoader into a ConfigManager object.
     Provides both attribute-style and dictionary access to configuration values.
+
+    Parameters
+    ----------
+    *args: str
+        Path(s) to YAML configuration file(s) to load and merge.
 
     Attributes
     ----------
     config_file_path : str
-        Path to the loaded configuration file
+        Path to the configuration file(s) to load
     _config : dict
-        Internal dictionary storing parsed configuration values
+        Internal dictionary storing parsed configuration values from YamlLoader
     """
 
-    def __init__(self, *args) -> None:
+    def __init__(self, *args: tuple[str, ...]) -> None:
 
         self.config_file_paths: tuple = args
         self._config = YamlLoader(self.config_file_paths).load_config()
@@ -241,12 +279,36 @@ class ConfigManager:
 def load_yaml(*args: tuple | None) -> ConfigManager:
     """
     Load project configuration from one or more YAML files.
+    Validates the configuration (see param_validation.py),
+    then reorganizes the parameter for use in the codebase (see
+    param_reorganizer.py)
+
+    Parameters
+    ----------
+
+    *args: str
+        Paths to YAML configuration files to load and merge.
 
     Returns
     -------
     ConfigManager
         Configured ConfigManager instance providing access
         to the configuration parameters set in YAML files.
+
+    Raises
+    ------
+    FileNotFoundError
+        If any of the args does exist
+
+
+    Examples
+    --------
+    Import as:
+    >>> from .config.config_manager import load_yaml
+
+    Use as:
+    load_yaml(path_to_yaml, path_to_another_yaml)
+    For as many YAML files as needed.
     """
     reorganizer = ParamReorganizer()
 
