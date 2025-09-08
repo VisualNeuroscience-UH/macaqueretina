@@ -1,10 +1,22 @@
+"""
+Readjust parameter structure in the configuration.
+Since YAML files were introduced, the configuration object carries a slight
+mismatch between the dict structure coming from the YAML files and the
+previous structure that was achieved with the project_conf_module. This is
+temporarily addressed with this file. Solutions might be:
+- Refactor the codebase to accept the new ConfigManager object (recommended,
+  can also refactor to use attribute-like access)
+- Refactor the YAML files to match the previous structure (not recommended
+  as it would make the YAML files more complex)
+"""
+
 # Built-in
 from typing import Any
 
 
 class ParamReorganizer:
     """Here parameters are reorganized after validation, to reflect the orignal
-    dict nesting structure before the introduciton of the YAML files / CLI."""
+    dict nesting structure before the introduction of the YAML files."""
 
     def __init__(self) -> None:
         pass
