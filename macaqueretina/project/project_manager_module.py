@@ -124,8 +124,7 @@ class ProjectManager(ProjectUtilities):
         self.simulate_retina = simulate_retina
 
         experiment = Experiment(
-            context, data_io, stimulate, simulate_retina, self.get_cone_noise_hash
-        )
+            context, data_io, stimulate, simulate_retina)
         self.experiment = experiment
 
         analog_input = AnalogInput(
