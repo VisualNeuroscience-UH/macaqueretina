@@ -5173,14 +5173,35 @@ class ConstructRetina(Printable):
         self.context.retina_parameters["ret_file"] = (
             gc_type + "_" + response_type + "_" + hashstr + "_ret.npz"
         )
+        self.context.retina_parameters["retina_metadata_file"] = (
+            gc_type + "_" + response_type + "_" + hashstr + "_metadata.yaml"
+        )
 
         self.mosaic_filename = self.context.retina_parameters["mosaic_filename"]
         self.context.retina_parameters["mosaic_file"] = self.context.retina_parameters["mosaic_filename"]
         self.spatial_rfs_file_filename = self.context.retina_parameters["spatial_rfs_file"]
         self.ret_filename = self.context.retina_parameters["ret_file"]
 
+        retina_parameters = self.context.retina_parameters
+        yaml_filename = retina_parameters["retina_metadata_file"]
+        yaml_filename_full = self.context.output_folder.joinpath(yaml_filename)
+
+        # yaml does not support complex numbers, so we convert to string
+        retina_parameters["retina_center"] = str(retina_parameters["retina_center"])
+
+        self.data_io.save_dict_to_yaml(
+            yaml_filename_full,
+            self.context.retina_parameters,
+            overwrite=False,
+        )
+
+        # And then we change it back to complex number
+        retina_parameters["retina_center"] = complex(retina_parameters["retina_center"])
+
         self.context.retina_parameters.update(self.context.retina_parameters_append)
         del self.context.retina_parameters_append
+
+        
 
 
     def build_retina_client(self) -> None:

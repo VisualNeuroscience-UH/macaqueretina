@@ -59,8 +59,6 @@ class ProjectManager(ProjectUtilities):
         data_io = DataIO(context)
         self.data_io = data_io
 
-        # self._save_basic_retina_metadata()
-
         project_data = ProjectData()
 
         retina_math = RetinaMath()
@@ -252,27 +250,3 @@ class ProjectManager(ProjectUtilities):
             )
         )
 
-
-    def _save_basic_retina_metadata(self):
-        hashstr = self.context.retina_parameters["retina_parameters_hash"]
-        gc_type = self.context.retina_parameters["gc_type"]
-        response_type = self.context.retina_parameters["response_type"]
-        self.context.retina_parameters["retina_metadata_file"] = (
-            gc_type + "_" + response_type + "_" + hashstr + "_metadata.yaml"
-        )
-
-        retina_parameters = self.context.retina_parameters
-        yaml_filename = retina_parameters["retina_metadata_file"]
-        yaml_filename_full = self.context.output_folder.joinpath(yaml_filename)
-
-        # yaml does not support complex numbers, so we convert to string
-        retina_parameters["retina_center"] = str(retina_parameters["retina_center"])
-
-        self.data_io.save_dict_to_yaml(
-            yaml_filename_full,
-            self.context.retina_parameters,
-            overwrite=False,
-        )
-
-        # And then we change it back to complex number
-        retina_parameters["retina_center"] = complex(retina_parameters["retina_center"])
