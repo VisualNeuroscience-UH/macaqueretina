@@ -1,3 +1,11 @@
+"""
+Parameter validation with Pydantic.
+
+Each parameter in the project configuration, after being loaded, is validated
+against the required type. Any parameters that need to be derived from
+other parameters are computed here.
+"""
+
 # Built-in
 from pathlib import Path
 from typing import Any, Literal
@@ -603,5 +611,16 @@ class ConfigParams(BaseConfigModel):
 def validate_params(config: dict[str, Any]) -> ConfigParams:
     """
     Validate and convert parameters to the appropriate types.
+
+    Parameters
+    ----------
+    config:
+        ConfigManager object with the loaded configuration from the YAML files
+
+    Returns
+    -------
+    ConfigParams:
+        ConfigParams object with the validated parameters, plus any computed
+        field from ConfigParams.
     """
     return ConfigParams(**config)
