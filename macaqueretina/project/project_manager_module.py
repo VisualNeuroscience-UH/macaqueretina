@@ -51,7 +51,6 @@ class ProjectManager(ProjectUtilities):
         """
 
         context = Context(config.as_dict())
-        context.device = context.validated_properties["device"]
 
         self.context = context
         self._get_cone_hash()
