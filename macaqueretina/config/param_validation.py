@@ -88,7 +88,7 @@ class RetinaParameters(BaseConfigModel):
     )
     ray_tune_trial_id: (
         None | Any
-    )  # Trial_id for tune, None for loading single run after "train_model". Applies to VAE "load_model" only # TODO what is Trial_id?
+    )  # Trial_id for tune, None for loading single run after "train_model". Applies to VAE "load_model" only
 
     signal_gain: dict[str, Any]
 
@@ -106,7 +106,7 @@ class VisualStimulusParameters(BaseConfigModel):
     image_height: int = 240
     pix_per_deg: int = 60
     dtype_name: str = (
-        "float16"  # low contrast needs "float16", for performance, use "uint8",  # TODO maybe cast it to a np dtype object here
+        "float16"  # low contrast needs "float16", for performance, use "uint8"
     )
     fps: int = 300
     duration_seconds: float = Field(

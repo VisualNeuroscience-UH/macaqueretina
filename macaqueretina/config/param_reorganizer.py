@@ -25,7 +25,6 @@ class ParamReorganizer:
         self.config = validated_config.copy()
 
         # TODO: check if gc_response_filenames must be left as an iterator
-        # TODO: check if exp_dog_data_folder is evaluated as PosixPath('/opt2/git_repos/macaqueretina/macaqueretina/../../experimental_data/Chichilnisky_lab/apricot_data'
 
         self._update_retina_parameters_append()
         self._create_literature_data_files()
