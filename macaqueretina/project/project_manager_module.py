@@ -55,7 +55,6 @@ class ProjectManager(ProjectUtilities):
 
         self.context = context
         self._get_cone_hash()
-        # self._set_retina_filenames()
 
         data_io = DataIO(context)
         self.data_io = data_io
@@ -253,20 +252,6 @@ class ProjectManager(ProjectUtilities):
                 self.context.retina_parameters_append["cone_general_parameters"]
             )
         )
-
-    # def _set_retina_filenames(self):
-    #     hashstr = self.context.retina_parameters["retina_parameters_hash"]
-    #     gc_type = self.context.retina_parameters["gc_type"]
-    #     response_type = self.context.retina_parameters["response_type"]
-    #     self.context.retina_parameters["mosaic_file"] = (
-    #         gc_type + "_" + response_type + "_" + hashstr + "_mosaic.csv"
-    #     )
-    #     self.context.retina_parameters["spatial_rfs_file"] = (
-    #         gc_type + "_" + response_type + "_" + hashstr + "_spatial_rfs.npz"
-    #     )
-    #     self.context.retina_parameters["ret_file"] = (
-    #         gc_type + "_" + response_type + "_" + hashstr + "_ret.npz"
-    #     )
 
 
     def _save_basic_retina_metadata(self):
