@@ -53,7 +53,6 @@ class ProjectManager(ProjectUtilities):
         context = Context(config.as_dict())
 
         self.context = context
-        self._get_cone_hash()
 
         data_io = DataIO(context)
         self.data_io = data_io
@@ -218,33 +217,4 @@ class ProjectManager(ProjectUtilities):
             raise AttributeError(
                 "Trying to set improper analog_input. analog_input must be a AnalogInput instance."
             )
-
-    def get_cone_noise_hash(self, cone_noise_dict):
-
-        retina_limits = {
-            key: self.context.retina_parameters[key]
-            for key in ["ecc_limits_deg", "pol_limits_deg"]
-        }
-        cone_noise_dict.update(retina_limits)
-
-        stim_duration = {
-            key: self.context.visual_stimulus_parameters[key]
-            for key in [
-                "fps",
-                "duration_seconds",
-                "baseline_start_seconds",
-                "baseline_end_seconds",
-            ]
-        }
-
-        cone_noise_dict.update(stim_duration)
-
-        return self.context.generate_hash(cone_noise_dict, n_hashes=1)
-
-    def _get_cone_hash(self):
-        self.context.retina_parameters_append["cone_noise_hash"] = (
-            self.get_cone_noise_hash(
-                self.context.retina_parameters_append["cone_general_parameters"]
-            )
-        )
 

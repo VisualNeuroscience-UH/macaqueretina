@@ -5197,11 +5197,32 @@ class ConstructRetina(Printable):
 
         # And then we change it back to complex number
         retina_parameters["retina_center"] = complex(retina_parameters["retina_center"])
+        
+        # Calculate cone noise hash
+        cone_noise_dict = self.context.retina_parameters_append["cone_general_parameters"]
+        
+        retina_limits = {
+            key: self.context.retina_parameters[key]
+            for key in ["ecc_limits_deg", "pol_limits_deg"]
+        }
+        cone_noise_dict.update(retina_limits)
 
+        stim_duration = {
+            key: self.context.visual_stimulus_parameters[key]
+            for key in [
+                "fps",
+                "duration_seconds",
+                "baseline_start_seconds",
+                "baseline_end_seconds",
+            ]
+        }
+
+        cone_noise_dict.update(stim_duration)
+        self.context.retina_parameters_append["cone_noise_hash"] = self.context.generate_hash(cone_noise_dict, n_hashes=1)
+
+        # Add all retina parameters to retina_parameters
         self.context.retina_parameters.update(self.context.retina_parameters_append)
         del self.context.retina_parameters_append
-
-        
 
 
     def build_retina_client(self) -> None:
