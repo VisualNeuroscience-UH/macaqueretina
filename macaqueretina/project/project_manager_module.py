@@ -51,7 +51,6 @@ class ProjectManager(ProjectUtilities):
         """
 
         context = Context(config.as_dict())
-
         self.context = context
 
         data_io = DataIO(context)
@@ -88,7 +87,6 @@ class ProjectManager(ProjectUtilities):
             interpolate_data=retina_math.interpolate_data,
             lorenzian_function=retina_math.lorenzian_function,
         )
-
         self.viz = viz
 
         self.viz_spikes_with_stimulus = VizResponse(
@@ -134,7 +132,6 @@ class ProjectManager(ProjectUtilities):
             pol2cart_df=self.simulate_retina.pol2cart_df,
             get_w_z_coords=self.simulate_retina.get_w_z_coords,
         )
-
         self.analog_input = analog_input
 
         # Set numpy random seed
