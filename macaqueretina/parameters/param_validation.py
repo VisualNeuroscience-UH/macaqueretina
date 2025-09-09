@@ -21,12 +21,6 @@ from pydantic import (
     model_validator,
 )
 
-# Local
-from macaqueretina.project.project_conf_module import (
-    git_repo_root_path,
-    project_conf_module_file_path,
-)
-
 
 class BaseConfigModel(BaseModel):
     """
@@ -302,14 +296,14 @@ class DogMetadataParameters(BaseConfigModel):
     @computed_field
     @property
     def exp_dog_data_folder(self) -> Path:
-        return git_repo_root_path.joinpath(
+        return git_repo_path.joinpath(
             r"../../experimental_data/Chichilnisky_lab/apricot_data"
         )
 
     @computed_field
     @property
     def exp_rf_stat_folder(self) -> Path:
-        return git_repo_root_path.joinpath(r"retina/dog_statistics")
+        return git_repo_path.joinpath(r"retina/dog_statistics")
 
 
 class Visual2CorticalParams(BaseConfigModel):
@@ -510,7 +504,7 @@ class ConfigParams(BaseConfigModel):
     @computed_field
     @property
     def literature_data_folder(self) -> Path:
-        return git_repo_root_path.joinpath(r"retina/literature_data")
+        return git_repo_path.joinpath(r"retina/literature_data")
 
     gc_density_1_datafile: str
     gc_density_1_scaling_data_and_function: list
@@ -562,7 +556,7 @@ class ConfigParams(BaseConfigModel):
     @model_validator(mode="after")
     def set_derived_values(self):
         # Set parameters that depend on another value in a different class
-        self.project_conf_module_file_path = project_conf_module_file_path
+        self.project_conf_module_file_path = proj_conf_mod_file_path
         if self.visual_stimulus_parameters.stimulus_video_name is None:
             self.visual_stimulus_parameters.stimulus_video_name = (
                 f"{self.stimulus_folder}.mp4"
@@ -608,7 +602,11 @@ class ConfigParams(BaseConfigModel):
 
 
 # Façade
-def validate_params(config: dict[str, Any]) -> ConfigParams:
+def validate_params(
+    config: dict[str, Any],
+    project_conf_module_file_path: Path,
+    git_repo_root_path: Path,
+) -> ConfigParams:
     """
     Validate and convert parameters to the appropriate types.
 
@@ -623,4 +621,10 @@ def validate_params(config: dict[str, Any]) -> ConfigParams:
         ConfigParams object with the validated parameters, plus any computed
         field from ConfigParams.
     """
+    global proj_conf_mod_file_path
+    proj_conf_mod_file_path = project_conf_module_file_path
+
+    global git_repo_path
+    git_repo_path = git_repo_root_path
+
     return ConfigParams(**config)

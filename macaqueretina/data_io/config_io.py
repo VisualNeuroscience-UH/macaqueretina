@@ -17,10 +17,6 @@ from typing import Any
 # Third-party
 from yaml import YAMLError, safe_load
 
-# Local
-from macaqueretina.config.param_reorganizer import ParamReorganizer
-from macaqueretina.config.param_validation import validate_params
-
 
 class YamlLoader:
     """
@@ -275,18 +271,15 @@ class ConfigManager:
         return self._config
 
 
-# Façade for project_conf_module.py
-def load_yaml(*args: tuple | None) -> ConfigManager:
+# Façade
+def load_yaml(args: list) -> ConfigManager:
     """
     Load project configuration from one or more YAML files.
-    Validates the configuration (see param_validation.py),
-    then reorganizes the parameter for use in the codebase (see
-    param_reorganizer.py)
 
     Parameters
     ----------
 
-    *args: str
+    *args: list
         Paths to YAML configuration files to load and merge.
 
     Returns
@@ -298,7 +291,7 @@ def load_yaml(*args: tuple | None) -> ConfigManager:
     Raises
     ------
     FileNotFoundError
-        If any of the args does exist
+        If any of the args (paths) does not exist
 
 
     Examples
@@ -310,18 +303,11 @@ def load_yaml(*args: tuple | None) -> ConfigManager:
     load_yaml(path_to_yaml, path_to_another_yaml)
     For as many YAML files as needed.
     """
-    reorganizer = ParamReorganizer()
 
-    # Unpack args and check if they exist before loading
     for path in args:
-        if not Path(path).exists():
+        if not path.exists():
             raise FileNotFoundError(f"Found no YAML configuration file in {path}")
 
-    config_object = ConfigManager(*args)
-    validated_config = validate_params(config_object.as_dict())
-    validated_config = validated_config.model_dump()
-    reorganized_config = reorganizer.reorganize(validated_config)
+    config = ConfigManager(*args)
 
-    config_object._config = reorganized_config
-
-    return config_object
+    return config

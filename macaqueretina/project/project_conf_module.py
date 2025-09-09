@@ -8,6 +8,9 @@ from typing import TYPE_CHECKING
 import matplotlib.pyplot as plt
 
 # Local
+from macaqueretina.data_io.config_io import load_yaml
+from macaqueretina.parameters.param_reorganizer import ParamReorganizer
+from macaqueretina.parameters.param_validation import validate_params
 from macaqueretina.project.project_manager_module import ProjectManager
 
 if TYPE_CHECKING:
@@ -16,28 +19,25 @@ if TYPE_CHECKING:
 start_time = time.time()
 warnings.simplefilter("ignore")
 
-project_conf_module_file_path = Path(__file__).resolve()
-git_repo_root_path = project_conf_module_file_path.parent.parent
-
 
 def load_parameters() -> "ConfigManager":
-    from macaqueretina.config.config_manager import load_yaml
+    project_conf_module_file_path = Path(__file__).resolve()
+    git_repo_root_path = project_conf_module_file_path.parent.parent
 
-    base: str = git_repo_root_path.joinpath("config/")
+    reorganizer = ParamReorganizer()
 
-    retina_yaml: str = base.joinpath("retina_parameters.yaml")
-    core_yaml: str = base.joinpath("core_parameters.yaml")
-    visual_stimulus_yaml: str = base.joinpath("visual_stimulus_parameters.yaml")
-    constants_yaml: str = base.joinpath("constants.yaml")
-    literature_yaml: str = base.joinpath("literature.yaml")
+    base: str = git_repo_root_path.joinpath("parameters/")
+    yaml_files = list(base.glob("*.yaml"))
 
-    config: ConfigManager = load_yaml(
-        retina_yaml,
-        core_yaml,
-        visual_stimulus_yaml,
-        constants_yaml,
-        literature_yaml,
+    config: ConfigManager = load_yaml(yaml_files)
+
+    validated_config = validate_params(
+        config.as_dict(), project_conf_module_file_path, git_repo_root_path
     )
+    validated_config = validated_config.model_dump()
+    reorganized_config = reorganizer.reorganize(validated_config)
+
+    config._config = reorganized_config
 
     return config
 
