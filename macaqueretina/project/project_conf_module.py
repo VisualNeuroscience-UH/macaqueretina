@@ -2,7 +2,7 @@
 import time
 import warnings
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable
 
 # Third-party
 import matplotlib.pyplot as plt
@@ -10,7 +10,6 @@ import matplotlib.pyplot as plt
 # Local
 from macaqueretina.data_io.config_io import load_yaml
 from macaqueretina.parameters.param_reorganizer import ParamReorganizer
-from macaqueretina.parameters.param_validation import validate_params
 from macaqueretina.project.project_manager_module import ProjectManager
 
 if TYPE_CHECKING:
@@ -20,24 +19,49 @@ start_time = time.time()
 warnings.simplefilter("ignore")
 
 
+def _validation_switch(base):
+    """
+    Perform parameter validation if a .py file with 'validation' in its name
+    is found in the parameters/ subfolder.
+    """
+    validation_file = list(base.glob("*validation*.py"))
+    match len(validation_file):
+        case 0:
+            print(
+                f"No validation file provided in {base}. Proceeding without parameter validation."
+            )
+        case 1:
+            from macaqueretina.parameters.param_validation import validate_params
+
+            return validate_params
+        case n:
+            raise ValueError(
+                f"Expected at most 1 validation file in {base}, but found {n} files with 'validation' in their name."
+            )
+
+
 def load_parameters() -> "ConfigManager":
+    """Load configuration parameters."""
     project_conf_module_file_path = Path(__file__).resolve()
     git_repo_root_path = project_conf_module_file_path.parent.parent
 
     reorganizer = ParamReorganizer()
 
-    base: str = git_repo_root_path.joinpath("parameters/")
+    base: Path = git_repo_root_path.joinpath("parameters/")
     yaml_files = list(base.glob("*.yaml"))
+
+    validate_params: Callable = _validation_switch(base)
 
     config: ConfigManager = load_yaml(yaml_files)
 
-    validated_config = validate_params(
-        config.as_dict(), project_conf_module_file_path, git_repo_root_path
-    )
-    validated_config = validated_config.model_dump()
-    reorganized_config = reorganizer.reorganize(validated_config)
+    if validate_params:
+        validated_config = validate_params(
+            config.as_dict(), project_conf_module_file_path, git_repo_root_path
+        )
+        validated_config = validated_config.model_dump()
+        reorganized_config = reorganizer.reorganize(validated_config)
 
-    config._config = reorganized_config
+        config._config = reorganized_config
 
     return config
 
