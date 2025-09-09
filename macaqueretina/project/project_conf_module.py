@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 from macaqueretina.project.project_manager_module import ProjectManager
 
 if TYPE_CHECKING:
-    from macaqueretina.config.config_manager import ConfigManager
+    from macaqueretina.data_io.config_io import ConfigManager
 
 start_time = time.time()
 warnings.simplefilter("ignore")
