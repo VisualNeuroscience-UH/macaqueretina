@@ -61,7 +61,7 @@ class ProjectManager(ProjectUtilities):
         retina_math = RetinaMath()
 
         ana = Analysis(
-            # Interfaces
+            # Dependencies
             context,
             data_io,
             # Methods which are needed also elsewhere
@@ -72,7 +72,7 @@ class ProjectManager(ProjectUtilities):
         self.ana = ana
 
         viz = Viz(
-            # Interfaces
+            # Dependencies
             context,
             data_io,
             project_data,
