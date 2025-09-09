@@ -19,7 +19,7 @@ start_time = time.time()
 warnings.simplefilter("ignore")
 
 
-def _validation_switch(base):
+def _validation_switch(base: Path):
     """
     Perform parameter validation if a .py file with 'validation' in its name
     is found in the parameters/ subfolder.
