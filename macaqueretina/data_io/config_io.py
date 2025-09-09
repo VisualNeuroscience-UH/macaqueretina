@@ -144,6 +144,12 @@ class NestedConfig:
             return value
         raise AttributeError(f"No attribute '{name}' found")
 
+    def __setattr__(self, name: str, value: Any) -> None:
+        if name == "_config":
+            super().__setattr__(name, value)
+        else:
+            self._config[name] = value
+
     def __getitem__(self, key: str) -> Any:
         if key in self._config:
             value = self._config[key]
@@ -216,6 +222,14 @@ class ConfigManager:
 
         # Raise an error when requesting a non-existent attribute
         raise AttributeError(f"Configuration has no attribute '{name}'")
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        """Provide attribute-style assignment to configuration values."""
+        if name in ("config_file_paths", "_config"):
+            super().__setattr__(name, value)
+        else:
+
+            self._config[name] = value
 
     def __getitem__(self, key: str) -> Any:
         """
