@@ -120,8 +120,7 @@ class ProjectManager(ProjectUtilities):
         )
         self.simulate_retina = simulate_retina
 
-        experiment = Experiment(
-            context, data_io, stimulate, simulate_retina)
+        experiment = Experiment(context, data_io, stimulate, simulate_retina)
         self.experiment = experiment
 
         analog_input = AnalogInput(
@@ -214,4 +213,3 @@ class ProjectManager(ProjectUtilities):
             raise AttributeError(
                 "Trying to set improper analog_input. analog_input must be a AnalogInput instance."
             )
-
