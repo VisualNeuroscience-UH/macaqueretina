@@ -19,7 +19,6 @@ from macaqueretina.stimuli.experiment_module import Experiment
 from macaqueretina.stimuli.visual_stimulus_module import AnalogInput, VisualStimulus
 from macaqueretina.viz.viz_module import Viz, VizResponse
 
-from macaqueretina.project.project_utilities_module import Printable
 
 """
 Module on retina management
@@ -44,7 +43,7 @@ class ProjectData:
         self.fit = {}
 
 
-class ProjectManager(ProjectUtilities, Printable):
+class ProjectManager(ProjectUtilities):
     def __init__(self, config):
         """
         Main project manager.
