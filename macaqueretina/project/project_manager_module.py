@@ -19,6 +19,8 @@ from macaqueretina.stimuli.experiment_module import Experiment
 from macaqueretina.stimuli.visual_stimulus_module import AnalogInput, VisualStimulus
 from macaqueretina.viz.viz_module import Viz, VizResponse
 
+from macaqueretina.project.project_utilities_module import Printable
+
 """
 Module on retina management
 
@@ -42,7 +44,7 @@ class ProjectData:
         self.fit = {}
 
 
-class ProjectManager(ProjectUtilities):
+class ProjectManager(ProjectUtilities, Printable):
     def __init__(self, config):
         """
         Main project manager.
@@ -56,17 +58,17 @@ class ProjectManager(ProjectUtilities):
         data_io = DataIO(context)
         self.data_io = data_io
 
-        project_data = ProjectData()
+        self.project_data = ProjectData()
 
-        retina_math = RetinaMath()
+        self.retina_math = RetinaMath()
 
         ana = Analysis(
             # Dependencies
             context,
             data_io,
             # Methods which are needed also elsewhere
-            pol2cart=retina_math.pol2cart,
-            get_photoisomerizations_from_luminance=retina_math.get_photoisomerizations_from_luminance,
+            pol2cart=self.retina_math.pol2cart,
+            get_photoisomerizations_from_luminance=self.retina_math.get_photoisomerizations_from_luminance,
         )
 
         self.ana = ana
@@ -75,48 +77,41 @@ class ProjectManager(ProjectUtilities):
             # Dependencies
             context,
             data_io,
-            project_data,
+            self.project_data,
             ana,
             # Methods which are needed also elsewhere
             round_to_n_significant=self.round_to_n_significant,
-            DoG2D_fixed_surround=retina_math.DoG2D_fixed_surround,
-            DoG2D_independent_surround=retina_math.DoG2D_independent_surround,
-            DoG2D_circular=retina_math.DoG2D_circular,
-            pol2cart=retina_math.pol2cart,
-            sector2area_mm2=retina_math.sector2area_mm2,
-            interpolate_data=retina_math.interpolate_data,
-            lorenzian_function=retina_math.lorenzian_function,
+            DoG2D_fixed_surround=self.retina_math.DoG2D_fixed_surround,
+            DoG2D_independent_surround=self.retina_math.DoG2D_independent_surround,
+            DoG2D_circular=self.retina_math.DoG2D_circular,
+            pol2cart=self.retina_math.pol2cart,
+            sector2area_mm2=self.retina_math.sector2area_mm2,
+            interpolate_data=self.retina_math.interpolate_data,
+            lorenzian_function=self.retina_math.lorenzian_function,
         )
         self.viz = viz
 
         self.viz_spikes_with_stimulus = VizResponse(
             context,
             data_io,
-            project_data,
+            self.project_data,
             VisualSignal,
         )
 
-        fit = Fit(project_data, context.dog_metadata_parameters)
+        self.construct_retina = self.build_retina_instance()
 
-        retina_vae = RetinaVAE(context)
-
-        self.construct_retina = ConstructRetina(
-            context,
-            data_io,
-            viz,
-            fit,
-            retina_vae,
-            retina_math,
-            project_data,
-            self.get_xy_from_npz,
-        )
         self.viz.construct_retina = self.construct_retina
 
         stimulate = VisualStimulus(context, data_io, self.get_xy_from_npz)
         self.stimulate = stimulate
 
         simulate_retina = SimulateRetina(
-            context, data_io, project_data, retina_math, context.device, stimulate
+            context,
+            data_io,
+            self.project_data,
+            self.retina_math,
+            context.device,
+            stimulate,
         )
         self.simulate_retina = simulate_retina
 
@@ -135,6 +130,25 @@ class ProjectManager(ProjectUtilities):
 
         # Set numpy random seed
         np.random.seed(self.context.numpy_seed)
+
+    def build_retina_instance(self):
+        project_data = ProjectData()
+
+        fit = Fit(project_data, self.context.dog_metadata_parameters)
+
+        retina_vae = RetinaVAE(self.context)
+
+        construct_retina = ConstructRetina(
+            self.context,
+            self.data_io,
+            self.viz,
+            fit,
+            retina_vae,
+            self.retina_math,
+            project_data,
+            self.get_xy_from_npz,
+        )
+        return construct_retina
 
     @property
     def context(self):
@@ -160,19 +174,6 @@ class ProjectManager(ProjectUtilities):
         else:
             raise AttributeError(
                 "Trying to set improper data_io. Data_io must be a DataIO object."
-            )
-
-    @property
-    def construct_retina(self):
-        return self._construct_retina
-
-    @construct_retina.setter
-    def construct_retina(self, value):
-        if isinstance(value, ConstructRetina):
-            self._construct_retina = value
-        else:
-            raise AttributeError(
-                "Trying to set improper construct_retina. construct_retina must be a ConstructRetina instance."
             )
 
     @property
