@@ -1,3 +1,7 @@
+"""
+Macaque retina simulator.
+"""
+
 # Local
 from .project.project_conf_module import load_parameters as _lp
 from .project.project_manager_module import ProjectManager as _PM
