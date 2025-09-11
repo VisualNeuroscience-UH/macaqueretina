@@ -1,5 +1,4 @@
 colorednoise
-cxsystem2 @ git+https://github.com/VisualNeuroscience-UH/CxSystem2.git
 h5py
 imageio
 ipython

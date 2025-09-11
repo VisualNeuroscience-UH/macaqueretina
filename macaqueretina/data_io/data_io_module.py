@@ -15,16 +15,7 @@ import pandas as pd
 import scipy.io as sio
 import scipy.sparse as scprs
 import yaml
-
-try:
-    # First-party
-    # used in project_utilities_module.py
-    from cxsystem2.core.tools import load_from_file, write_to_file
-
-    CXSYSTEM_EXISTS = True
-except ImportError:
-    print("cxsystem2 not installed, continuing without...")
-    CXSYSTEM_EXISTS = False
+from brian2.input.timedarray import TimedArray
 
 # Local
 from macaqueretina.context.context_module import Context
@@ -33,10 +24,6 @@ from macaqueretina.context.context_module import Context
 class DataIO:
     def __init__(self, context) -> None:
         self.context = context
-
-        if CXSYSTEM_EXISTS:
-            # Attach cxsystem2 methods
-            self.write_to_file = write_to_file
 
         # Attach other methods/packages
         self.savemat = sio.savemat
@@ -54,6 +41,24 @@ class DataIO:
             raise AttributeError(
                 "Trying to set improper context. Context must be a context object."
             )
+
+    def _write_to_file(self, save_path, data):
+        def _remove_timed_arrays(obj):
+            # Timed arrays of brian contain some expressions which cannot be saved by pickle,
+            if not isinstance(obj, dict):
+                return obj
+            keys = list(obj.keys())
+            for key in keys:
+                if isinstance(obj[key], TimedArray):
+                    del obj[key]
+                elif isinstance(obj[key], dict):
+                    obj[key] = _remove_timed_arrays(obj[key])
+            return obj
+
+        save_path = Path(save_path)
+        data = _remove_timed_arrays(data)
+        with open(save_path.as_posix(), "wb") as fb:
+            fb.write(zlib.compress(pickle.dumps(data, pickle.HIGHEST_PROTOCOL), 9))
 
     def _check_candidate_file(self, path, filename):
         candidate_data_fullpath_filename = Path.joinpath(path, filename)
@@ -893,15 +898,13 @@ class DataIO:
         analog_signal=None,
         dt=None,
     ):
-        # Copied from CxSystem2\cxsystem2\core\stimuli.py The Stimuli class does not support reuse
+
         print(" -  Saving spikes, rgc coordinates and analog signal (if not None)...")
 
         data_to_save = {}
         for ii in range(len(spikearrays)):
             data_to_save["spikes_" + str(ii)] = []
-            # units, i in cxsystem2
             data_to_save["spikes_" + str(ii)].append(spikearrays[ii][0])
-            # times, t in cxsystem2
             data_to_save["spikes_" + str(ii)].append(spikearrays[ii][1])
         data_to_save["w_coord"] = w_coord
         data_to_save["z_coord"] = z_coord
@@ -921,7 +924,7 @@ class DataIO:
 
         filename_full = save_path.with_suffix(".gz")
 
-        self.write_to_file(filename_full, data_to_save)
+        self._write_to_file(filename_full, data_to_save)
 
     def _save_spikes_csv(self, simulated_spiketrains, n_cells, filename=None):
         """
@@ -1039,19 +1042,15 @@ class DataIO:
         for this_variable in save_variables:
             match this_variable:
                 case "spikes":
-                    if CXSYSTEM_EXISTS:
-                        self._save_spikes_for_cxsystem(
-                            vs.spikearrays,
-                            vs.n_units,
-                            vs.w_coord,
-                            vs.z_coord,
-                            filename=filename,
-                            dt=vs.simulation_dt,
-                        )
-                    else:
-                        raise ImportError(
-                            "CxSystem2 is not installed, cannot save spikes"
-                        )
+                    self._save_spikes_for_cxsystem(
+                        vs.spikearrays,
+                        vs.n_units,
+                        vs.w_coord,
+                        vs.z_coord,
+                        filename=filename,
+                        dt=vs.simulation_dt,
+                    )
+
                 case "cone_noise":
                     cone_noise_hash = self.context.retina_parameters["cone_noise_hash"]
                     self._save_additional_variables(
