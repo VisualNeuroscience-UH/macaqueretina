@@ -13,7 +13,8 @@ viz = PM.viz
 
 __all__ = ["construct_retina", "stimulate", "simulate_retina", "viz"]
 
-del _lp, _PM, PM
+del (_lp, _PM)
+
 
 # import os
 # import tomli
