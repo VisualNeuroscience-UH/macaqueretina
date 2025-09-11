@@ -2738,8 +2738,7 @@ class Viz:
         retina_center = stim_to_show["retina_center"]
 
         dog_model_type = self.context.retina_parameters["dog_model_type"]
-        fig = plt.figure()
-        ax = ax or plt.gca()
+        fig, ax = plt.subplots()
         ax.imshow(stimulus_video.frames[frame_number, :, :])
         ax = plt.gca()
 
@@ -5420,16 +5419,25 @@ class Viz:
                 y_data,
                 p0=p0,
                 bounds=bounds,
+                # method="lm",
+                method="lm" if bounds == (-np.inf, np.inf) else "trf",
+                maxfev=10000,
                 ftol=1e-08,
             )
 
         x_dense = np.logspace(np.log10(np.min(x_data)), np.log10(np.max(x_data)), 100)
         y_fitted = fit_function(x_dense, *popt)
 
+        # Remove fit ints with cs < 1, considered noise
+        mask = y_fitted < 1
+        x_dense = x_dense[~mask]
+        y_fitted = y_fitted[~mask]
+
         fig, ax = plt.subplots()
         ax.scatter(x_data, y_data, label=f"Data points")
         ax.plot(x_dense, y_fitted, color="red", label="Fitted Curve")
         ax.legend()
+        ax.set_title(savefigname if savefigname else "Data and Fit")
 
         # Annotate the graph with the popt values
         for i, (param_name, param_value) in enumerate(
@@ -5462,6 +5470,8 @@ class Viz:
         exp_variables,
         xlog=False,
         ylog=False,
+        xlim=None,
+        ylim=None,
         savefigname=None,
     ):
         """
@@ -5486,6 +5496,16 @@ class Viz:
 
         data_folder = self.context.output_folder
         cond_names_string = "_".join(exp_variables)
+
+        if "frequency" in cond_names_string:
+            if "spatial" in cond_names_string:
+                frequency_parameter_name = "spatial_frequency"
+            elif "temporal" in cond_names_string:
+                frequency_parameter_name = "temporal_frequency"
+        else:
+            raise ValueError(
+                "For contrast sensitivity, exp_variables must include either spatial or temporal frequency."
+            )
 
         experiment_df = pd.read_csv(data_folder / filename, index_col=0)
 
@@ -5517,7 +5537,7 @@ class Viz:
             value_name="amplitudes",
         )
         result_df = mean_long_df.merge(
-            std_long_df, on="contrast_spatial_frequency_names", how="left"
+            std_long_df, on=f"{cond_names_string}_names", how="left"
         )
         # Make new columns with conditions' levels
         for cond in exp_variables:
@@ -5537,31 +5557,31 @@ class Viz:
             result_df["threshold"] = 10.0
         else:
             # Calculate threshold for contrast == 0.0
-            for sf in result_df["spatial_frequency"].unique():
+            for this_freq in result_df[frequency_parameter_name].unique():
                 mask = (result_df["contrast"] == 0.0) & (
-                    result_df["spatial_frequency"] == sf
+                    result_df[frequency_parameter_name] == this_freq
                 )
                 if mask.any():
                     threshold_value = (
                         result_df.loc[mask, "amplitudes"].values[0]
                         + 2 * result_df.loc[mask, "std"].values[0]
                     )
-                    result_df.loc[result_df["spatial_frequency"] == sf, "threshold"] = (
-                        threshold_value
-                    )
+                    result_df.loc[
+                        result_df[frequency_parameter_name] == this_freq, "threshold"
+                    ] = threshold_value
 
-        # Loop spatial_frequency, fit naka_rushton
+        # Loop frequency parameter, fit naka_rushton
+        # Parameters: Rmax: float, c50: float, baseline: float
         fit_function = self.naka_rushton
         inverse_fit_function = self.naka_rushton_inverse
-        # Rmax: float, c50: float, baseline: float
         Rmax = result_df["amplitudes"].values.max()
         p0 = [Rmax, 0.5, 0.0]
         bounds = ((0, 0, 0), (Rmax * 2, 100, Rmax))
-        abscissa = result_df["spatial_frequency"].unique()
+        abscissa = result_df[frequency_parameter_name].unique()
 
         cs_all = np.zeros(len(abscissa))
         for freq_idx, this_freq in enumerate(abscissa):
-            df = result_df[result_df["spatial_frequency"] == this_freq]
+            df = result_df[result_df[frequency_parameter_name] == this_freq]
             x_data = df["contrast"].values
             y_data = df["amplitudes"].values
             popt, pcov = opt.curve_fit(
@@ -5580,24 +5600,25 @@ class Viz:
         abscissa = abscissa[~mask]
         cs_all = cs_all[~mask]
 
-        xlim = (0.1, 10)
-        ylim = (0.1, 100)
-
-        # K, k_c, r_c, k_s, r_s
-        bounds = ((0, 0, 0, 0, 0), (10000, 1000, 1, 1000, 1))
-        self.show_data_and_fit(
-            self.enrothcugell_robson,
-            abscissa,
-            cs_all,
-            p0=(100, 10, 0.05, 5, 0.1),
-            xlim=xlim,
-            ylim=ylim,
-            xlog=xlog,
-            ylog=ylog,
-            fit_in_log_space=False,
-            bounds=bounds,
-            savefigname=savefigname,
-        )
+        try:
+            # K, k_c, r_c, k_s, r_s
+            # bounds = (-np.inf, np.inf)
+            bounds = ((0, 0, 0, 0, 0), (10000, 1000, 1, 1000, 1))
+            self.show_data_and_fit(
+                self.enrothcugell_robson,
+                abscissa,
+                cs_all,
+                p0=(1000, 10, 0.03, 5, 0.07),
+                xlim=xlim,
+                ylim=ylim,
+                xlog=xlog,
+                ylog=ylog,
+                fit_in_log_space=False,
+                bounds=bounds,
+                savefigname=savefigname,
+            )
+        except Exception as e:
+            print(f"Error occurred while fitting data: {e}")
 
 
 class VizResponse:
