@@ -509,13 +509,13 @@ class Experiment(VideoBaseClass):
         self.options["n_sweeps"] = experiment_parameters["n_sweeps"]
         run_parameters["n_sweeps"] = experiment_parameters["n_sweeps"]
 
-        if not build_without_run:
-            # Replace with input options
-            for idx, input_options in enumerate(cond_options):
-                # Create stimulus video name. Note, this updates the cond_options dict
-                stimulus_video_name = "Stim_" + cond_names[idx]
-                input_options["stimulus_video_name"] = stimulus_video_name
+        # Replace with input options
+        for idx, input_options in enumerate(cond_options):
+            # Create stimulus video name. Note, this updates the cond_options dict
+            stimulus_video_name = "Stim_" + cond_names[idx]
+            input_options["stimulus_video_name"] = stimulus_video_name
 
+            if not build_without_run:
                 # Replace options with input_options
                 self._replace_options(input_options)
 
@@ -526,8 +526,6 @@ class Experiment(VideoBaseClass):
                     )
                 except FileNotFoundError:
                     stim = self.stimulate.make_stimulus_video(self.options)
-                    # Raw intensity is stimulus specific
-                    # TODO Why removes the raw_intensity from the options with rerun, with try. Here gets it correctly?
                     self.options["raw_intensity"] = stim.options["raw_intensity"]
 
                 gc_type = self.context.retina_parameters["gc_type"]
@@ -543,15 +541,12 @@ class Experiment(VideoBaseClass):
 
         if not save_exp_metadata_path.is_file():
 
-            # if len(cond_options[0].keys()) > 1:
             self.options["logarithmic"] = tuple(experiment_parameters["logarithmic"])
-            # else:
-            #     self.options["logarithmic"] = experiment_parameters["logarithmic"]
-            # breakpoint()
             self.options["retina_center"] = self.context.retina_parameters[
                 "retina_center"
             ]
             relevant_metadata = self._relevant_stimulus_options(self.options)
+
             result_df = self._create_dataframe(
                 cond_options, cond_names, relevant_metadata
             )
