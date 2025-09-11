@@ -1,5 +1,6 @@
 # Built-in
 import math
+import os
 import random
 import time
 import warnings
@@ -118,7 +119,8 @@ project = "macaqueretina"
 """
 Current experiment. Use distinct folders for distinct stimuli.
 """
-experiment = "test"
+experiment = "test_run"
+# experiment = "valid_fr4c"
 
 
 """
@@ -130,8 +132,21 @@ input_folder = "../in"  # input figs, videos, models
 """
 Data context for output. 
 """
-output_folder = "test_0"
-# output_folder_stem = f"{gc_type}_{response_type}_{spatial_model_type}_{temporal_model_type}_{contrast}_gain{signal_gain}_temporal_frequency"
+# Fluid parameters
+
+gc_type = "parasol"  # "parasol", "midget"
+response_type = "on"  # "on", "off"
+spatial_model_type = "DOG"  # "DOG", "VAE"
+temporal_model_type = "dynamic"  # "fixed", "dynamic", "subunit"
+
+# SLURM environment variables for clusters
+# gc_type = os.getenv("GC_TYPE")
+# response_type = os.getenv("RESPONSE_TYPE")
+# spatial_model_type = os.getenv("SPATIAL_MODEL_TYPE")
+# temporal_model_type = os.getenv("TEMPORAL_MODEL_TYPE")
+
+output_folder = "pilot_5"
+# output_folder = f"{experiment}_{gc_type}_{response_type}_{spatial_model_type}_{temporal_model_type}_high_pass_control"
 
 
 """
@@ -139,21 +154,20 @@ Stimulus context
 Stimulus images and videos
 """
 
-stimulus_folder = f"stim_{output_folder}"
-
-testrun = False  # Stops execution before heavy calculations
+# stimulus_folder = f"stim_{output_folder}"
+stimulus_folder = f"stim_{experiment}"
 
 """
 Remove random variations by setting the numpy random seed
 """
-numpy_seed = 42  # random.randint(0, 1000000)  # 42
+numpy_seed = random.randint(0, 1000000)  # 42
 
 """
 Computing device
 For small retinas cpu is faster. Use cpu if you do not have cuda (and NVidia GPU).
 """
 # After training a VAE model with a device, the model must be loaded to same device. Pytorch quirk.
-device = "cpu"  # "cpu" or "cuda"
+device = "cuda"  # "cpu" or "cuda"
 
 """
 ### Housekeeping ###. Do not comment out.
@@ -187,12 +201,6 @@ path = Path.joinpath(model_root_path, Path(project), experiment)
 # Note: DOG model ellipse independent does not correlate the center and surround parameters. Thus they are independent, which
 # is not the case in the VAE model, and not very physiological.
 
-# Fluid parameters
-
-gc_type = "parasol"  # "parasol", "midget"
-response_type = "on"  # "on", "off"
-spatial_model_type = "DOG"  # "DOG", "VAE"
-temporal_model_type = "fixed"  # "fixed", "dynamic", "subunit"
 
 print(f"{gc_type=}")
 print(f"{response_type=}")
@@ -236,12 +244,12 @@ retina_parameters = {
         signal_gain[gc_type][response_type][spatial_model_type][temporal_model_type]
     ),
     # Auxiliary model type variants included into the hash
-    "ecc_limits_deg": [4.5, 5.5],  # eccentricity in degrees MIDGET
-    "pol_limits_deg": [-1.5, 1.5],  # polar angle in degrees
+    "ecc_limits_deg": [4.5, 5.5],  # eccentricity in degrees
+    "pol_limits_deg": [-3, 3],  # polar angle in degrees
     "model_density": 1.0,  # 1.0 for 100% of the literature density of ganglion cells
     "retina_center": 5.0 + 0j,  # degrees, this is stimulus_position (0, 0)
-    "force_retina_build": True,  # False or True. If True, rebuilds retina even if the hash matches
-    "training_mode": "train_model",  # "load_model", "train_model" or "tune_model". Applies to VAE only
+    "force_retina_build": False,  # False or True. If True, rebuilds retina even if the hash matches
+    "training_mode": "load_model",  # "load_model", "train_model" or "tune_model". Applies to VAE only
     "model_file_name": None,  # None for most recent or "model_[GC TYPE]_[RESPONSE TYPE]_[DEVICE]_[TIMESTAMP].pt" at input_folder. Applies to VAE "load_model" only
     "ray_tune_trial_id": None,  # Trial_id for tune, None for loading single run after "train_model". Applies to VAE "load_model" only
 }
@@ -299,27 +307,31 @@ the median is removed to get the zero level to approximately match the original 
 Note that in experiments (below), tuple values are captured for varying each tuple value separately.
 """
 visual_stimulus_parameters = {
-    "pattern": "temporal_square_pattern",  # One of the StimulusPatterns
+    # "pattern": "sine_grating",  # One of the StimulusPatterns
+    "pattern": "temporal_sine_pattern",  # One of the StimulusPatterns
     "image_width": 240,  # 752 for nature1.avi
     "image_height": 240,  # 432 for nature1.avi
-    "pix_per_deg": 60,
+    "pix_per_deg": 60,  # 60, 200
     "dtype_name": "float16",  # low contrast needs "float16", for performance, use "uint8",
     "fps": 300,  # >=200 for good dynamic model integration
-    "duration_seconds": 0.5,  # actual frames = floor(duration_seconds * fps)
-    "baseline_start_seconds": 0.1,  # Total duration is duration + both baselines
+    "duration_seconds": 1.0,  # actual frames = floor(duration_seconds * fps)
+    "baseline_start_seconds": 0.5,  # Total duration is duration + both baselines
     "baseline_end_seconds": 0.5,
     "stimulus_form": "circular",
     "size_inner": 0.1,  # deg, applies to annulus only
     "size_outer": 1,  # deg, applies to annulus only
     "stimulus_position": (0.0, 0.0),  # relative to stimuls center in retina
     "stimulus_size": 1.5,  # 2.2,  # deg, radius for circle, sidelen/2 for rectangle.
-    "temporal_frequency": 0.01,  # 0.01,  # 4.0,  # 40,  # Hz
+    # "temporal_frequency": 0.01,  # 0.01,  # 4.0,  # 40,  # Hz
+    "temporal_frequency": 6.32,  # 0.01,  # 4.0,  # 40,  # Hz
     "temporal_frequency_range": (0.5, 50),  # Hz, applies to temporal chirp only
-    "spatial_frequency": 2,  # cpd
+    "spatial_frequency": 5,  # cpd
     "orientation": 90,  # degrees
     "phase_shift": 0,  # math.pi + 0.1,  # radians
-    "stimulus_video_name": f"{stimulus_folder}.mp4",
+    "stimulus_video_name": f"312019.mp4",
     "contrast": 1.0,  # mean +- contrast * mean
+    # "contrast": 0.114,  # mean +- contrast * mean, midget calibration
+    # "contrast": 0.035,  # mean +- contrast * mean, parasol calibration
     "mean": 128,  # Mean luminance in  cd/m2 and adaptation level
     # "intensity": (0, 255),  # intensity overrides contrast and mean if not commented out
     "background": "mean",  # "mean", "intensity_min", "intensity_max" or value.
@@ -341,11 +353,11 @@ n_files = 1
 # "save_variables": "spikes", "cone_noise", "cone_bipo_gen_fir"
 run_parameters = {
     "n_sweeps": 1,  # For each of the response files
-    "spike_generator_model": "poisson",  # poisson or refractory
+    "spike_generator_model": "refractory",  # poisson or refractory
     "save_data": True,
     "gc_response_filenames": [f"gc_response_{x:02}" for x in range(n_files)],
     "simulation_dt": 0.0001,  # in sec 0.001 = 1 ms
-    "save_variables": ["spikes", "cone_noise"],
+    "save_variables": ["spikes", "cone_noise", "gc_synaptic_noise"],
 }
 
 
@@ -454,7 +466,10 @@ proportion_of_OFF_response_type = 0.60
 # > 0.999 for ecc 0.1 - 4 mm, and > 0.97 for ecc 0.1 - 20 mm.
 deg_per_mm = 1 / 0.229
 
-optical_aberration = 2 / 60  # deg , 2 arcmin, Navarro 1993 JOSAA
+# 0.8 arcmin, max retinal resolution in humans, Navarro 1993 JOSAA
+# optical_aberration = 0.8 / 60  # deg
+# 2 arcmin, max optical resolution in humans Navarro 1993 JOSAA
+optical_aberration = 2 / 60  # deg ,
 
 # Parameters for cortical - visual coordinate transformation.
 # a for macaques between 0.3 - 0.9, Schwartz 1994 citing Wilson et al 1990 "The perception of form"
@@ -783,35 +798,80 @@ if __name__ == "__main__":
     #     savefigname=None,
     # )
 
-    ###########################################
-    ##   Luminance and Photoisomerizations   ##
-    ###########################################
+    #####################################################
+    ##   Luminance and Photoisomerization calculator   ##
+    #####################################################
 
     # I_cone = 4000  # photoisomerizations per second per cone
+    # A_pupil = 9.0
 
-    # luminance = PM.cones.get_luminance_from_photoisomerizations(I_cone)
+    # luminance = PM.retina_math.get_luminance_from_photoisomerizations(
+    #     I_cone, A_pupil=A_pupil
+    # )
     # print(f"{luminance:.2f} cd/m2")
+    # print(f"{luminance * A_pupil} trolands")
 
     # luminance = 128  # Luminance in cd/m2
+    # A_pupil = 9.0
 
-    # I_cone = PM.cones.get_photoisomerizations_from_luminance(luminance)
+    # I_cone = PM.retina_math.get_photoisomerizations_from_luminance(
+    #     luminance, A_pupil=A_pupil
+    # )
     # print(f"{I_cone:.2f} photoisomerizations per second per cone")
+    # print(f"{luminance * A_pupil} trolands")
 
-    # ##########################################
-    # #   Sample figure data from literature  ##
-    # ##########################################
+    ##########################################
+    #   Sample figure data from literature  ##
+    ##########################################
 
     # # # If possible, sample only temporal hemiretina
+    # # Third-party
+    # import numpy as np
+
     # # Local
     # from macaqueretina.project.project_utilities_module import DataSampler
 
-    # filename = "Lee_1989_JPhysiol_Fig3B.jpg"
-    # filename_full = git_repo_root_path.joinpath(r"retina/literature_data", filename)
+    # filename = "Derrington_1984b_Fig10B_magno_spatial.jpg"
+    # filename_full = git_repo_root_path.joinpath(r"retina/validation_data", filename)
+
     # # # Fig lowest and highest tick values in the image, use these as calibration points
-    # min_X, max_X, min_Y, max_Y = (1.0, 40.0, 1.0, 50.0)  # Wässle 2a
+    # # min_X, max_X, min_Y, max_Y = (0.5, 100, 1, 1000)  # DeValois 1974
+    # min_X, max_X, min_Y, max_Y = (0.1, 10, 1, 100)  # Derrington 1984b Fig10
     # ds = DataSampler(filename_full, min_X, max_X, min_Y, max_Y, logX=True, logY=True)
-    # ds.collect_and_save_points()
-    # ds.quality_control(restore=True)
+
+    # # ds.collect_and_save_points()
+    # # ds.quality_control(restore=True)
+
+    # x_data, y_data = ds.get_data_arrays()
+
+    # # parameters: K, K_c, r_c, k_s, r_s
+    # lower_bounds = [0, 0, 0, 0, 0]
+    # upper_bounds = [np.inf, np.inf, np.inf, np.inf, np.inf]
+
+    # # bounds = (lower_bounds, upper_bounds)
+    # bounds = (-np.inf, np.inf)
+
+    # PM.viz.show_data_and_fit(
+    #     PM.retina_math.enrothcugell_robson,
+    #     # PM.retina_math.temporal_contrast_sensitivity,
+    #     x_data,
+    #     y_data,
+    #     p0=(100, 10, 0.05, 5, 0.1),
+    #     xlim=(0.1, 100),
+    #     ylim=(1, 1000),
+    #     xlog=True,
+    #     ylog=True,
+    #     fit_in_log_space=False,
+    #     bounds=bounds,
+    #     savefigname=None,
+    #     # savefigname=f"Derrington_1984b_Fig10_magno_spatial_combined.eps",
+    #     # savefigname=f"{filename}.eps",
+    # )
+    # plt.show()
+    # # Built-in
+    # import sys
+
+    # sys.exit(0)  # Exit after sampling data
 
     #################################
     #################################
@@ -824,128 +884,128 @@ if __name__ == "__main__":
     """
     PM.construct_retina.build_retina_client()  # Main method for building the retina
 
-    # The following visualizations are dependent on the ConstructRetina instance.
-    # Thus, they are called after the retina is built.
+    # # The following visualizations are dependent on the ConstructRetina instance.
+    # # Thus, they are called after the retina is built.
 
-    # For DOG and VAE
-    # PM.viz.show_cones_linked_to_bipolars(n_samples=4, savefigname=None)
-    # PM.viz.show_bipolars_linked_to_gc(gc_list=[10, 17], savefigname=None)
-    # PM.viz.show_bipolars_linked_to_gc(n_samples=4, savefigname=None)
-    # PM.viz.show_cones_linked_to_gc(gc_list=[10, 17], savefigname=None)
-    # PM.viz.show_cones_linked_to_gc(n_samples=4, savefigname=None)
-    PM.viz.show_DoG_img_grid(gc_list=[0, 1, 5, 10], savefigname=None)
-    # PM.viz.show_DoG_img_grid(n_samples=8)
-    # PM.viz.show_cell_density_vs_ecc(unit_type="cone", savefigname=None)
-    # PM.viz.show_cell_density_vs_ecc(unit_type="gc", savefigname=None)
-    # PM.viz.show_cell_density_vs_ecc(unit_type="bipolar", savefigname=None)
-    # PM.viz.show_connection_histograms(savefigname=None)
+    # # For DOG and VAE
+    # # PM.viz.show_cones_linked_to_bipolars(n_samples=4, savefigname=None)
+    # # PM.viz.show_bipolars_linked_to_gc(gc_list=[10, 17], savefigname=None)
+    # # PM.viz.show_bipolars_linked_to_gc(n_samples=4, savefigname=None)
+    # # PM.viz.show_cones_linked_to_gc(gc_list=[10, 17], savefigname=None)
+    # # PM.viz.show_cones_linked_to_gc(n_samples=4, savefigname=None)
+    # # PM.viz.show_DoG_img_grid(gc_list=[0, 1, 5, 10], savefigname=None)
+    # # PM.viz.show_DoG_img_grid(n_samples=8)
+    # # PM.viz.show_cell_density_vs_ecc(unit_type="cone", savefigname=None)
+    # # PM.viz.show_cell_density_vs_ecc(unit_type="gc", savefigname=None)
+    # # PM.viz.show_cell_density_vs_ecc(unit_type="bipolar", savefigname=None)
+    # # PM.viz.show_connection_histograms(savefigname=None)
 
-    # Subunit temporal model only
-    # PM.viz.show_fan_in_out_distributions(savefigname=None)
+    # # Subunit temporal model only
+    # # PM.viz.show_fan_in_out_distributions(savefigname=None)
 
-    # PM.viz.show_experimental_data_DoG_fit(gc_list=[0, 3, 10], savefigname=None)
-    # PM.viz.show_experimental_data_DoG_fit(gc_list=[69, 134, 167, 159], savefigname=None)
-    # PM.viz.show_experimental_data_DoG_fit(n_samples=6, savefigname=None)
-    # PM.viz.show_dendrite_diam_vs_ecc(log_x=False, log_y=True, savefigname=None)
-    # PM.viz.show_retina_img(savefigname=None)
-    # PM.viz.show_cone_noise_vs_freq(savefigname=None)
-    # PM.viz.show_bipolar_nonlinearity(savefigname=None)
+    # # PM.viz.show_experimental_data_DoG_fit(gc_list=[0, 3, 10], savefigname=None)
+    # # PM.viz.show_experimental_data_DoG_fit(gc_list=[69, 134, 167, 159], savefigname=None)
+    # # PM.viz.show_experimental_data_DoG_fit(n_samples=6, savefigname=None)
+    # # PM.viz.show_dendrite_diam_vs_ecc(log_x=False, log_y=True, savefigname=None)
+    # # PM.viz.show_retina_img(savefigname=None)
+    # # PM.viz.show_cone_noise_vs_freq(savefigname=None)
+    # # PM.viz.show_bipolar_nonlinearity(savefigname=None)
 
-    # For DOG (DoG fits, temporal kernels and tonic drives)
-    # spatial and temporal filter responses, ganglion cell positions and density,
-    # mosaic layout, and dendrite diameter versus eccentricity.
-    # PM.viz.show_exp_build_process(show_all_spatial_fits=True)
+    # # For DOG (DoG fits, temporal kernels and tonic drives)
+    # # spatial and temporal filter responses, ganglion cell positions and density,
+    # # mosaic layout, and dendrite diameter versus eccentricity.
+    # # PM.viz.show_exp_build_process(show_all_spatial_fits=True)
 
-    # PM.viz.show_distribution_statistics(
-    #     retina_parameters["fit_statistics"],
-    #     distribution="spatial",
-    #     correlation_reference="ampl_s",
-    #     savefigname=None,
-    # )
+    # # PM.viz.show_distribution_statistics(
+    # #     retina_parameters["fit_statistics"],
+    # #     distribution="spatial",
+    # #     correlation_reference="ampl_s",
+    # #     savefigname=None,
+    # # )
 
-    # PM.viz.show_temporal_filter_response(n_samples=3, savefigname=None)
-    # PM.viz.show_temporal_filter_response(gc_list=[0, 1, 5, 10], savefigname=None)
+    # # PM.viz.show_temporal_filter_response(n_samples=3, savefigname=None)
+    # # PM.viz.show_temporal_filter_response(gc_list=[0, 1, 5, 10], savefigname=None)
 
-    # For VAE
-    # PM.viz.show_gen_exp_spatial_rf(ds_name="train_ds", n_samples=5, savefigname=None)
-    # PM.viz.show_latent_tsne_space()
-    # PM.viz.show_gen_spat_post_hist()
-    # PM.viz.show_latent_space_and_samples()
-    # PM.viz.show_rf_imgs(n_samples=10, savefigname="parasol_on_vae_gen_rf.eps")
-    # PM.viz.show_rf_violinplot()  # Pixel values for each unit
+    # # For VAE
+    # # PM.viz.show_gen_exp_spatial_rf(ds_name="train_ds", n_samples=5, savefigname=None)
+    # # PM.viz.show_latent_tsne_space()
+    # # PM.viz.show_gen_spat_post_hist()
+    # # PM.viz.show_latent_space_and_samples()
+    # # PM.viz.show_rf_imgs(n_samples=10, savefigname="parasol_on_vae_gen_rf.eps")
+    # # PM.viz.show_rf_violinplot()  # Pixel values for each unit
 
-    # # "train_loss", "val_loss", "mse", "ssim", "kid_mean", "kid_std"
-    # this_dep_var = "val_loss"
-    # ray_exp_name = None  # "TrainableVAE_2023-04-20_22-17-35"  # None for most recent
-    # highlight_trial = None  # "2199e_00029"  # or None
-    # PM.viz.show_ray_experiment(
-    #     ray_exp_name, this_dep_var, highlight_trial=highlight_trial
-    # )
+    # # # "train_loss", "val_loss", "mse", "ssim", "kid_mean", "kid_std"
+    # # this_dep_var = "val_loss"
+    # # ray_exp_name = None  # "TrainableVAE_2023-04-20_22-17-35"  # None for most recent
+    # # highlight_trial = None  # "2199e_00029"  # or None
+    # # PM.viz.show_ray_experiment(
+    # #     ray_exp_name, this_dep_var, highlight_trial=highlight_trial
+    # # )
 
-    # For both DOG and VAE. Estimated luminance for validation data (Schottdorf_2021_JPhysiol,
-    # van Hateren_2002_JNeurosci) is 222.2 td / (np.pi * (4 mm diam / 2)**2) = 17.7 cd/m2
-    # PM.viz.validate_gc_rf_size(savefigname="rf_size_vs_Schottdorf_data.eps")
+    # # For both DOG and VAE. Estimated luminance for validation data (Schottdorf_2021_JPhysiol,
+    # # van Hateren_2002_JNeurosci) is 222.2 td / (np.pi * (4 mm diam / 2)**2) = 17.7 cd/m2
+    # # PM.viz.validate_gc_rf_size(savefigname="rf_size_vs_Schottdorf_data.eps")
 
-    ###################################
-    ###################################
-    ###         Single Trial        ###
-    ###################################
-    ###################################
+    # ###################################
+    # ###################################
+    # ###         Single Trial        ###
+    # ###################################
+    # ###################################
 
-    ########################
-    ### Create stimulus ###
-    ########################
+    # ########################
+    # ### Create stimulus ###
+    # ########################
 
-    # Based on visual_stimulus_parameters above
+    # # Based on visual_stimulus_parameters above
     PM.stimulate.make_stimulus_video()
 
-    ####################################
-    ### Run multiple trials or units ###
-    ####################################
+    # ####################################
+    # ### Run multiple trials or units ###
+    # ####################################
 
     PM.simulate_retina.client()
 
-    ##########################################
-    ### Show single ganglion cell features ###
-    ##########################################
-    # PM.viz.show_spatiotemporal_filter_summary(savefigname=None)
+    # ##########################################
+    # ### Show single ganglion cell features ###
+    # ##########################################
+    # # PM.viz.show_spatiotemporal_filter_summary(savefigname=None)
 
-    # PM.viz.show_spatiotemporal_filter(unit_index=1, savefigname=None)
-    # PM.viz.show_temporal_kernel_frequency_response(unit_index=2, savefigname=None)
-    # PM.viz.plot_midpoint_contrast(unit_index=2, savefigname=None)
-    # PM.viz.plot_local_rms_contrast(unit_index=2, savefigname=None)
-    # PM.viz.plot_local_michelson_contrast(unit_index=2, savefigname=None)
-    # PM.viz.show_single_gc_view(unit_index=2, frame_number=300, savefigname=None)
+    # # PM.viz.show_spatiotemporal_filter(unit_index=1, savefigname=None)
+    # # PM.viz.show_temporal_kernel_frequency_response(unit_index=2, savefigname=None)
+    # # PM.viz.plot_midpoint_contrast(unit_index=2, savefigname=None)
+    # # PM.viz.plot_local_rms_contrast(unit_index=2, savefigname=None)
+    # # PM.viz.plot_local_michelson_contrast(unit_index=2, savefigname=None)
+    # # PM.viz.show_single_gc_view(unit_index=2, frame_number=300, savefigname=None)
 
-    # ################################################################################
-    # #####     Interactive plot of spike frequency on stimulus video     ############
-    # ################################################################################
+    # # ################################################################################
+    # # #####     Interactive plot of spike frequency on stimulus video     ############
+    # # ################################################################################
 
-    # video_file_name = visual_stimulus_parameters["stimulus_video_name"]
-    # response_file_name = run_parameters["gc_response_filenames"][0] + ".gz"
-    # window_length = 0.1  # seconds
-    # rate_scale = 20  # Hz, Colorscale max amplitude
-    # PM.viz_spikes_with_stimulus.client(
-    #     video_file_name, response_file_name, window_length, rate_scale
-    # )
+    # # video_file_name = visual_stimulus_parameters["stimulus_video_name"]
+    # # response_file_name = run_parameters["gc_response_filenames"][0] + ".gz"
+    # # window_length = 0.1  # seconds
+    # # rate_scale = 20  # Hz, Colorscale max amplitude
+    # # PM.viz_spikes_with_stimulus.client(
+    # #     video_file_name, response_file_name, window_length, rate_scale
+    # # )
 
-    ################################################
-    ###   Show multiple trials for single unit,  ###
-    ###   or multiple units for single trial     ###
-    ################################################
+    # ################################################
+    # ###   Show multiple trials for single unit,  ###
+    # ###   or multiple units for single trial     ###
+    # ################################################
 
-    # Based on run_parameters above
+    # # Based on run_parameters above
     PM.viz.show_all_gc_responses(savefigname=None)
-    # PM.viz.show_all_generator_potentials(savefigname=None)
-    # PM.viz.show_generator_potential_histogram(savefigname=None)
-    # PM.viz.show_cone_responses(time_range=[0.4, 1.1], savefigname=None)
-    # PM.viz.show_gc_noise(savefigname=None)
+    # # PM.viz.show_all_generator_potentials(savefigname=None)
+    # # PM.viz.show_generator_potential_histogram(savefigname=None)
+    # # PM.viz.show_cone_responses(time_range=[0.4, 1.1], savefigname=None)
+    # # PM.viz.show_gc_noise(savefigname=None)
 
     # PM.viz.show_stimulus_with_gcs(
     #     example_gc=None,  # [int,], None for all
-    #     frame_number=31,  # 31 depends on fps, and video and baseline lengths
-    #     show_rf_id=True,
-    #     savefigname=f"stimulus_with_gcs_{gc_type}_{response_type}.png",
+    #     frame_number=155,  # 31 depends on fps, and video and baseline lengths
+    #     show_rf_id=False,
+    #     savefigname=None,
     # )
 
     ##########################################
@@ -963,7 +1023,6 @@ if __name__ == "__main__":
 
     # Get uniformity data and exit
     # See Gauthier_2009_PLoSBiol for details
-    # TODO: MAKE UNITY MAX EXPERIMENT, SET CENTER MASK TH TO UNITY MAX
     # PM.simulate_retina.client(unity=True)
     # PM.viz.show_unity(savefigname=None)
 
@@ -983,77 +1042,97 @@ if __name__ == "__main__":
     # # Note that tuple values from visual_stimulus_parameters are captured for varying each tuple value separately.
 
     # # from visual_stimulus_parameters, safe up to two variables
-    # exp_variables = ["temporal_frequency"]
+    # exp_variables = ["contrast"]
+    # # exp_variables = ["contrast", "spatial_frequency"]
+    # # exp_variables = ["contrast", "temporal_frequency"]
     # experiment_parameters = {
     #     "exp_variables": exp_variables,
-    #     # two vals below for each exp_variable, even is it is not changing
-    #     # "min_max_values": [[5, 5]],
-    #     "min_max_values": [[1, 32]],
-    #     # "min_max_values": [[1, 32], [0.015, 0.5]],
-    #     "n_steps": [2],  # [6 ,10]
-    #     # "n_steps": [16],  # [6 ,10]
+    #     # two vals below for each exp_variable, even if it is not changing
+    #     "min_max_values": [[0.01, 1.0]],  # contrast
+    #     # "min_max_values": [[0.0, 0.6], [0.1, 40]],  # spatial_frequency
+    #     # "min_max_values": [[0.0, 0.6], [0.5, 60]],  # temporal_frequency
+    #     "n_steps": [13],  # contrast
+    #     # "n_steps": [10, 16],  # [6 ,10]
     #     "logarithmic": [True],
-    #     # "logarithmic": [True, True],
+    #     # "logarithmic": [False, True],
     #     "n_sweeps": 1,
     #     # "distributions": {"gaussian": {"sweeps": 10, "mean": [-30, 30], "sd": [5, 5]}},
     #     "distributions": {"uniform": None},
     # }
 
-    # # # # N trials or N units must be 1, and the other > 1. This is set above in run_parameters.
+    # # N trials or N units must be 1, and the other > 1. This is set above in run_parameters.
     # filename = PM.experiment.build_and_run(
     #     experiment_parameters, build_without_run=False, show_histogram=False
     # )
-    # filename = "exp_metadata_orientation_spatial_frequency_edd770296d0e.csv"
+    # # filename = "exp_metadata_orientation_spatial_frequency_edd770296d0e.csv"
 
-    # # #########################
-    # # ## Analyze Experiment ###
-    # # #########################
+    # #########################
+    # ## Analyze Experiment ###
+    # #########################
 
     # my_analysis_options = {
     #     "exp_variables": exp_variables,
     #     "t_start_ana": 0.5,
     #     "t_end_ana": 6.5,
     # }
+    # PM.ana.analyze_experiment(filename, my_analysis_options)
 
-    # # PM.ana.analyze_experiment(filename, my_analysis_options)
     # # PM.ana.unit_correlation(
     # #     filename, my_analysis_options, gc_type, response_type, gc_units=None
     # # )
-    # PM.ana.relative_gain(filename, my_analysis_options)
+    # # PM.ana.relative_gain(filename, my_analysis_options)
     # # PM.ana.response_vs_background(filename, my_analysis_options)
 
-    # # ############################
-    # # ### Visualize Experiment ###
-    # # ############################
-    # PM.viz.spike_raster_response(filename, sweeps_to_show=[0], savefigname="exp.png")
-    # # # PM.viz.show_relative_gain(filename, exp_variables, savefigname=None)
-    # # # PM.viz.show_response_vs_background_experiment(unit="cd/m2", savefigname=None)
+    # ############################
+    # ### Visualize Experiment ###
+    # ############################
+    # # PM.viz.spike_raster_response(filename, sweeps_to_show=[0], savefigname=None)
+    # # PM.viz.show_relative_gain(filename, exp_variables, savefigname=None)
+    # # PM.viz.show_response_vs_background_experiment(unit="cd/m2", savefigname=None)
 
-    # # # PM.viz.show_unit_correlation(
-    # # #     filename, exp_variables, time_window=[-0.2, 0.2], savefigname=None
-    # # # )
+    # # PM.viz.show_unit_correlation(
+    # #     filename, exp_variables, time_window=[-0.2, 0.2], savefigname=None
+    # # )
 
-    # PM.viz.F1F2_popul_response(
+    # # PM.viz.F1F2_popul_response(
+    # #     filename,
+    # #     exp_variables,
+    # #     xlog=False,
+    # #     savefigname=f"F1_popul_{output_folder}.eps",
+    # # )
+
+    # # # Uses seaborn lineplot, which by default shows 95% ci error.
+    # # PM.viz.contrast_sensitivity(
+    # #     filename,
+    # #     exp_variables,
+    # #     xlog=True,
+    # #     ylog=True,
+    # #     xlim=(0.1, 100),
+    # #     ylim=(1.0, 100),
+    # #     savefigname=None,
+    # #     # savefigname=f"{output_folder}_sf_wide_contrast_sensitivity.eps",
+    # # )
+
+    # PM.viz.F1F2_unit_response(
     #     filename,
     #     exp_variables,
-    #     xlog=True,
-    #     F1_only=False,
-    #     savefigname=None,
+    #     xlog=False,
+    #     ylog=False,
+    #     savefigname=f"F1_unit_{output_folder}.eps",
     # )
-    # # # PM.viz.F1F2_unit_response(filename, exp_variables, xlog=True, savefigname=None)
-    # # # PM.viz.F1F2_unit_response(
-    # # #     filename, exp_variables, xlog=True, hue="temporal_frequency", savefigname=None
-    # # # )
-    # # ### PM.viz.ptp_response(filename, exp_variables, x_of_interest=None, savefigname=None)
-    # # ### PM.viz.fr_response(filename, exp_variables, xlog=True, savefigname=None)
-    # # # PM.viz.tf_vs_fr_cg(
-    # # #     filename,
-    # # #     exp_variables,
-    # # #     n_contrasts=10,
-    # # #     xlog=True,
-    # # #     ylog=False,
-    # # #     savefigname=None,
-    # # # )
+    # # PM.viz.F1F2_unit_response(
+    # #     filename, exp_variables, xlog=True, hue="temporal_frequency", savefigname=None
+    # # )
+    # ### PM.viz.ptp_response(filename, exp_variables, x_of_interest=None, savefigname=None)
+    # ### PM.viz.fr_response(filename, exp_variables, xlog=True, savefigname=None)
+    # # PM.viz.tf_vs_fr_cg(
+    # #     filename,
+    # #     exp_variables,
+    # #     n_contrasts=10,
+    # #     xlog=True,
+    # #     ylog=False,
+    # #     savefigname=None,
+    # # )
 
     """
     ### Housekeeping ###. Do not comment out.
