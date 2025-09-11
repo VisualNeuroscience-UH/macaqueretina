@@ -5157,7 +5157,7 @@ class ConstructRetina(Printable):
         """Creates a hash from retina_parameters to be used when
         loading/saving the retina file, and changes parameters within
         context."""
-        parameters_for_hash_list = [
+        main_retina_parameters_list = [
             "gc_type",
             "response_type",
             "spatial_model_type",
@@ -5173,13 +5173,13 @@ class ConstructRetina(Printable):
             "ray_tune_trial_id",
             "signal_gain",
         ]
-        parameters_for_hash = {
+        main_retina_parameters = {
             key: value
             for key, value in self.context.retina_parameters.items()
-            if key in parameters_for_hash_list
+            if key in main_retina_parameters_list
         }
 
-        hash = self.context.generate_hash(parameters_for_hash)
+        hash = self.context.generate_hash(main_retina_parameters)
         self.context.retina_parameters["retina_parameters_hash"] = hash
 
         hashstr = self.context.retina_parameters["retina_parameters_hash"]
@@ -5218,7 +5218,7 @@ class ConstructRetina(Printable):
 
         self.data_io.save_dict_to_yaml(
             yaml_filename_full,
-            self.context.retina_parameters,
+            main_retina_parameters,
             overwrite=False,
         )
 
