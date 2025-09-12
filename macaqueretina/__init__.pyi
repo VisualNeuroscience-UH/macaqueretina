@@ -9,6 +9,13 @@ from .project.project_manager_module import ProjectManager
 from .retina.retina_math_module import RetinaMath
 
 config: ConfigManager
+"""Access and modify configuration values.
+
+Example:
+
+>>> mr.config.something = 12 # Set "something" to 12
+>>> dir(mr.config) # List all attributes + parameters
+"""
 
 PM: ProjectManager
 
