@@ -2,6 +2,9 @@
 Macaque retina simulator.
 """
 
+# Built-in
+from typing import Callable
+
 # Local
 from .project.project_conf_module import load_parameters as _lp
 from .project.project_manager_module import ProjectManager as _PM
@@ -11,9 +14,9 @@ config = _lp()
 
 PM: _PM = _PM(config)
 
-construct_retina = PM.construct_retina
-stimulate = PM.stimulate
-simulate_retina = PM.simulate_retina
+construct_retina: Callable = PM.construct_retina.build_retina_client
+make_stimulus: Callable = PM.stimulate.make_stimulus_video
+simulate_retina: Callable = PM.simulate_retina
 viz = PM.viz
 retina_math: RetinaMath = PM.retina_math
 
