@@ -162,6 +162,12 @@ class NestedConfig:
         """Allow dictionary-style item assignment."""
         self._config[key] = value
 
+    def __dir__(self) -> list[str]:
+        """Return list of default attributes plus available keys for autocompletion."""
+        default_attrs = list(object.__dir__(self))
+        config_keys = list(self._config.keys())
+        return sorted(set(default_attrs + config_keys))
+
     def get(self, key: str, default=None) -> Any:
         """Backwards compatibility with dictionary get() method."""
         try:
@@ -250,6 +256,12 @@ class ConfigManager:
 
         # Raise an error when requesting a non-existent key
         raise KeyError(f"Configuration key not found: {key}")
+
+    def __dir__(self) -> list[str]:
+        """Return list of default attributes plus available keys for autocompletion."""
+        default_attrs = list(object.__dir__(self))
+        config_keys = list(self._config.keys())
+        return sorted(set(default_attrs + config_keys))
 
     @property
     def config(self) -> dict[str, Any]:
