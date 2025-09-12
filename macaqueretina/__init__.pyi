@@ -7,6 +7,8 @@ from typing import Any
 from .data_io.config_io import ConfigManager
 from .project.project_manager_module import ProjectManager
 from .retina.retina_math_module import RetinaMath
+from .parameters.param_validation import RetinaParameters
+from .viz.viz_module import Viz
 
 config: ConfigManager
 """Access and modify configuration values.
@@ -16,6 +18,12 @@ Example:
 >>> mr.config.something = 12 # Set "something" to 12
 >>> dir(mr.config) # List all attributes + parameters
 """
+
+class _Config:
+    retina_parameters: RetinaParameters
+    """Retina parameters"""
+
+config: _Config
 
 PM: ProjectManager
 
@@ -77,5 +85,11 @@ def simulate_retina():
     ...
 
 retina_math: RetinaMath
+
+class _Viz:
+    pass
+
+viz: _Viz
+"""Visualize"""
 
 __all__: list[str]
