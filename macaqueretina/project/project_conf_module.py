@@ -31,7 +31,8 @@ def _validation_switch(base: Path) -> Callable | None:
     match len(validation_files):
         case 0:
             print(
-                f"No validation file provided in {base}. Proceeding without parameter validation."
+                f"No validation file provided in {base}. "
+                f"Proceeding without parameter validation."
             )
             return None
         case 1:
@@ -60,7 +61,7 @@ def load_parameters() -> "ConfigManager":
     base: Path = git_repo_root_path.joinpath("parameters/")
     yaml_files = list(base.glob("*.yaml"))
 
-    validate_params: Callable = _validation_switch(base)
+    validate_params: Callable | None = _validation_switch(base)
 
     config: ConfigManager = load_yaml(yaml_files)
 
