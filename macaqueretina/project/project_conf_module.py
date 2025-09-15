@@ -19,24 +19,34 @@ start_time = time.time()
 warnings.simplefilter("ignore")
 
 
-def _validation_switch(base: Path):
+def _validation_switch(base: Path) -> Callable | None:
     """
     Perform parameter validation if a .py file with 'validation' in its name
     is found in the parameters/ subfolder.
+
+    Returns:
+        Callable or None: validation function (validate_params) if found, None otherwise
     """
-    validation_file = list(base.glob("*validation*.py"))
-    match len(validation_file):
+    validation_files = list(base.glob("*validation*.py"))
+    match len(validation_files):
         case 0:
             print(
                 f"No validation file provided in {base}. Proceeding without parameter validation."
             )
+            return None
         case 1:
-            from macaqueretina.parameters.param_validation import validate_params
+            try:
+                from macaqueretina.parameters.param_validation import validate_params
 
-            return validate_params
+                return validate_params
+            except ImportError as e:
+                print(f"Could not import validation file: {e}")
+                return None
         case n:
             raise ValueError(
-                f"Expected at most 1 validation file in {base}, but found {n} files with 'validation' in their name."
+                f"Expected at most 1 validation file in {base}, but found {n} files"
+                f" with 'validation' in their name:"
+                f"{[file.name for file in validation_files]}"
             )
 
 
