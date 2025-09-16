@@ -4826,9 +4826,9 @@ class ConstructRetina(Printable):
         ] in ["VAE"]:
             self.training_mode = retina_parameters["training_mode"]
 
-        self.spatial_rfs_file_filename = retina_parameters["spatial_rfs_file"]
-        self.ret_filename = retina_parameters["ret_file"]
-        self.mosaic_filename = retina_parameters["mosaic_file"]
+        self.spatial_rfs_file_filename = []
+        self.ret_filename = []
+        self.mosaic_filename = []
 
     @property
     def context(self):
@@ -5254,6 +5254,109 @@ class ConstructRetina(Printable):
 
         return experimental_archive
 
+    def _get_parameters_for_build(self):
+        """Creates a hash from retina_parameters to be used when
+        loading/saving the retina file, and changes parameters within
+        context."""
+        main_retina_parameters_list = [
+            "gc_type",
+            "response_type",
+            "spatial_model_type",
+            "temporal_model_type",
+            "dog_model_type",
+            "ecc_limits_deg",
+            "pol_limits_deg",
+            "model_density",
+            "retina_center",
+            "force_retina_build",
+            "training_mode",
+            "model_file_name",
+            "ray_tune_trial_id",
+            "signal_gain",
+        ]
+        main_retina_parameters = {
+            key: value
+            for key, value in self.context.retina_parameters.items()
+            if key in main_retina_parameters_list
+        }
+
+        hash = self.context.generate_hash(main_retina_parameters)
+        self.context.retina_parameters["retina_parameters_hash"] = hash
+
+        hashstr = self.context.retina_parameters["retina_parameters_hash"]
+        gc_type = self.context.retina_parameters["gc_type"]
+        response_type = self.context.retina_parameters["response_type"]
+
+        self.context.retina_parameters["mosaic_filename"] = (
+            gc_type + "_" + response_type + "_" + hashstr + "_mosaic.csv"
+        )
+        self.context.retina_parameters["spatial_rfs_file"] = (
+            gc_type + "_" + response_type + "_" + hashstr + "_spatial_rfs.npz"
+        )
+        self.context.retina_parameters["ret_file"] = (
+            gc_type + "_" + response_type + "_" + hashstr + "_ret.npz"
+        )
+        self.context.retina_parameters["retina_metadata_file"] = (
+            gc_type + "_" + response_type + "_" + hashstr + "_metadata.yaml"
+        )
+
+        self.mosaic_filename = self.context.retina_parameters["mosaic_filename"]
+        self.context.retina_parameters["mosaic_file"] = self.context.retina_parameters[
+            "mosaic_filename"
+        ]
+        self.spatial_rfs_file_filename = self.context.retina_parameters[
+            "spatial_rfs_file"
+        ]
+        self.ret_filename = self.context.retina_parameters["ret_file"]
+
+        yaml_filename = self.context.retina_parameters["retina_metadata_file"]
+        yaml_filename_full = self.context.output_folder.joinpath(yaml_filename)
+
+        # yaml does not support complex numbers, so we convert to string
+        self.context.retina_parameters["retina_center"] = str(
+            self.context.retina_parameters["retina_center"]
+        )
+
+        self.data_io.save_dict_to_yaml(
+            yaml_filename_full,
+            main_retina_parameters,
+            overwrite=False,
+        )
+
+        # And then we change it back to complex number
+        self.context.retina_parameters["retina_center"] = complex(
+            self.context.retina_parameters["retina_center"]
+        )
+
+        # Add all retina parameters to retina_parameters
+        if hasattr(self.context, "retina_parameters_append"):
+            self.context.retina_parameters.update(self.context.retina_parameters_append)
+            del self.context.retina_parameters_append
+
+        # Calculate cone noise hash
+        cone_noise_dict = self.context.retina_parameters["cone_general_parameters"]
+
+        retina_limits = {
+            key: self.context.retina_parameters[key]
+            for key in ["ecc_limits_deg", "pol_limits_deg"]
+        }
+        cone_noise_dict.update(retina_limits)
+
+        stim_duration = {
+            key: self.context.visual_stimulus_parameters[key]
+            for key in [
+                "fps",
+                "duration_seconds",
+                "baseline_start_seconds",
+                "baseline_end_seconds",
+            ]
+        }
+
+        cone_noise_dict.update(stim_duration)
+        self.context.retina_parameters["cone_noise_hash"] = self.context.generate_hash(
+            cone_noise_dict, n_hashes=1
+        )
+
     def build_retina_client(self) -> None:
         """
         Build the retina using the builder pattern.
@@ -5261,6 +5364,9 @@ class ConstructRetina(Printable):
         For each call, a new retina is built with the parameters in the `retina_parameters` dictionary.
         After the build, the retina is saved to the output directory.
         """
+
+        self._get_parameters_for_build()
+
         retina_parameters = self.context.retina_parameters
 
         if self._build_exists(retina_parameters):

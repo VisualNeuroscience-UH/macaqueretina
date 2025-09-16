@@ -106,15 +106,13 @@ class Experiment(VideoBaseClass):
     """
 
     def __init__(
-        self, context, data_io, stimulate, simulate_retina, get_cone_noise_hash
-    ):
+        self, context, data_io, stimulate, simulate_retina):
         super().__init__()
 
         self._context = context
         self._data_io = data_io
         self._stimulate = stimulate
         self._simulate_retina = simulate_retina
-        self.get_cone_noise_hash = get_cone_noise_hash
 
     @property
     def context(self):

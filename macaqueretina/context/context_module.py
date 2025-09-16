@@ -18,7 +18,6 @@ class Context:
     def __init__(self, all_properties) -> None:
 
         self.validated_properties = self._validate_properties(all_properties)
-
         for attr, val in self.validated_properties.items():
             setattr(self, attr, val)
 

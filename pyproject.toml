@@ -51,6 +51,8 @@ isort = "*"
 optuna = "*"
 pytest = "*"
 ray = {extras = ["tune"], version = "*"}
+pydantic = "^2.11.7"
+typer = "^0.16.1"
 
 [tool.poetry.scripts]
 run_macaqueretina = "project.project_conf_module:main"

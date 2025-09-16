@@ -1,0 +1,230 @@
+vae_train_parameters:
+  # Fixed values for both single training and ray tune runs
+  epochs: 500 # Number of training epochs
+  lr_step_size: 20 # Learning rate decay step size (in epochs)
+  lr_gamma: 0.9 # Learning rate decay (multiplier for learning rate)
+  # how many times to get the data, applied only if augmentation_dict is not None
+  resolution_hw: 13 # Both x and y. Images will be sampled to this space.
+  # For ray tune only
+  # If grid_search is True, time_budget and grace_period are
+  grid_search: True  # False for tune by Optuna, True for grid search
+  time_budget: 345600  # in seconds
+  grace_period: 50  # epochs. ASHA stops earliest at grace period.
+  # Set common VAE model parameters
+  latent_dim: 32  # 32  # 2**1 - 2**6, use powers of 2 btw 2 and 128
+  channels: 16
+  # lr will be reduced by scheduler down to lr * gamma ** (epochs/step_size)
+  lr: 0.0005
+  # self._show_lr_decay(self.lr, self.lr_gamma, self.lr_step_size, self.epochs)
+  batch_size: 256  # None will take the batch size from test_split size.
+  test_split: 0.2  # Split data for validation and testing (both will take this fraction of data)
+  kernel_stride: "k7s1"  # "k3s1", "k3s2" # "k5s2" # "k5s1"
+  conv_layers: 2  # 1 - 5 for s1, 1 - 3 for k3s2 and k5s2
+  batch_norm: True
+  latent_distribution: "uniform"  # "normal" or "uniform"
+  # Augment training and validation data.
+  augmentation_dict: 
+    rotation: 0  # rotation in degrees
+    translation: [0, 0]  # fraction of image, in (x, y) -directions
+    noise: 0  # noise float in [0, 1] (noise is added to the image)
+    flip: 0.5  # flip probability, both horizontal and vertical
+    data_multiplier: 4  # how many times to get the data w/ augmentation
+
+
+# Cone noise gain induces ~25Hz spontaneous firing rates for the ON parasol and
+# midget gc units, and ~5Hz for the OFF parasol and midget units. (Raunak Sinha,
+# personal communication).
+noise_gain_default:
+  "on": 
+    parasol: 16.3
+    midget: 5.4
+  "off":
+    parasol: 3.8
+    midget: 1.5
+
+
+# Options linear, quadratic, cubic, powerlaw.
+# For midget < 20 deg, use quadratic; for parasol use powerlaw
+dd_regr_model:
+  parasol: "powerlaw"
+  midget: "quadratic"
+
+retina_parameters_append:
+  noise_type: "shared"  # "shared" or "independent"
+  noise_gain: null # # 0 for no noise, null for choosing noise level from the noise_gain_default values above
+  fixed_mask_threshold: 0.1  # 0.1,  # Applies to rf volume normalization. This value is also the only surround mask threshold.
+  center_mask_threshold: 0.1  # 0.1,  Limits rf center extent to values above this proportion of the peak values after volume normalization.
+  apricot_data_noise_mask: 0.1  # 0.1,  # 0.1 for +-10% from abs max removed, 0 for no noise removal. Applies to DOG spatial model statistics.
+  fit_statistics: "multivariate"  # "univariate" or "multivariate" Applies only to DOG spatial and fixed temporal model statistics.
+  ecc_limit_for_dd_fit: 20  # 20,  # degrees, math.inf for no limit
+
+dog_metadata_parameters:
+  data_microm_per_pix: 60
+  data_spatialfilter_height: 13
+  data_spatialfilter_width: 13
+  data_fps: 30
+  data_temporalfilter_samples: 15
+
+# Proportion from all ganglion cells.
+proportion_of_parasol_gc_type: 0.08
+proportion_of_midget_gc_type: 0.64
+
+# Proportion of ON and OFF response type units, assuming ON rf diameter = 1.2 x OFF rf diameter, and
+# coverage factor =1; Chichilnisky_2002_JNeurosci
+proportion_of_ON_response_type: 0.40
+proportion_of_OFF_response_type: 0.60
+
+# Perry_1985_VisRes; 223 um/deg in the fovea, 169 um/deg at 90 deg ecc.
+# With this relationship one mm retina is ~4.55 deg visual field.
+# Constant (linear) approximation of quadratic formula from
+# Goodchild_1996_JCompNeurol 0.038 * x**2 + 4.21 * x + 0.1
+# gives 229 um/degree. The R2 (constant vs quadratic) is
+# > 0.999 for ecc 0.1 - 4 mm, and > 0.97 for ecc 0.1 - 20 mm.
+deg_per_mm: 4.37
+
+optical_aberration: 0.033  # deg , 2 arcmin, Navarro 1993 JOSAA 
+
+# Parameters for cortical - visual coordinate transformation.
+# a for macaques between 0.3 - 0.9, Schwartz 1994 citing Wilson et al 1990 "The perception of form"
+# in Visual perception: The neurophysiological foundations, Academic Press
+# k has been pretty open.
+# However, if we relate 1/M = (a/k) + (1/k) * E and M = (1/0.077) + (1/(0.082 * E)), we get
+# Andrew James, personal communication: k=1/.082, a=.077/.082
+visual2cortical_params:
+  a: 0.94 # 0.077 / 0.082,  # ~0.94
+  k: 12.2 # 1 / 0.082,  # ~12.2
+
+
+# Compressing cone nonlinearity. Parameters are manually scaled to give dynamic cone ouput.
+# Equation, data from Baylor_1987_JPhysiol
+# Cone noise parameters from Angueyra_2013_NatNeurosci and Ala-laurila_2011_NatNeurosci
+
+cone_general_parameters:
+  rm: 25  # pA
+  k: 2.77e-4  # at 500 nm
+  sensitivity_min: 5e2
+  sensitivity_max: 2e4
+  cone2gc_midget: 9  # um, 1 SD of Gaussian
+  cone2gc_parasol: 27  # um 27
+  cone2gc_cutoff_SD: 1  # 3 SD is 99.7% of Gaussian
+  cone2bipo_cutoff_SD: 1
+  cone_noise_wc: [14, 160]  # lorenzian freqs, Angueyra_2013_NatNeurosci Fig1
+
+# Parameters from Angueyra_2022_JNeurosci, model according to Clark_2013_PLoSComputBiol
+# Light intensity photons/microm^2/second
+cone_signal_parameters:
+  unit: "pA"
+  A_pupil: 9.0  # * b2u.mm2,  # mm^2
+  lambda_nm: 555  # nm 555 monkey Clark models: DN 650
+  input_gain: 1.0  # unitless
+  r_dark: -136 # dark current 
+  max_response: 116.8  # "pA", measured for a strong flash
+  # Angueyra: unitless; Clark: mV * microm^2 * ms / photon
+  alpha: 19.4 # pA
+  beta: 0.36 # ms
+  gamma: 0.448 # unitless
+  tau_y: 4.49 # ms
+  n_y: 4.33  # unitless
+  tau_z: 166 # ms
+  n_z: 1.0  # unitless
+  tau_r: 4.78 # ms
+  filter_limit_time: 3.0 # seconds
+
+
+bipolar_general_parameters:
+  bipo2gc_div: 6  # Divide GC dendritic diameter to get bipolar/subunit SD
+  bipo2gc_cutoff_SD: 2  # Multiplier for above value
+  cone2bipo_cen_sd: 10  # um, Turner_2018_eLife
+  cone2bipo_sur_sd: 150
+  bipo_sub_sur2cen: 0.9  # Surround / Center amplitude ratio.
+
+# Recovery function from Berry_1998_JNeurosci, Uzzell_2004_JNeurophysiol
+# abs and rel refractory estimated from Uzzell_2004_JNeurophysiol,
+# Fig 7B, bottom row, inset. Parasol ON unit.
+# Uzzell_2004_JNeurophysiol instataneous firing rates for binary noise go up to 320 Hz
+refractory_parameters:
+  abs_refractory: 1
+  rel_refractory: 3
+  p_exp: 4
+  clip_start: 0
+  clip_end: 100
+
+# If you see patterning, reduce unit_distance_threshold
+# If you see clustering, increase increase diffusion_speed, unit_repulsion_stregth,
+# or carefully unit_distance_threshold
+# Algorithms are
+# Voronoi-based Layout with Loyd's Relaxation
+# "voronoi" (v) : better for big retinas, fast
+# Force Based Layout Algorithm with Boundary Repulsion
+# "force" (f) : better for small retinas, slow with cpu -- fast with cuda
+# None : initial random placement. Nonvarying with fixed seed above.
+# Good for testing, speed and memory.
+gc_placement_parameters:
+  algorithm: "force"  # "voronoi" or "force" or None
+  n_iterations: 30  # v 20, f 5000
+  change_rate: 0.0005  # f 0.001, v 0.5
+  unit_repulsion_stregth: 10  # 10 f only
+  unit_distance_threshold: 0.2  # f only, adjusted with ecc
+  diffusion_speed: 0.001  # f only, adjusted with ecc
+  border_repulsion_stength: 0.2  # f only
+  border_distance_threshold: 0.001  # f only
+  show_placing_progress: False  # True False
+  show_skip_steps: 1  # v 1, f 100
+
+cone_placement_parameters:
+  algorithm: "force"  # "voronoi" or "force" or None
+  n_iterations: 15  # v 20, f 300
+  change_rate: 0.0005  # f 0.0005, v 0.5
+  unit_repulsion_stregth: 2  # 10 f only
+  unit_distance_threshold: 0.25  # f only, adjusted with ecc
+  diffusion_speed: 0.002  # f only, adjusted with ecc
+  border_repulsion_stength: 5  # f only
+  border_distance_threshold: 0.0001  # f only
+  show_placing_progress: False  # True False
+  show_skip_steps: 1  # v 1, f 100
+
+
+bipolar_placement_parameters:
+  algorithm: "force"  # "voronoi" or "force" or None
+  n_iterations: 15  # v 20, f 300
+  change_rate: 0.0005  # f 0.0005, v 0.5
+  unit_repulsion_stregth: 2  # 10 f only
+  unit_distance_threshold: 0.2  # f only, adjusted with ecc
+  diffusion_speed: 0.005  # f only, adjusted with ecc
+  border_repulsion_stength: 5  # f only
+  border_distance_threshold: 0.0001  # f only
+  show_placing_progress: False  # True False
+  show_skip_steps: 5
+
+
+n_iterations:
+  parasol: 400
+  midget: 40
+
+
+# For VAE, this is enough to have good distribution between units.
+receptive_field_repulsion_parameters:
+  change_rate: 0.005
+  cooling_rate: 0.999  # each iteration change_rate = change_rate * cooling_rate
+  border_repulsion_stength: 5
+  show_repulsion_progress: False  # True False
+  show_only_unit: null  # null or int for unit idx
+  show_skip_steps: 5
+  savefigname: null  # f"Layout_{gc_type}_{response_type}_FIT.eps",  # # string w/ type suffix or null, null for no save
+
+
+# For subunit model we assume constant bipolar to cone ratio as function of ecc.
+# Boycott_1991_EurJNeurosci Table 1 has bipolar densities at 6.5 mm ecc.
+# Inputs to ganglion cells:
+# -OFF parasol: Diffuse Bipolars, DB2 and DB3 (Jacoby_2000_JCompNeurol, )
+# -ON parasol:  Diffuse Bipolars, DB4 and DB5 (Marshak_2002_VisNeurosci, Boycott_1991_EurJNeurosci)
+# -OFF midget: Flat Midget Bipolars, FMB (Wässle_1994_VisRes, Freeman_2015_eLife)
+# -ON midget: Invaginating Midget Bipolars, IMB (Wässle_1994_VisRes)
+
+bipolar2gc_dict:
+  midget: 
+    "on": ["IMB"] 
+    "off": ["FMB"]
+  parasol: 
+    "on": ["DB4", "DB5"]
+    "off": ["DB2", "DB3"]

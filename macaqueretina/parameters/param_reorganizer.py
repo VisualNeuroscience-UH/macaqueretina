@@ -1,0 +1,119 @@
+"""
+Readjust parameter structure in the configuration.
+Since YAML files were introduced, the configuration object carries a slight
+mismatch between the dict structure coming from the YAML files and the
+previous structure that was achieved with the project_conf_module. This is
+temporarily addressed with this file. Solutions might be:
+- Refactor the codebase to accept the new ConfigManager object (recommended,
+  can also refactor to use attribute-like access)
+- Refactor the YAML files to match the previous structure (not recommended
+  as it would make the YAML files more complex)
+"""
+
+# Built-in
+from typing import Any
+
+
+class ParamReorganizer:
+    """Here parameters are reorganized after validation, to reflect the orignal
+    dict nesting structure before the introduction of the YAML files."""
+
+    def __init__(self) -> None:
+        pass
+
+    def reorganize(self, validated_config: dict[str, Any]) -> dict[str, Any]:
+        self.config = validated_config.copy()
+
+        # TODO: check if gc_response_filenames must be left as an iterator
+
+        self._update_retina_parameters_append()
+        self._create_literature_data_files()
+        self._pop_extra_keys()
+
+        return self.config
+
+    def _update_retina_parameters_append(self) -> None:
+        target = "retina_parameters_append"
+        key_list = [
+            "proportion_of_parasol_gc_type",
+            "proportion_of_midget_gc_type",
+            "proportion_of_ON_response_type",
+            "proportion_of_OFF_response_type",
+            "deg_per_mm",
+            "optical_aberration",
+            "cone_general_parameters",
+            "cone_signal_parameters",
+            "bipolar_general_parameters",
+            "refractory_parameters",
+            "gc_placement_parameters",
+            "cone_placement_parameters",
+            "bipolar_placement_parameters",
+            "receptive_field_repulsion_parameters",
+            "visual2cortical_params",
+            "bipolar2gc_dict",
+            "vae_train_parameters",
+        ]
+        for key in key_list:
+            self._move_and_remove_key(key, target)
+
+    def _create_literature_data_files(self) -> None:
+        target = "literature_data_files"
+        key_list = [
+            "gc_density_1_datafile",
+            "gc_density_2_datafile",
+            "gc_density_control_datafile",
+            "dendr_diam1_datafile",
+            "dendr_diam2_datafile",
+            "dendr_diam3_datafile",
+            "temporal_BK_model_datafile",
+            "spatial_DoG_datafile",
+            "cone_density1_datafile",
+            "cone_density2_datafile",
+            "cone_noise_datafile",
+            "cone_response_datafile",
+            "bipolar_table_datafile",
+            "parasol_on_RI_values_datafile",
+            "parasol_off_RI_values_datafile",
+            "temporal_pattern_datafile",
+            "dendr_diam_units",
+            "gc_density_1_scaling_data_and_function",
+        ]
+
+        for key in key_list:
+            self._move_and_remove_key(key, target)
+
+        keys_to_rename = [
+            key for key in self.config[target].keys() if key.endswith("_datafile")
+        ]
+        for old_key in keys_to_rename:
+            new_key = old_key.replace("_datafile", "_path")
+            self.config[target][new_key] = self.config[target].pop(old_key)
+
+        literature_folder = self.config.get("literature_data_folder")
+        for key, value in self.config[target].items():
+            if key.endswith("_path"):
+                self.config[target][key] = f"{literature_folder}/{value}"
+
+    def _move_and_remove_key(self, key: str, target: str) -> None:
+        if target not in self.config.keys():
+            self.config.update({target: {}})
+        self.config[target].update({key: self.config[key]})
+        self.config.pop(key)
+
+    def _pop_extra_keys(self) -> None:
+        self.config.pop("dd_regr_model")
+        self.config.pop("n_files")
+        self.config.pop("noise_gain_default")
+        self.config.pop("n_iterations")
+        self.config.pop("dendr_diam1_datafile_parasol")
+        self.config.pop("dendr_diam2_datafile_parasol")
+        self.config.pop("dendr_diam3_datafile_parasol")
+        self.config.pop("temporal_BK_model_datafile_parasol")
+        self.config.pop("spatial_DoG_datafile_parasol")
+        self.config.pop("dendr_diam1_datafile_midget")
+        self.config.pop("dendr_diam2_datafile_midget")
+        self.config.pop("dendr_diam3_datafile_midget")
+        self.config.pop("temporal_BK_model_datafile_midget")
+        self.config.pop("spatial_DoG_datafile_midget")
+        self.config.pop("literature_data_folder")
+        self.config.pop("model_root_path")

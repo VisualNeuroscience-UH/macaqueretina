@@ -4,7 +4,8 @@ import os
 import pickle
 import types
 import zlib
-from functools import lru_cache
+
+# from functools import lru_cache
 from pathlib import Path
 
 # Third-party
@@ -207,7 +208,7 @@ class DataIO:
 
         return data_fullpath_filename
 
-    @lru_cache(maxsize=128)
+    # @lru_cache(maxsize=128)
     def get_data(
         self,
         filename=None,
