@@ -3,12 +3,15 @@ Macaque retina simulator.
 """
 
 # Built-in
-from typing import Callable
+from typing import Callable, TYPE_CHECKING
 
 # Local
 from .project.project_conf_module import load_parameters as _lp
 from .project.project_manager_module import ProjectManager as _PM
-from .retina.retina_math_module import RetinaMath
+
+if TYPE_CHECKING:
+    from .retina.retina_math_module import RetinaMath
+    from .viz.viz_module import Viz
 
 config = _lp()
 
@@ -16,11 +19,18 @@ PM: _PM = _PM(config)
 
 construct_retina: Callable = PM.construct_retina.build_retina_client
 make_stimulus: Callable = PM.stimulate.make_stimulus_video
-simulate_retina: Callable = PM.simulate_retina
-viz = PM.viz
+simulate_retina: Callable = PM.simulate_retina.client
+viz: Viz = PM.viz
 retina_math: RetinaMath = PM.retina_math
 
-__all__ = ["construct_retina", "stimulate", "simulate_retina", "viz", "retina_math"]
+__all__ = [
+    "config",
+    "construct_retina",
+    "stimulate",
+    "simulate_retina",
+    "viz",
+    "retina_math",
+]
 
 del (_lp, _PM)
 
