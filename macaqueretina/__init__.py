@@ -3,15 +3,13 @@ Macaque retina simulator.
 """
 
 # Built-in
-from typing import Callable, TYPE_CHECKING
+from typing import Callable
 
 # Local
 from .project.project_conf_module import load_parameters as _lp
 from .project.project_manager_module import ProjectManager as _PM
-
-if TYPE_CHECKING:
-    from .retina.retina_math_module import RetinaMath
-    from .viz.viz_module import Viz
+from .retina.retina_math_module import RetinaMath
+from .viz.viz_module import Viz
 
 config = _lp()
 
