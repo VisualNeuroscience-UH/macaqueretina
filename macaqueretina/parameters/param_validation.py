@@ -467,7 +467,7 @@ class ConfigParams(BaseConfigModel):
         description="Remove random variations by setting the numpy random seed",
     )
     device: Literal["cpu", "cuda"]
-    run: dict[str, bool | None]
+    run: dict[str, Any]
     # Retina parameters
     retina_parameters: RetinaParameters
     # Visual stimulus parameters

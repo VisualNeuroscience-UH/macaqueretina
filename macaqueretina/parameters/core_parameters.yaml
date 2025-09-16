@@ -13,4 +13,10 @@ run:
   build_retina: True
   make_stimulus: True
   simulate_retina: True
-  visualize: null
+  visualize_DoG_img_grid: 
+    show: True
+    gc_list: [0, 1, 5, 10]
+    n_samples: null
+    savefigname: null
+  visualize_all_gc_responses: 
+    show: True

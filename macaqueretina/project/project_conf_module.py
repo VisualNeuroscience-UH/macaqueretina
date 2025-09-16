@@ -78,12 +78,23 @@ def load_parameters() -> "ConfigManager":
 
 
 def dispatcher(PM: "ProjectManager", config: "ConfigManager"):
-    if config.run.build_retina:
+    run = config.run
+    if run.build_retina:
         PM.construct_retina.build_retina_client()
-    if config.run.make_stimulus:
+    if run.make_stimulus:
         PM.stimulate.make_stimulus_video()
-    if config.run.simulate_retina:
+    if run.simulate_retina:
         PM.simulate_retina.client()
+    if run.visualize_DoG_img_grid.show:
+        options = run.visualize_DoG_img_grid
+        PM.viz.show_DoG_img_grid(
+            gc_list=options.gc_list,
+            n_samples=options.n_samples,
+            savefigname=options.savefigname,
+        )
+    if run.visualize_all_gc_responses:
+        options = run.visualize_all_gc_responses
+        PM.viz.show_all_gc_responses()
 
 
 def main():
@@ -101,9 +112,6 @@ def main():
     PM = ProjectManager(config)
 
     dispatcher(PM, config)
-
-    PM.viz.show_DoG_img_grid(gc_list=[0, 1, 5, 10], savefigname=None)
-    PM.viz.show_all_gc_responses(savefigname=None)
 
     end_time = time.time()
     print(
