@@ -3,7 +3,11 @@ Macaque retina simulator.
 """
 
 # Built-in
+import os
 from typing import Callable
+
+# Third-party
+import tomli
 
 # Local
 from .project.project_conf_module import load_parameters as _lp
@@ -33,13 +37,11 @@ __all__ = [
 del (_lp, _PM)
 
 
-# import os
-# import tomli
+def get_version():
+    pyproject_path = os.path.join(os.path.dirname(__file__), "..", "pyproject.toml")
+    with open(pyproject_path, "rb") as f:
+        data = tomli.load(f)
+        return data["tool"]["poetry"]["version"]
 
-# def get_version():
-#     pyproject_path = os.path.join(os.path.dirname(__file__), '..', 'pyproject.toml')
-#     with open(pyproject_path, 'rb') as f:
-#         data = tomli.load(f)
-#         return data['tool']['poetry']['version']
 
-# __version__ = get_version()
+__version__ = get_version()
