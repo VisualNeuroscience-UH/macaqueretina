@@ -135,7 +135,7 @@ class ProjectManager(ProjectUtilities):
 
         fit = Fit(project_data, self.context.dog_metadata_parameters)
 
-        retina_vae = RetinaVAE(self.context.as_dict())
+        retina_vae = RetinaVAE(self.context)
 
         construct_retina = ConstructRetina(
             self.context,
