@@ -168,6 +168,10 @@ class NestedConfig:
         config_keys = list(self._config.keys())
         return sorted(set(default_attrs + config_keys))
 
+    def __repr__(self):
+        """Show string representation of the parameters in the ConfigManager object"""
+        return f"NestedConfig({repr(self._config)})"
+
     def get(self, key: str, default=None) -> Any:
         """Backwards compatibility with dictionary get() method."""
         try:
@@ -262,6 +266,10 @@ class ConfigManager:
         default_attrs = list(object.__dir__(self))
         config_keys = list(self._config.keys())
         return sorted(set(default_attrs + config_keys))
+
+    def __repr__(self):
+        """Show string representation of the parameters in the ConfigManager object"""
+        return f"ConfigManager({repr(self._config)})"
 
     @property
     def config(self) -> dict[str, Any]:
