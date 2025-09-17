@@ -50,7 +50,6 @@ class BaseConfigModel(BaseModel):
 ## From retina_parameters.yaml
 class RetinaParameters(BaseConfigModel):
     gc_type: Literal["parasol", "midget"]
-    """Ganglion cell type"""
     response_type: Literal["on", "off"]
     spatial_model_type: Literal["DOG", "VAE"]
     temporal_model_type: Literal["fixed", "dynamic", "subunit"]
