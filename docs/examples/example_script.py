@@ -1,13 +1,5 @@
 """Example usage of MacaqueRetina."""
 
-# Built-in
-import sys
-from pathlib import Path
-
-mr_root = Path(__file__).resolve().parent
-if str(mr_root) not in sys.path:
-    sys.path.insert(0, str(mr_root))
-
 # Local
 import macaqueretina as mr
 
