@@ -61,10 +61,14 @@ class YamlLoader:
                     combined_config = self._merge_configs(combined_config, config, path)
                 except YAMLError as e:
                     raise ValueError(
-                        f"Invalid YAML in configuration file {path!s}: {e!s}"
-                    )
-                except Exception:
-                    raise
+                        f"Invalid YAML in configuration file {path}: {e}"
+                    ) from e
+                except Exception as e:
+                    if isinstance(e, ValueError):
+                        raise
+                    raise RuntimeError(
+                        f"Failed to load required config from {path}: {e}"
+                    ) from e
         return combined_config
 
     def _merge_configs(
