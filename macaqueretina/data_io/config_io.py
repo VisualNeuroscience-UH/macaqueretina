@@ -19,6 +19,8 @@ from yaml import YAMLError, safe_load
 
 
 class YamlLoader:
+    """Loads one or multiple YAML files.
+    Merges multiple YAML files into a configuration dict."""
 
     def __init__(self, yaml_paths: Iterable[Path | str]) -> None:
         self.yaml_paths: list[Path] = [Path(p) for p in yaml_paths]
