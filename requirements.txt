@@ -28,6 +28,5 @@ brian2>=2.7.1
 pyqt5>=5.15.11
 brian2cuda>=1.0a6
 isort
-optuna
 pytest
-ray[tune]
+pydantic>=2.11.7

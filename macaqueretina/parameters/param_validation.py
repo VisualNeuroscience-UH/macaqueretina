@@ -72,18 +72,9 @@ class RetinaParameters(BaseConfigModel):
     force_retina_build: bool = Field(
         default=True, description="If True, rebuilds retina even if the hash matches"
     )
-    training_mode: Literal["load_model", "train_model", "tune_model"] = Field(
+    vae_run_mode: Literal["load_model", "train_model"] = Field(
         description="Applies to VAE only"
     )
-    model_file_name: (
-        None | Literal["model_[GC TYPE]_[RESPONSE TYPE]_[DEVICE]_[TIMESTAMP].pt"]
-    ) = Field(
-        description="None for most recent or 'model_[GC TYPE]_[RESPONSE TYPE]_[DEVICE]_[TIMESTAMP].pt' at input_folder. Applies to VAE 'load_model' only"
-    )
-    ray_tune_trial_id: (
-        None | Any
-    )  # Trial_id for tune, None for loading single run after "train_model". Applies to VAE "load_model" only
-
     signal_gain: dict[str, Any]
 
     @field_validator("retina_center", mode="before")

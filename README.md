@@ -58,7 +58,7 @@ In the project_conf_module.py -file update the model_root_path to match your sys
 
 Review and adjust the configuration as needed. 
 
-For the variational autoencoder mode -- see retina_parameters dictionary "spatial_model_type" : "VAE" --  you need the "training_mode": "train_model" for the first run, and thereafter you can use the much faster "load_model" option. The hyperparameters are fixed in the VAE module, so no tuning will be necessary.
+For the variational autoencoder mode -- see retina_parameters dictionary "spatial_model_type" : "VAE" --  you need the "vae_run_mode": "train_model" for the first run, and thereafter you can use the much faster "load_model" option. The hyperparameters are fixed in the VAE module, so no tuning will be necessary.
 
 
 Activate your Poetry-managed environment:

@@ -48,9 +48,7 @@ brian2 = "2.7.1"
 pyqt5 = "^5.15.11"
 brian2cuda = "^1.0a6"
 isort = "*"
-optuna = "*"
 pytest = "*"
-ray = {extras = ["tune"], version = "*"}
 pydantic = "^2.11.7"
 tomli = "^2.2.1"
 
@@ -68,7 +66,7 @@ known_third_party = [
     "torchmetrics", "torchsummary", "torchaudio", "opencv", "cv2", 
     "imageio", "seaborn", "scikit-image", "scikit-learn", "PIL", 
     "Pillow", "h5py", "Shapely", "tqdm", "colorednoise", "brian2", 
-    "brian2cuda", "ray", "optuna", "ipython", "jupyterlab", 
+    "brian2cuda", "ipython", "jupyterlab", 
     "notebook", "pyshortcuts"
 ]
 known_localfolder = ["macaqueretina"]

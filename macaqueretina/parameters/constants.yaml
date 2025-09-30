@@ -1,6 +1,6 @@
 vae_train_parameters:
   # Fixed values for both single training and ray tune runs
-  epochs: 500 # Number of training epochs
+  epochs: 5 # Number of training epochs
   lr_step_size: 20 # Learning rate decay step size (in epochs)
   lr_gamma: 0.9 # Learning rate decay (multiplier for learning rate)
   # how many times to get the data, applied only if augmentation_dict is not None

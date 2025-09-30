@@ -1,7 +1,7 @@
 retina_parameters:
   gc_type: "parasol"  # "parasol", "midget"
   response_type: "on"  # "on", "off"
-  spatial_model_type: "DOG"  # "DOG", "VAE"
+  spatial_model_type: "VAE"  # "DOG", "VAE"
   temporal_model_type: "fixed"  # "fixed", "dynamic", "subunit"
   dog_model_type: "ellipse_fixed" #"ellipse_fixed", "ellipse_independent" or "circular"
   ecc_limits_deg: [4.5, 5.5]  # eccentricity in degrees MIDGET
@@ -9,9 +9,8 @@ retina_parameters:
   model_density: 1.0  # 1.0 for 100% of the literature density of ganglion cells
   retina_center: "5.0+0j"  # degrees, this is stimulus_position (0, 0), provide as a string
   force_retina_build: True  # False or True. If True, rebuilds retina even if the hash matches
-  training_mode: "train_model"  # "load_model", "train_model" or "tune_model". Applies to VAE only
   model_file_name: null  # null for most recent or "model_[GC TYPE]_[RESPONSE TYPE]_[DEVICE]_[TIMESTAMP].pt" at input_folder. Applies to VAE "load_model" only
-  ray_tune_trial_id: null  # Trial_id for tune, null for loading single run after "train_model". Applies to VAE "load_model" only
+  vae_run_mode: "load_model"  # "load_model", "train_model". Applies to VAE only
   signal_gain:
     threshold: 10 # Hz
     parasol:

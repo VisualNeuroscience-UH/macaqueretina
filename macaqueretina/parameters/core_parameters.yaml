@@ -2,11 +2,11 @@ model_root_path: "/opt3/projects"
 project: "macaqueretina"
 experiment: "test"
 input_folder: "../in"  # input figs, videos, models
-output_folder: "test_0"
+output_folder: "test_2"
 # output_folder_stem = f"{gc_type}_{response_type}_{spatial_model_type}_{temporal_model_type}_{contrast}_gain{signal_gain}_temporal_frequency"
 testrun: False  # Stops execution before heavy calculations
 numpy_seed: 42  # random.randint(0, 1000000)  # 42
-device: "cpu"  # "cpu" or "cuda"
+device: "cuda"  # "cpu" or "cuda"
 profile: False
 
 run:

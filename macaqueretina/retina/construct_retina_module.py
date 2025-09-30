@@ -4824,7 +4824,7 @@ class ConstructRetina(Printable):
         if "spatial_model_type" in retina_parameters and retina_parameters[
             "spatial_model_type"
         ] in ["VAE"]:
-            self.training_mode = retina_parameters["training_mode"]
+            self.vae_run_mode = retina_parameters["vae_run_mode"]
 
         self.spatial_rfs_file_filename = []
         self.ret_filename = []
@@ -5269,7 +5269,7 @@ class ConstructRetina(Printable):
             "model_density",
             "retina_center",
             "force_retina_build",
-            "training_mode",
+            "vae_run_mode",
             "model_file_name",
             "ray_tune_trial_id",
             "signal_gain",

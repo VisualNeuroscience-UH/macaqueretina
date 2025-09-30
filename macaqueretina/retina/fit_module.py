@@ -1423,14 +1423,14 @@ class Fit(RetinaMath):
                 DoG_model = FitCircular()
 
         match self.fit_type:
-            case "experimental":
-                fit_data_type = FitExperimental(
-                    DoG_model,
-                    self.diff_of_lowpass_filters,
-                    self.metadata,
-                    self.gc_type,
-                    self.response_type,
-                )
+            # case "experimental":
+            #     fit_data_type = FitExperimental(
+            #         DoG_model,
+            #         self.diff_of_lowpass_filters,
+            #         self.metadata,
+            #         self.gc_type,
+            #         self.response_type,
+            #     )
             case "generated":
                 fit_data_type = FitGenerated(
                     DoG_model,
