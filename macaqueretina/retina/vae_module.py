@@ -733,13 +733,15 @@ class RetinaVAE(RetinaMath):
         match self.vae_run_mode:
 
             case "load_model":
-                breakpoint()
-                if self.context.retina_parameters["model_file_name"] is None:
+                model_file_name = self.context.retina_parameters.get(
+                    "model_file_name", None
+                )
+                if model_file_name is None:
                     self.vae = self._load_model(model_path=self.models_folder)
                     self._load_logging()
                     self._load_latent_stats()
                 else:
-                    model_file_name = self.context.retina_parameters["model_file_name"]
+                    # model_file_name = self.context.retina_parameters["model_file_name"]
                     self._validate_model_file_name(model_file_name)
                     model_path_full = self.models_folder / model_file_name
                     self.vae = self._load_model(model_path=model_path_full)
