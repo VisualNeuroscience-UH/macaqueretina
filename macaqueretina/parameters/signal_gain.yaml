@@ -1,0 +1,83 @@
+# drifting grating calibration table
+signal_gain:
+  threshold: 10  # Hz
+  parasol:
+    "on":
+      DOG:
+        fixed: 1.29
+        dynamic: 2.06
+        subunit: 3.51
+      VAE:
+        fixed: 1.81
+        dynamic: 2.31
+        subunit: 3.47
+    "off":
+      DOG:
+        fixed: 1.75
+        dynamic: 2.15
+        subunit: 7.02
+      VAE:
+        fixed: 1.87
+        dynamic: 2.10
+        subunit: 6.38
+  midget:
+    "on":
+      DOG:
+        fixed: 4.60
+        dynamic: 6.38
+        subunit: 9.16
+      VAE:
+        fixed: 5.10
+        dynamic: 6.69
+        subunit: 8.54
+    "off":
+      DOG:
+        fixed: 4.48
+        dynamic: 5.52
+        subunit: 14.35
+      VAE:
+        fixed: 4.61
+        dynamic: 5.74
+        subunit: 13.54
+
+## flicker calibration table. Note the need to adjust the subunit gains
+# signal_gain:
+#   threshold: 10  # Hz
+#   parasol:
+#     "on":
+#       DOG:
+#         fixed: 1.31
+#         dynamic: 1.12
+#         subunit: 16.37
+#       VAE:
+#         fixed: 0.85
+#         dynamic: 1.21
+#         subunit: 17.18
+#     "off":
+#       DOG:
+#         fixed: 1.70
+#         dynamic: 1.37
+#         subunit: 36.13
+#       VAE:
+#         fixed: 1.24
+#         dynamic: 1.55
+#         subunit: 35.72
+#   midget:
+#     "on":
+#       DOG:
+#         fixed: 5.42
+#         dynamic: 5.13
+#         subunit: 33.72
+#       VAE:
+#         fixed: 3.35
+#         dynamic: 6.12
+#         subunit: 32.52
+#     "off":
+#       DOG:
+#         fixed: 7.26
+#         dynamic: 4.50
+#         subunit: 73.2
+#       VAE:
+#         fixed: 3.85
+#         dynamic: 4.88
+#         subunit: 72.71
