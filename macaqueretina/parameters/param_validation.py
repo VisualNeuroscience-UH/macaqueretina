@@ -73,9 +73,12 @@ class RetinaParameters(BaseConfigModel):
         default=True, description="If True, rebuilds retina even if the hash matches"
     )
     vae_run_mode: Literal["load_model", "train_model"] = Field(
-        description="Applies to VAE only"
+        default="load_model", description="train_model is for internal use only"
     )
-    signal_gain: dict[str, Any]
+    model_file_name: str | None = Field(
+        default=None,
+        description="null for most recent or 'model_[GC TYPE]_[RESPONSE TYPE]_[DEVICE]_[TIMESTAMP].pt' at input_folder. Applies to VAE only",
+    )
 
     @field_validator("retina_center", mode="before")
     @classmethod
@@ -274,6 +277,12 @@ class RetinaParametersAppend(BaseConfigModel):
     ecc_limit_for_dd_fit: float = Field(
         default=20.0, description="degrees, math.inf for no limit"
     )
+
+
+class SignalGain(BaseConfigModel):
+    threshold: float = Field(default=10.0, description="Threshold in Hz")
+    parasol: dict[str, float] = Field(default_factory=dict)
+    midget: dict[str, float] = Field(default_factory=dict)
 
 
 class DogMetadataParameters(BaseConfigModel):
@@ -567,12 +576,15 @@ class ConfigParams(BaseConfigModel):
         self.run_parameters.gc_response_filenames = [
             f"gc_response_{x:02}" for x in range(self.n_files)
         ]
+
+        # Set signal gain from a separate yaml file
         self.retina_parameters.signal_gain = (
-            self.retina_parameters.signal_gain.get(self.retina_parameters.gc_type)
+            self.signal_gain.get(self.retina_parameters.gc_type)
             .get(self.retina_parameters.response_type)
             .get(self.retina_parameters.spatial_model_type)
             .get(self.retina_parameters.temporal_model_type)
         )
+
         self.dog_metadata_parameters.mask_noise = (
             self.retina_parameters_append.apricot_data_noise_mask
         )

@@ -13,6 +13,7 @@ from macaqueretina.parameters.param_reorganizer import ParamReorganizer
 from macaqueretina.project.project_manager_module import ProjectManager
 
 if TYPE_CHECKING:
+    # Local
     from macaqueretina.data_io.config_io import ConfigManager
 
 start_time = time.time()
@@ -37,6 +38,7 @@ def _validation_switch(base: Path) -> Callable | None:
             return None
         case 1:
             try:
+                # Local
                 from macaqueretina.parameters.param_validation import validate_params
 
                 return validate_params
@@ -299,5 +301,7 @@ if __name__ == "__main__":
 #     # # #     n_contrasts=10,
 #     # # #     xlog=True,
 #     # # #     ylog=False,
+#     # # #     savefigname=None,
+#     # # # )
 #     # # #     savefigname=None,
 #     # # # )
