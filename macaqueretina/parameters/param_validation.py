@@ -75,7 +75,7 @@ class RetinaParameters(BaseConfigModel):
         default=True, description="If True, rebuilds retina even if the hash matches"
     )
     vae_run_mode: Literal["load_model", "train_model"] = Field(
-        default="train_model", description="train_model requires experimental data"
+        default="load_model", description="train_model requires experimental data"
     )
     model_file_name: str | None = Field(
         default=None,
@@ -91,7 +91,10 @@ class RetinaParameters(BaseConfigModel):
 
 ## From visual_stimulus_parameters.yaml
 class VisualStimulusParameters(BaseConfigModel):
-    pattern: str  # "temporal_square_pattern"  # One of the StimulusPatterns # TODO default "temporal_square_pattern"? Literal?
+    pattern: str = Field(
+        default="temporal_square_pattern",
+        description="Options: 'sine_grating', 'square_grating', 'colored_temporal_noise', 'white_gaussian_noise', 'natural_images', 'natural_video', 'temporal_sine_pattern', 'temporal_square_pattern', 'temporal_chirp_pattern', 'contrast_chirp_pattern', 'spatially_uniform_binary_noise'",
+    )
     image_width: int = Field(default=240, description="image (canvas) width in pixels")
     image_height: int = 240
     pix_per_deg: int = 60
@@ -287,13 +290,13 @@ class SignalGain(BaseConfigModel):
     midget: dict[str, float] = Field(default_factory=dict)
 
 
-class ExperimentalMetadataParameters(BaseConfigModel):
+class ExperimentalMetadata(BaseConfigModel):
     data_microm_per_pix: int = 60
     data_spatialfilter_height: int = 13
     data_spatialfilter_width: int = 13
     data_fps: int = 30
     data_temporalfilter_samples: int = 15
-    relative_data_path: Path = ""
+    relative_data_path: Path = Path(".")
 
     @computed_field
     @property
@@ -478,7 +481,7 @@ class ConfigParams(BaseConfigModel):
     noise_gain_default: NoiseGainDefault
     dd_regr_model: DdRegrModel
     retina_parameters_append: RetinaParametersAppend
-    experimental_metadata_parameters: ExperimentalMetadataParameters
+    experimental_metadata: ExperimentalMetadata
 
     proportion_of_parasol_gc_type: float = 0.08
     proportion_of_midget_gc_type: float = 0.64
@@ -582,7 +585,7 @@ class ConfigParams(BaseConfigModel):
             .get(self.retina_parameters.temporal_model_type)
         )
 
-        self.experimental_metadata_parameters.mask_noise = (
+        self.experimental_metadata.mask_noise = (
             self.retina_parameters_append.data_noise_threshold
         )
         if self.retina_parameters.gc_type == "parasol":

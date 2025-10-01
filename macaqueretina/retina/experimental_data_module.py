@@ -14,17 +14,17 @@ class ExperimentalData:
     Read data from external mat files.
     """
 
-    def __init__(self, experimental_metadata_parameters, gc_type, response_type):
-        self.experimental_data_folder = experimental_metadata_parameters[
+    def __init__(self, experimental_metadata, gc_type, response_type):
+        self.experimental_data_folder = experimental_metadata[
             "experimental_data_folder"
         ]
-        self.metadata = experimental_metadata_parameters
+        self.metadata = experimental_metadata
         gc_type = gc_type.lower()
         response_type = response_type.lower()
         self.gc_type = gc_type
         self.response_type = response_type
 
-        file_metadata = experimental_metadata_parameters["experimental_file_metadata"]
+        file_metadata = experimental_metadata["experimental_file_metadata"]
         self.spatial_filename = file_metadata[gc_type][response_type][
             "spatial_filename"
         ]

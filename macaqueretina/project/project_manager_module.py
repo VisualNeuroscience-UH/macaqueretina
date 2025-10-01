@@ -130,7 +130,7 @@ class ProjectManager(ProjectUtilities):
     def build_retina_instance(self):
         project_data = ProjectData()
 
-        fit = Fit(project_data, self.context.experimental_metadata_parameters)
+        fit = Fit(project_data, self.context.experimental_metadata)
 
         retina_vae = RetinaVAE(self.context)
 

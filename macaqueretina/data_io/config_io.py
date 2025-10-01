@@ -197,7 +197,8 @@ class ConfigManager:
     def __init__(self, *args: Path | str) -> None:
 
         self.config_file_paths: list[Path] = [Path(p) for p in args]
-        self._config: dict[str, Any] = YamlLoader(self.config_file_paths).load_config()
+        _config = YamlLoader(self.config_file_paths).load_config()
+        self._config: dict[str, Any] = {k: _config[k] for k in sorted(_config.keys())}
 
     def update_config(self, new_config: Mapping[str, Any]) -> None:
         """Public method to replace internal configuration in a controlled way."""

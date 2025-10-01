@@ -1,5 +1,5 @@
 
-experimental_metadata_parameters:
+experimental_metadata:
   data_microm_per_pix: 60
   data_spatialfilter_height: 13
   data_spatialfilter_width: 13

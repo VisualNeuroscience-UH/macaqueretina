@@ -3259,7 +3259,7 @@ class GanglionCellProduct(ReceptiveFieldsBase):
     ----------
     retina_parameters : Dict[str, Any]
         Dictionary containing retina parameters.
-    experimental_metadata_parameters : Dict[str, Any]
+    experimental_metadata : Dict[str, Any]
         Metadata for the experimental dataset.
     rfs_npz : Dict[str, Any]
         Dictionary containing receptive field data.
@@ -3278,7 +3278,7 @@ class GanglionCellProduct(ReceptiveFieldsBase):
         Threshold for masking.
     refractory_parameters : Any
         Parameters for refractory period.
-    experimental_metadata_parameters : Dict[str, Any]
+    experimental_metadata : Dict[str, Any]
         Metadata for the experimental dataset.
     data_microm_per_pixel : float
         Micrometers per pixel in the data.
@@ -3307,7 +3307,7 @@ class GanglionCellProduct(ReceptiveFieldsBase):
     def __init__(
         self,
         retina_parameters: Dict[str, Any],
-        experimental_metadata_parameters: Dict[str, Any],
+        experimental_metadata: Dict[str, Any],
         rfs_npz: Dict[str, Any],
         gc_dataframe: pd.DataFrame,
         spike_generator_model: Any,
@@ -3327,12 +3327,10 @@ class GanglionCellProduct(ReceptiveFieldsBase):
             self.mask_threshold >= 0 and self.mask_threshold <= 1
         ), "mask_threshold must be between 0 and 1, aborting..."
 
-        self.experimental_metadata_parameters = experimental_metadata_parameters
-        self.data_microm_per_pixel = self.experimental_metadata_parameters[
-            "data_microm_per_pix"
-        ]
-        self.data_filter_fps = self.experimental_metadata_parameters["data_fps"]
-        self.data_filter_timesteps = self.experimental_metadata_parameters[
+        self.experimental_metadata = experimental_metadata
+        self.data_microm_per_pixel = self.experimental_metadata["data_microm_per_pix"]
+        self.data_filter_fps = self.experimental_metadata["data_fps"]
+        self.data_filter_timesteps = self.experimental_metadata[
             "data_temporalfilter_samples"
         ]
         self.data_filter_duration = self.data_filter_timesteps * (
@@ -3942,7 +3940,7 @@ class SimulateRetina(RetinaMath):
 
         gcs = GanglionCellProduct(
             self.context.retina_parameters,
-            self.context.experimental_metadata_parameters,
+            self.context.experimental_metadata,
             rfs_npz,
             gc_dataframe,
             spike_generator_model,

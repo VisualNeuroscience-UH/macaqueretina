@@ -1,5 +1,5 @@
 visual_stimulus_parameters:
-  pattern: "temporal_square_pattern"  # One of the StimulusPatterns
+  pattern: "sine_grating"  # One of the StimulusPatterns
   image_width: 240  # 752 for nature1.avi
   image_height: 240  # 432 for nature1.avi
   pix_per_deg: 60
@@ -13,9 +13,9 @@ visual_stimulus_parameters:
   size_outer: 1  # deg, applies to annulus only
   stimulus_position: [0.0, 0.0]  # relative to stimuls center in retina
   stimulus_size: 1.5  # 2.2,  # deg, radius for circle, sidelen/2 for rectangle.
-  temporal_frequency: 0.01  # 0.01,  # 4.0,  # 40,  # Hz
+  temporal_frequency: 5  # 0.01,  # 4.0,  # 40,  # Hz
   temporal_frequency_range: [0.5, 50]  # Hz, applies to temporal chirp only
-  spatial_frequency: 2  # cpd
+  spatial_frequency: 5  # cpd
   orientation: 90  # degrees
   phase_shift: 0  # math.pi + 0.1,  # radians
   stimulus_video_name: null # if null, defaults to f"{stimulus_folder}.mp4"  
@@ -38,7 +38,7 @@ n_files: 1
 # Running multiple trials on multiple units is not supported
 run_parameters:
   n_sweeps: 1 # For each of the response files
-  spike_generator_model: "poisson"  # poisson or refractory
+  spike_generator_model: "refractory"  # poisson or refractory
   save_data: True
   simulation_dt: 0.0001  # in sec 0.001 = 1 ms
   save_variables: ["spikes", "cone_noise"] #"spikes", "cone_noise", "cone_bipo_gen_fir"
