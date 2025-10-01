@@ -3260,7 +3260,7 @@ class GanglionCellProduct(ReceptiveFieldsBase):
     retina_parameters : Dict[str, Any]
         Dictionary containing retina parameters.
     dog_metadata_parameters : Dict[str, Any]
-        Metadata for the APRICOT dataset.
+        Metadata for the experimental dataset.
     rfs_npz : Dict[str, Any]
         Dictionary containing receptive field data.
     gc_dataframe : pd.DataFrame
@@ -3279,7 +3279,7 @@ class GanglionCellProduct(ReceptiveFieldsBase):
     refractory_parameters : Any
         Parameters for refractory period.
     dog_metadata_parameters : Dict[str, Any]
-        Metadata for the APRICOT dataset.
+        Metadata for the experimental dataset.
     data_microm_per_pixel : float
         Micrometers per pixel in the data.
     data_filter_fps : float

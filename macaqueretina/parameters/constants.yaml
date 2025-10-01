@@ -54,7 +54,7 @@ retina_parameters_append:
   noise_gain: null # # 0 for no noise, null for choosing noise level from the noise_gain_default values above
   fixed_mask_threshold: 0.1  # 0.1,  # Applies to rf volume normalization. This value is also the only surround mask threshold.
   center_mask_threshold: 0.1  # 0.1,  Limits rf center extent to values above this proportion of the peak values after volume normalization.
-  apricot_data_noise_mask: 0.1  # 0.1,  # 0.1 for +-10% from abs max removed, 0 for no noise removal. Applies to DOG spatial model statistics.
+  data_noise_threshold: 0.1  # 0.1,  # 0.1 for +-10% from abs max removed, 0 for no noise removal. Applies external RF data.
   fit_statistics: "multivariate"  # "univariate" or "multivariate" Applies only to DOG spatial and fixed temporal model statistics.
   ecc_limit_for_dd_fit: 20  # 20,  # degrees, math.inf for no limit
 

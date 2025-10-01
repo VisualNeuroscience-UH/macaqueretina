@@ -263,7 +263,7 @@ class RetinaParametersAppend(BaseConfigModel):
         default=0.1,
         description="Limits rf center extent to values above this proportion of the peak values after volume normalization.",
     )
-    apricot_data_noise_mask: float = Field(
+    data_noise_threshold: float = Field(
         default=0.1,
         description="0.1 for +-10% /from abs max removed, 0 for no noise removal. Applies to DOG spatial model statistics.",
     )
@@ -292,10 +292,9 @@ class DogMetadataParameters(BaseConfigModel):
     data_fps: int = 30
     data_temporalfilter_samples: int = 15
 
-    # TODO: maybe remove?
     @computed_field
     @property
-    def exp_dog_data_folder(self) -> Path:
+    def experimental_data_folder(self) -> Path:
         return git_repo_path.joinpath(
             r"../../experimental_data/Chichilnisky_lab/apricot_data"
         )
@@ -586,7 +585,7 @@ class ConfigParams(BaseConfigModel):
         )
 
         self.dog_metadata_parameters.mask_noise = (
-            self.retina_parameters_append.apricot_data_noise_mask
+            self.retina_parameters_append.data_noise_threshold
         )
         if self.retina_parameters.gc_type == "parasol":
             self.dendr_diam1_datafile = self.dendr_diam1_datafile_parasol

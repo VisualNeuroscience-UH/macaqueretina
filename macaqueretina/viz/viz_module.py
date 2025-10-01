@@ -1703,7 +1703,7 @@ class Viz:
             ax.text(
                 0.05,
                 0.85,
-                retina_vae.apricot_data.data_labels2names_dict[
+                retina_vae.experimental_data.data_labels2names_dict[
                     ds[sample_idx][1].item()
                 ],
                 fontsize=10,

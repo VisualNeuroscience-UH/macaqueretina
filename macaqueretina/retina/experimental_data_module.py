@@ -1,8 +1,5 @@
 """ 
-Read data from the Apricot dataset.
-Data courtesy of The Chichilnisky Lab <http://med.stanford.edu/chichilnisky.html>
-Data paper: Field GD et al. (2010). Nature 467(7316):673-7.
-Only low resolution spatial RF maps are used here.
+Read data from the experimental dataset.
 """
 
 # Third-party
@@ -12,13 +9,15 @@ import pandas as pd
 import scipy.io as sio
 
 
-class ApricotData:
+class ExperimentalData:
     """
     Read data from external mat files.
     """
 
     def __init__(self, dog_metadata_parameters, gc_type, response_type):
-        self.exp_dog_data_folder = dog_metadata_parameters["exp_dog_data_folder"]
+        self.experimental_data_folder = dog_metadata_parameters[
+            "experimental_data_folder"
+        ]
         self.metadata = dog_metadata_parameters
         gc_type = gc_type.lower()
         response_type = response_type.lower()
@@ -28,7 +27,6 @@ class ApricotData:
         # Define filenames
         # Spatial data are read from a separate mat file that have been derived from the originals.
         # Non-spatial data are read from the original data files.
-        # To review, activate PM.viz.show_DoG_model_fit sample list, and set retina_parameters "spatial_model_type": "DOG"
         if gc_type == "parasol" and response_type == "on":
             self.spatial_filename = "Parasol_ON_spatial.mat"
             self.manually_picked_bad_data_idx = [9, 15, 20, 25, 71, 86, 89]
@@ -60,7 +58,7 @@ class ApricotData:
         }
 
         # Read nonspatial data. Data type is numpy nd array, but it includes a lot of metadata.
-        filepath = self.exp_dog_data_folder / self.filename_nonspatial
+        filepath = self.experimental_data_folder / self.filename_nonspatial
         raw_data = sio.loadmat(filepath)  # , squeeze_me=True)
         self.data = raw_data["mosaicGLM"][0]
 
@@ -102,13 +100,12 @@ class ApricotData:
                 for cellnum in range(self.n_cells)
             ]
         )
-        return np.reshape(
-            space_rk1, (self.n_cells, 13**2)
-        )  # Spatial filter is 13x13 pixels in the Apricot dataset
+        # Assuming 13x13 pixels in the dataset
+        return np.reshape(space_rk1, (self.n_cells, 13**2))
 
     # Called from Fit
     def read_spatial_filter_data(self):
-        filepath = self.exp_dog_data_folder / self.spatial_filename
+        filepath = self.experimental_data_folder / self.spatial_filename
         gc_spatial_data = sio.loadmat(filepath, variable_names=["c", "stafit"])
         spat_data_array = gc_spatial_data["c"]
         # Rotate dims to put n cells the first dim

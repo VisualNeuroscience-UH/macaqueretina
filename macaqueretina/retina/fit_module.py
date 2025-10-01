@@ -13,7 +13,7 @@ from tqdm import tqdm
 
 # Local
 from macaqueretina.project.project_utilities_module import Printable
-from macaqueretina.retina.apricot_data_module import ApricotData
+from macaqueretina.retina.experimental_data_module import ExperimentalData
 from macaqueretina.retina.retina_math_module import RetinaMath
 
 
@@ -243,7 +243,7 @@ class FitDoGTemplate(ABC, RetinaMath, Printable):
         error_df = pd.DataFrame(self.error_all_viable_cells, columns=["spatialfit_mse"])
         good_mask = np.ones(len(self.data_all_viable_cells))
 
-        # Remove hand picked (in apricot data module) bad indices or failed fits
+        # Remove hand picked bad indices or failed fits
         if self.bad_spatial_idx is not None:
             good_mask[self.bad_spatial_idx] = 0
 
@@ -1042,17 +1042,19 @@ class FitExperimental(FitDataTypeTemplate):
         )
 
     def require_spatial_fit(self):
-        self.apricot_data = ApricotData(self.metadata, self.gc_type, self.response_type)
-        self.bad_data_idx = self.apricot_data.manually_picked_bad_data_idx
-        self.n_cells = self.apricot_data.n_cells
+        self.experimental_data = ExperimentalData(
+            self.metadata, self.gc_type, self.response_type
+        )
+        self.bad_data_idx = self.experimental_data.manually_picked_bad_data_idx
+        self.n_cells = self.experimental_data.n_cells
 
-        # Read Apricot data and manually picked bad data indices
+        # Read experimental data and manually picked bad data indices
         (
             spatial_data,
             cen_rot_rad_all,
-        ) = self.apricot_data.read_spatial_filter_data()
+        ) = self.experimental_data.read_spatial_filter_data()
 
-        # Check that original Apricot data spatial resolution match metadata given in project_conf_module.
+        # Check that original experimental data spatial resolution match metadata given in project_conf_module.
         assert (
             spatial_data.shape[1] == self.metadata["data_spatialfilter_height"]
         ), "Spatial data height does not match metadata"
@@ -1086,7 +1088,9 @@ class FitExperimental(FitDataTypeTemplate):
         """
 
         # shape (n_cells, 15); 15 time points @ 30 Hz (500 ms)
-        temporal_filters = self.apricot_data.read_temporal_filter_data(flip_negs=True)
+        temporal_filters = self.experimental_data.read_temporal_filter_data(
+            flip_negs=True
+        )
 
         data_fps = self.metadata["data_fps"]
         data_n_samples = self.metadata["data_temporalfilter_samples"]
@@ -1152,7 +1156,7 @@ class FitExperimental(FitDataTypeTemplate):
 
     def hook_tonic_drive_fit(self):
         self.tonic_drives_df = pd.DataFrame(
-            self.apricot_data.read_tonic_drive(), columns=["tonic_drive"]
+            self.experimental_data.read_tonic_drive(), columns=["tonic_drive"]
         )
 
     def require_all_data_fits_df(self):

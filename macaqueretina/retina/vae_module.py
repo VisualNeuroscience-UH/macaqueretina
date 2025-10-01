@@ -34,20 +34,20 @@ from torchvision import transforms
 from tqdm import tqdm
 
 # Local
-from macaqueretina.retina.apricot_data_module import ApricotData
+from macaqueretina.retina.experimental_data_module import ExperimentalData
 from macaqueretina.retina.retina_math_module import RetinaMath
 
 
 class AugmentedDataset(torch.utils.data.Dataset):
     """
-    Apricot dataset class for Pytorch.
+    Experimental dataset class for Pytorch.
 
-    The constructor reads the data from the ApricotData class and stores it as
+    The constructor reads the data from the ExperimentalData class and stores it as
     tensors of shape (n_cells, channels, height, width). While the constructor
     is called with particular gc_type and response_type, all data is retrieved
     and thus the __getitem__ method can be called with any index. This enables
     teaching the network with all data. The gc_type and response_type are, however,
-    logged into the ApricotDataset instance object.
+    logged into the ExperimentalDataset instance object.
     """
 
     def __init__(self, data, labels, resolution_hw, augmentation_dict=None):
@@ -658,8 +658,7 @@ class VariationalAutoencoder(nn.Module):
 
 class RetinaVAE(RetinaMath):
     """
-    Class to apply variational autoencoder to Apricot retina data and run single learning run
-    or Ray[Tune] hyperparameter search.
+    Class to apply variational autoencoder to experimental retina data and run single learning run.
 
     Refereces for validation metrics:
     FID : Heusel_2017_NIPS
@@ -755,7 +754,7 @@ class RetinaVAE(RetinaMath):
                 )
 
             case "train_model":
-                self.get_and_split_apricot_data()
+                self.get_and_split_experimental_data()
 
                 self.timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
@@ -937,19 +936,19 @@ class RetinaVAE(RetinaMath):
 
         return vae_model
 
-    def _get_spatial_apricot_data(self):
+    def _get_spatial_experimental_data(self):
         """
-        Get spatial ganglion cell data from file using the apricot_data method read_spatial_filter_data().
+        Get spatial ganglion cell data from file using the experimental_data method read_spatial_filter_data().
         All data is returned, the requested data is logged in the class attributes gc_type and response_type.
         """
 
         # Get requested data
-        self.apricot_data = ApricotData(
+        self.experimental_data = ExperimentalData(
             self.dog_metadata_parameters, self.gc_type, self.response_type
         )
 
         # Log requested label
-        self.gc_label = self.apricot_data.data_names2labels_dict[
+        self.gc_label = self.experimental_data.data_names2labels_dict[
             f"{self.gc_type}_{self.response_type}"
         ]
 
@@ -963,7 +962,7 @@ class RetinaVAE(RetinaMath):
         ]
 
         response_labels = [
-            self.apricot_data.data_names2labels_dict[key]
+            self.experimental_data.data_names2labels_dict[key]
             for key in train_by_combinations
         ]
 
@@ -979,8 +978,8 @@ class RetinaVAE(RetinaMath):
             (
                 0,
                 1,
-                self.apricot_data.metadata["data_spatialfilter_height"],
-                self.apricot_data.metadata["data_spatialfilter_width"],
+                self.experimental_data.metadata["data_spatialfilter_height"],
+                self.experimental_data.metadata["data_spatialfilter_width"],
             )
         )
         collated_labels_np = np.empty((0, 1), dtype=int)
@@ -990,14 +989,14 @@ class RetinaVAE(RetinaMath):
             gc_types, response_types, response_labels
         ):
             print(f"Loading data for {gc_type}_{response_type} (label {label})")
-            apricot_data = ApricotData(
+            experimental_data = ExperimentalData(
                 self.dog_metadata_parameters, gc_type, response_type
             )
-            bad_data_idx = apricot_data.manually_picked_bad_data_idx
+            bad_data_idx = experimental_data.manually_picked_bad_data_idx
             (
                 gc_spatial_data_np_orig,
                 _,
-            ) = apricot_data.read_spatial_filter_data()
+            ) = experimental_data.read_spatial_filter_data()
 
             # Drop bad data
             gc_spatial_data_np = np.delete(
@@ -1019,7 +1018,7 @@ class RetinaVAE(RetinaMath):
         return (
             collated_gc_spatial_data_np,
             collated_labels_np,
-            apricot_data.data_names2labels_dict,
+            experimental_data.data_names2labels_dict,
         )
 
     def _create_empty_model(self):
@@ -1237,14 +1236,16 @@ class RetinaVAE(RetinaMath):
             self.log_df.loc[epoch, "kid_mean"] = kid_mean_out
             self.log_df.loc[epoch, "kid_std"] = kid_std_out
 
-    def get_and_split_apricot_data(self):
+    def get_and_split_experimental_data(self):
         """
         Load data
         Split into training, validation and testing
         """
 
         # Get numpy data
-        data_np, labels_np, data_names2labels_dict = self._get_spatial_apricot_data()
+        data_np, labels_np, data_names2labels_dict = (
+            self._get_spatial_experimental_data()
+        )
 
         # Split to training+validation and testing
         (
@@ -1361,7 +1362,7 @@ class RetinaVAE(RetinaMath):
         encoded_samples = []
         for sample in tqdm(ds):
             img = sample[0].unsqueeze(0).to(self.device)
-            label = self.apricot_data.data_labels2names_dict[sample[1].item()]
+            label = self.experimental_data.data_labels2names_dict[sample[1].item()]
             # Encode image
             self.vae.eval()
             with torch.no_grad():
