@@ -1,0 +1,27 @@
+
+experimental_metadata_parameters:
+  data_microm_per_pix: 60
+  data_spatialfilter_height: 13
+  data_spatialfilter_width: 13
+  data_fps: 30
+  data_temporalfilter_samples: 15
+  relative_data_path: "../../experimental_data/Chichilnisky_lab/apricot_data"
+  experimental_file_metadata: 
+    parasol:
+      "on": # reserved keyword, needs to be in quotes
+          spatial_filename: "Parasol_ON_spatial.mat"
+          known_bad_data_idx: [9, 15, 20, 25, 71, 86, 89]
+          nonspatial_filename: "mosaicGLM_apricot_ONParasol-1-mat.mat"
+      "off": # reserved keyword, needs to be in quotes
+          spatial_filename: "Parasol_OFF_spatial.mat"
+          known_bad_data_idx: [6, 31, 71, 73]
+          nonspatial_filename: "mosaicGLM_apricot_OFFParasol-1-mat.mat"
+    midget:
+      "on":
+          spatial_filename: "Midget_ON_spatial.mat"
+          known_bad_data_idx: [13, 23]
+          nonspatial_filename: "mosaicGLM_apricot_ONMidget-1-mat.mat"
+      "off":
+          spatial_filename: "Midget_OFF_spatial.mat"
+          known_bad_data_idx: [39, 43, 50, 56, 65, 129, 137]
+          nonspatial_filename: "mosaicGLM_apricot_OFFMidget-1-mat.mat"

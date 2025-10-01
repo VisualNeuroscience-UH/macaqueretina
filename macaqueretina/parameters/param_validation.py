@@ -287,19 +287,18 @@ class SignalGain(BaseConfigModel):
     midget: dict[str, float] = Field(default_factory=dict)
 
 
-class DogMetadataParameters(BaseConfigModel):
+class ExperimentalMetadataParameters(BaseConfigModel):
     data_microm_per_pix: int = 60
     data_spatialfilter_height: int = 13
     data_spatialfilter_width: int = 13
     data_fps: int = 30
     data_temporalfilter_samples: int = 15
+    relative_data_path: Path = ""
 
     @computed_field
     @property
     def experimental_data_folder(self) -> Path:
-        return git_repo_path.joinpath(
-            r"../../experimental_data/Chichilnisky_lab/apricot_data"
-        )
+        return git_repo_path.joinpath(self.relative_data_path)
 
     @computed_field
     @property
@@ -447,7 +446,7 @@ class DendrDiamUnits(BaseConfigModel):
     data3: list[str, str] = ["deg", "um"]
 
 
-## Main validation class
+## Main validation class TODO : explain with few sentences what this does.
 class ConfigParams(BaseConfigModel):
     # Experiment parameters
     model_root_path: Path = Field(description="Update this to your model root path")
@@ -479,7 +478,7 @@ class ConfigParams(BaseConfigModel):
     noise_gain_default: NoiseGainDefault
     dd_regr_model: DdRegrModel
     retina_parameters_append: RetinaParametersAppend
-    dog_metadata_parameters: DogMetadataParameters
+    experimental_metadata_parameters: ExperimentalMetadataParameters
 
     proportion_of_parasol_gc_type: float = 0.08
     proportion_of_midget_gc_type: float = 0.64
@@ -583,7 +582,7 @@ class ConfigParams(BaseConfigModel):
             .get(self.retina_parameters.temporal_model_type)
         )
 
-        self.dog_metadata_parameters.mask_noise = (
+        self.experimental_metadata_parameters.mask_noise = (
             self.retina_parameters_append.data_noise_threshold
         )
         if self.retina_parameters.gc_type == "parasol":

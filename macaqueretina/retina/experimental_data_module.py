@@ -14,37 +14,26 @@ class ExperimentalData:
     Read data from external mat files.
     """
 
-    def __init__(self, dog_metadata_parameters, gc_type, response_type):
-        self.experimental_data_folder = dog_metadata_parameters[
+    def __init__(self, experimental_metadata_parameters, gc_type, response_type):
+        self.experimental_data_folder = experimental_metadata_parameters[
             "experimental_data_folder"
         ]
-        self.metadata = dog_metadata_parameters
+        self.metadata = experimental_metadata_parameters
         gc_type = gc_type.lower()
         response_type = response_type.lower()
         self.gc_type = gc_type
         self.response_type = response_type
 
-        # Define filenames
-        # Spatial data are read from a separate mat file that have been derived from the originals.
-        # Non-spatial data are read from the original data files.
-        if gc_type == "parasol" and response_type == "on":
-            self.spatial_filename = "Parasol_ON_spatial.mat"
-            self.known_bad_data_idx = [9, 15, 20, 25, 71, 86, 89]
-            self.nonspatial_filename = "mosaicGLM_apricot_ONParasol-1-mat.mat"
-        elif gc_type == "parasol" and response_type == "off":
-            self.spatial_filename = "Parasol_OFF_spatial.mat"
-            self.known_bad_data_idx = [6, 31, 71, 73]
-            self.nonspatial_filename = "mosaicGLM_apricot_OFFParasol-1-mat.mat"
-        elif gc_type == "midget" and response_type == "on":
-            self.spatial_filename = "Midget_ON_spatial.mat"
-            self.known_bad_data_idx = [13, 23]
-            self.nonspatial_filename = "mosaicGLM_apricot_ONMidget-1-mat.mat"
-        elif gc_type == "midget" and response_type == "off":
-            self.spatial_filename = "Midget_OFF_spatial.mat"
-            self.known_bad_data_idx = [39, 43, 50, 56, 65, 129, 137]
-            self.nonspatial_filename = "mosaicGLM_apricot_OFFMidget-1-mat.mat"
-        else:
-            raise NotImplementedError("Unknown cell type or response type, aborting")
+        file_metadata = experimental_metadata_parameters["experimental_file_metadata"]
+        self.spatial_filename = file_metadata[gc_type][response_type][
+            "spatial_filename"
+        ]
+        self.nonspatial_filename = file_metadata[gc_type][response_type][
+            "nonspatial_filename"
+        ]
+        self.known_bad_data_idx = file_metadata[gc_type][response_type][
+            "known_bad_data_idx"
+        ]
 
         # Make a key-value dictionary for labeling the data
         self.data_names2labels_dict = {

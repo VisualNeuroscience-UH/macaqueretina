@@ -1406,11 +1406,11 @@ class Fit(RetinaMath):
     a function consisting of cascade of two lowpass filters and for adding the tonic drive.
     """
 
-    def __init__(self, project_data, dog_metadata_parameters):
+    def __init__(self, project_data, experimental_metadata_parameters):
         # Dependency injection at ProjectManager construction
         self._project_data = project_data
 
-        self.metadata = dog_metadata_parameters
+        self.metadata = experimental_metadata_parameters
 
     @property
     def project_data(self):

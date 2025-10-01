@@ -1588,7 +1588,7 @@ class SpatialModelDOG(SpatialModelBase):
         )
 
     def _generate_DoG_with_rf_from_literature(
-        self, ret: Any, gc: Any, dog_metadata_parameters: dict
+        self, ret: Any, gc: Any, experimental_metadata_parameters: dict
     ) -> Any:
         """
         Generate Difference of Gaussians (DoG) model with dendritic field sizes from literature.
@@ -1596,7 +1596,7 @@ class SpatialModelDOG(SpatialModelBase):
         Parameters:
         ret: Object containing retina information
         gc: Object for ganglion cell data
-        dog_metadata_parameters: Metadata containing image scaling information
+        experimental_metadata_parameters: Metadata containing image scaling information
 
         Returns:
         Updated gc object with spatial parameters in millimeters.
@@ -1635,7 +1635,7 @@ class SpatialModelDOG(SpatialModelBase):
 
         gc.df = self.DoG_model.recalculate_ampl_s_from_relative_surround_volume(gc.df)
 
-        um_per_pixel = dog_metadata_parameters["data_microm_per_pix"]
+        um_per_pixel = experimental_metadata_parameters["data_microm_per_pix"]
         gc.df = self.DoG_model.scale_to_mm(gc.df, um_per_pixel)
 
         return gc
@@ -1714,11 +1714,13 @@ class SpatialModelDOG(SpatialModelBase):
         Returns:
         Tuple containing updated retina, ganglion cell data, and visualization image.
         """
-        dog_metadata_parameters = ret.experimental_archive["dog_metadata_parameters"]
+        experimental_metadata_parameters = ret.experimental_archive[
+            "experimental_metadata_parameters"
+        ]
 
         # Step 1: Generate DoG parameters
         gc = self._generate_DoG_with_rf_from_literature(
-            ret, gc, dog_metadata_parameters
+            ret, gc, experimental_metadata_parameters
         )
 
         # Step 2: Calculate dendritic diameter
@@ -4134,12 +4136,14 @@ class ConcreteRetinaBuilder(RetinaBuildInterface):
         """
         gc_pos_ecc_mm = np.array(gc.df.pos_ecc_mm.values)
 
-        dog_metadata_parameters = self.experimental_archive["dog_metadata_parameters"]
-        exp_um_per_pix = dog_metadata_parameters["data_microm_per_pix"]
+        experimental_metadata_parameters = self.experimental_archive[
+            "experimental_metadata_parameters"
+        ]
+        exp_um_per_pix = experimental_metadata_parameters["data_microm_per_pix"]
         # Mean fitted dendritic diameter for the original experimental data
 
         exp_dd_um = self.DoG_model.exp_cen_radius_mm * 2 * 1000  # in micrometers
-        exp_pix_per_side = dog_metadata_parameters["data_spatialfilter_height"]
+        exp_pix_per_side = experimental_metadata_parameters["data_spatialfilter_height"]
 
         # Get rf diameter vs eccentricity
         dict_key = "{0}_{1}".format(ret.gc_type, ret.dd_regr_model)
@@ -5054,7 +5058,9 @@ class ConstructRetina(Printable):
         dict
             The updated data dictionary with metadata.
         """
-        data["dog_metadata_parameters"] = self.context.dog_metadata_parameters
+        data["experimental_metadata_parameters"] = (
+            self.context.experimental_metadata_parameters
+        )
         return data
 
     def _get_statistics_context(
@@ -5065,7 +5071,9 @@ class ConstructRetina(Printable):
         experimental_archive: dict,
     ) -> None:
 
-        path = experimental_archive["dog_metadata_parameters"]["exp_rf_stat_folder"]
+        path = experimental_archive["experimental_metadata_parameters"][
+            "exp_rf_stat_folder"
+        ]
         filename_stem = f"{gc_type}_{response_type}_{dog_model_type}"
 
         filetypes = [

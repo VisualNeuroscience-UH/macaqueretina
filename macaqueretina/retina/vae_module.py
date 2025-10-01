@@ -687,7 +687,9 @@ class RetinaVAE(RetinaMath):
         save_tuned_models=False,
     ):
 
-        self.dog_metadata_parameters = self.context.dog_metadata_parameters
+        self.experimental_metadata_parameters = (
+            self.context.experimental_metadata_parameters
+        )
         vae_train_parameters = self.context.retina_parameters["vae_train_parameters"]
         self.epochs = vae_train_parameters["epochs"]
         self.lr_step_size = vae_train_parameters["lr_step_size"]
@@ -944,7 +946,7 @@ class RetinaVAE(RetinaMath):
 
         # Get requested data
         self.experimental_data = ExperimentalData(
-            self.dog_metadata_parameters, self.gc_type, self.response_type
+            self.experimental_metadata_parameters, self.gc_type, self.response_type
         )
 
         # Log requested label
@@ -990,7 +992,7 @@ class RetinaVAE(RetinaMath):
         ):
             print(f"Loading data for {gc_type}_{response_type} (label {label})")
             experimental_data = ExperimentalData(
-                self.dog_metadata_parameters, gc_type, response_type
+                self.experimental_metadata_parameters, gc_type, response_type
             )
             bad_data_idx = experimental_data.known_bad_data_idx
             (

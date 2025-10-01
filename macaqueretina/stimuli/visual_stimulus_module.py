@@ -979,7 +979,7 @@ class AnalogInput:
         elif coord_type == "real":
             rf = self.ReceptiveFields(
                 self.context.retina_parameters,
-                self.context.dog_metadata_parameters,
+                self.context.experimental_metadata_parameters,
                 self.data_io.get_data,
                 self.pol2cart_df,
             )

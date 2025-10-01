@@ -58,13 +58,6 @@ retina_parameters_append:
   fit_statistics: "multivariate"  # "univariate" or "multivariate" Applies only to DOG spatial and fixed temporal model statistics.
   ecc_limit_for_dd_fit: 20  # 20,  # degrees, math.inf for no limit
 
-dog_metadata_parameters:
-  data_microm_per_pix: 60
-  data_spatialfilter_height: 13
-  data_spatialfilter_width: 13
-  data_fps: 30
-  data_temporalfilter_samples: 15
-
 # Proportion from all ganglion cells.
 proportion_of_parasol_gc_type: 0.08
 proportion_of_midget_gc_type: 0.64
