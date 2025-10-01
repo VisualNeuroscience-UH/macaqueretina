@@ -118,7 +118,7 @@ class YamlLoader:
 
 class NestedConfig:
     """
-    Attribute-style access to nested dictionary values.
+    Provides the attribute-style access to nested dictionary values.
 
     Notes
     -----

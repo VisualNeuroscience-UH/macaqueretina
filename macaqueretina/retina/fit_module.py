@@ -1045,7 +1045,7 @@ class FitExperimental(FitDataTypeTemplate):
         self.experimental_data = ExperimentalData(
             self.metadata, self.gc_type, self.response_type
         )
-        self.bad_data_idx = self.experimental_data.manually_picked_bad_data_idx
+        self.bad_data_idx = self.experimental_data.known_bad_data_idx
         self.n_cells = self.experimental_data.n_cells
 
         # Read experimental data and manually picked bad data indices
@@ -1427,14 +1427,14 @@ class Fit(RetinaMath):
                 DoG_model = FitCircular()
 
         match self.fit_type:
-            # case "experimental":
-            #     fit_data_type = FitExperimental(
-            #         DoG_model,
-            #         self.diff_of_lowpass_filters,
-            #         self.metadata,
-            #         self.gc_type,
-            #         self.response_type,
-            #     )
+            case "experimental":
+                fit_data_type = FitExperimental(
+                    DoG_model,
+                    self.diff_of_lowpass_filters,
+                    self.metadata,
+                    self.gc_type,
+                    self.response_type,
+                )
             case "generated":
                 fit_data_type = FitGenerated(
                     DoG_model,

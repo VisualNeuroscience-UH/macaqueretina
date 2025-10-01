@@ -1,11 +1,11 @@
 """ 
-Read data from the experimental dataset.
+Example implementation for reading data from an experimental dataset. 
+This module is specific to the each dataset and needs to be adjusted 
+accordingly.
 """
 
 # Third-party
-# Numerical
 import numpy as np
-import pandas as pd
 import scipy.io as sio
 
 
@@ -29,20 +29,20 @@ class ExperimentalData:
         # Non-spatial data are read from the original data files.
         if gc_type == "parasol" and response_type == "on":
             self.spatial_filename = "Parasol_ON_spatial.mat"
-            self.manually_picked_bad_data_idx = [9, 15, 20, 25, 71, 86, 89]
-            self.filename_nonspatial = "mosaicGLM_apricot_ONParasol-1-mat.mat"
+            self.known_bad_data_idx = [9, 15, 20, 25, 71, 86, 89]
+            self.nonspatial_filename = "mosaicGLM_apricot_ONParasol-1-mat.mat"
         elif gc_type == "parasol" and response_type == "off":
             self.spatial_filename = "Parasol_OFF_spatial.mat"
-            self.manually_picked_bad_data_idx = [6, 31, 71, 73]
-            self.filename_nonspatial = "mosaicGLM_apricot_OFFParasol-1-mat.mat"
+            self.known_bad_data_idx = [6, 31, 71, 73]
+            self.nonspatial_filename = "mosaicGLM_apricot_OFFParasol-1-mat.mat"
         elif gc_type == "midget" and response_type == "on":
             self.spatial_filename = "Midget_ON_spatial.mat"
-            self.manually_picked_bad_data_idx = [13, 23]
-            self.filename_nonspatial = "mosaicGLM_apricot_ONMidget-1-mat.mat"
+            self.known_bad_data_idx = [13, 23]
+            self.nonspatial_filename = "mosaicGLM_apricot_ONMidget-1-mat.mat"
         elif gc_type == "midget" and response_type == "off":
             self.spatial_filename = "Midget_OFF_spatial.mat"
-            self.manually_picked_bad_data_idx = [39, 43, 50, 56, 65, 129, 137]
-            self.filename_nonspatial = "mosaicGLM_apricot_OFFMidget-1-mat.mat"
+            self.known_bad_data_idx = [39, 43, 50, 56, 65, 129, 137]
+            self.nonspatial_filename = "mosaicGLM_apricot_OFFMidget-1-mat.mat"
         else:
             raise NotImplementedError("Unknown cell type or response type, aborting")
 
@@ -58,8 +58,8 @@ class ExperimentalData:
         }
 
         # Read nonspatial data. Data type is numpy nd array, but it includes a lot of metadata.
-        filepath = self.experimental_data_folder / self.filename_nonspatial
-        raw_data = sio.loadmat(filepath)  # , squeeze_me=True)
+        filepath = self.experimental_data_folder / self.nonspatial_filename
+        raw_data = sio.loadmat(filepath)
         self.data = raw_data["mosaicGLM"][0]
 
         self.n_cells = len(self.data)
@@ -67,7 +67,7 @@ class ExperimentalData:
 
     def _get_inverted_indices(self):
         """
-        The rank-1 space and time matrices in the dataset have bumps in an inconsistent way, but the
+        The rank-1 space and time matrices in the dataset may have bumps in an inconsistent way, but the
         outer product always produces a positive deflection first irrespective of on/off polarity.
         This method tells which cell indices you need to flip to get a spatial filter with positive central component.
 
@@ -83,25 +83,6 @@ class ExperimentalData:
         ).flatten()
 
         return inverted_data_indices
-
-    def _read_postspike_filter(self):
-        postspike_filter = np.array(
-            [
-                self.data[cellnum][0][0][0][0][0][2][0][0][0]
-                for cellnum in range(self.n_cells)
-            ]
-        )
-        return postspike_filter[:, :, 0]
-
-    def _read_space_rk1(self):
-        space_rk1 = np.array(
-            [
-                self.data[cellnum][0][0][0][0][0][3][0][0][2]
-                for cellnum in range(self.n_cells)
-            ]
-        )
-        # Assuming 13x13 pixels in the dataset
-        return np.reshape(space_rk1, (self.n_cells, 13**2))
 
     # Called from Fit
     def read_spatial_filter_data(self):
@@ -121,7 +102,7 @@ class ExperimentalData:
             if cen_rot_rad < 0:  # For negative angles, turn positive
                 cen_rot_rad_all[cell_idx] = cen_rot_rad + 2 * np.pi
 
-        n_bad = len(self.manually_picked_bad_data_idx)
+        n_bad = len(self.known_bad_data_idx)
         print("\n[%s %s]" % (self.gc_type, self.response_type))
         print(
             "Read %d cells from datafile and then removed %d bad cells (handpicked)"
@@ -138,7 +119,7 @@ class ExperimentalData:
             ]
         )
         if remove_bad_data_idx is True:
-            tonic_drive[self.manually_picked_bad_data_idx] = 0.0
+            tonic_drive[self.known_bad_data_idx] = 0.0
 
         return tonic_drive
 

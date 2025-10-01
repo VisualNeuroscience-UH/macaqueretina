@@ -1,6 +1,8 @@
 """
 Parameter validation with Pydantic.
 
+Project and data specific.
+
 Each parameter in the project configuration, after being loaded, is validated
 against the required type. Any parameters that need to be derived from
 other parameters are computed here.
@@ -73,7 +75,7 @@ class RetinaParameters(BaseConfigModel):
         default=True, description="If True, rebuilds retina even if the hash matches"
     )
     vae_run_mode: Literal["load_model", "train_model"] = Field(
-        default="load_model", description="train_model is for internal use only"
+        default="train_model", description="train_model requires experimental data"
     )
     model_file_name: str | None = Field(
         default=None,
@@ -455,9 +457,6 @@ class ConfigParams(BaseConfigModel):
     )
     input_folder: str
     output_folder: str
-    testrun: bool = Field(
-        description="If False stops execution before heavy calculations"
-    )
     numpy_seed: int = Field(
         ge=0,
         le=1000000,

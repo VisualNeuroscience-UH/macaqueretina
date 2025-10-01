@@ -992,7 +992,7 @@ class RetinaVAE(RetinaMath):
             experimental_data = ExperimentalData(
                 self.dog_metadata_parameters, gc_type, response_type
             )
-            bad_data_idx = experimental_data.manually_picked_bad_data_idx
+            bad_data_idx = experimental_data.known_bad_data_idx
             (
                 gc_spatial_data_np_orig,
                 _,

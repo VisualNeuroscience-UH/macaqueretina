@@ -1,3 +1,12 @@
+"""
+Module on retina management
+
+We use dependency injection to make the code more modular and easier to test.
+It means that during construction here at the manager level, we can inject
+an object instance to constructor of a "client", which becomes an attribute
+of the instance.
+"""
+
 # Third-party
 import numpy as np
 
@@ -18,18 +27,6 @@ from macaqueretina.retina.vae_module import RetinaVAE
 from macaqueretina.stimuli.experiment_module import Experiment
 from macaqueretina.stimuli.visual_stimulus_module import AnalogInput, VisualStimulus
 from macaqueretina.viz.viz_module import Viz, VizResponse
-
-
-"""
-Module on retina management
-
-We use dependency injection to make the code more modular and easier to test.
-It means that during construction here at the manager level, we can inject
-an object instance to constructor of a "client", which becomes an attribute
-of the instance.
-
-Simo Vanni 2022
-"""
 
 
 class ProjectData:
