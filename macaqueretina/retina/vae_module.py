@@ -1,6 +1,4 @@
 # Built-in
-import os
-import time
 from collections import OrderedDict
 from copy import deepcopy
 from datetime import datetime
@@ -12,21 +10,12 @@ from sys import exit
 import matplotlib.pyplot as plt  # plotting library
 import numpy as np  # this module is useful to work with numerical arrays
 import pandas as pd
-import psutil
-
-# import ray
 import torch
 import torch.optim.lr_scheduler as lr_scheduler
-
-# from optuna.samplers import TPESampler
-# from ray import air, tune
-# from ray.tune import Callback, CLIReporter
-# from ray.tune.schedulers import ASHAScheduler
-# from ray.tune.search.optuna import OptunaSearch
 from scipy.ndimage import fourier_shift, rotate
 from sklearn.model_selection import train_test_split
 from torch import nn
-from torch.utils.data import DataLoader, random_split
+from torch.utils.data import DataLoader
 from torchmetrics import MeanSquaredError, StructuralSimilarityIndexMeasure
 from torchmetrics.image.kid import KernelInceptionDistance
 from torchsummary import summary
@@ -684,7 +673,6 @@ class RetinaVAE(RetinaMath):
 
     def client(
         self,
-        save_tuned_models=False,
     ):
 
         self.experimental_metadata = self.context.experimental_metadata
@@ -694,14 +682,6 @@ class RetinaVAE(RetinaMath):
         self.lr_gamma = vae_train_parameters["lr_gamma"]
         self.resolution_hw = vae_train_parameters["resolution_hw"]
 
-        # For ray tune only
-        self.grid_search = vae_train_parameters["grid_search"]
-        self.time_budget = vae_train_parameters["time_budget"]
-        self.grace_period = vae_train_parameters["grace_period"]
-
-        #######################
-        # Single run parameters
-        #######################
         self.latent_dim = vae_train_parameters["latent_dim"]
         self.channels = vae_train_parameters["channels"]
         self.lr = vae_train_parameters["lr"]
@@ -1376,7 +1356,5 @@ class RetinaVAE(RetinaMath):
             encoded_samples.append(encoded_sample)
 
         encoded_samples = pd.DataFrame(encoded_samples)
-
-        return encoded_samples
 
         return encoded_samples
