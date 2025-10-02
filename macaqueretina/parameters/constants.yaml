@@ -1,15 +1,9 @@
 vae_train_parameters:
-  # Fixed values for both single training and ray tune runs
   epochs: 5 # Number of training epochs
   lr_step_size: 20 # Learning rate decay step size (in epochs)
   lr_gamma: 0.9 # Learning rate decay (multiplier for learning rate)
   # how many times to get the data, applied only if augmentation_dict is not None
   resolution_hw: 13 # Both x and y. Images will be sampled to this space.
-  # For ray tune only
-  # If grid_search is True, time_budget and grace_period are
-  grid_search: True  # False for tune by Optuna, True for grid search
-  time_budget: 345600  # in seconds
-  grace_period: 50  # epochs. ASHA stops earliest at grace period.
   # Set common VAE model parameters
   latent_dim: 32  # 32  # 2**1 - 2**6, use powers of 2 btw 2 and 128
   channels: 16
