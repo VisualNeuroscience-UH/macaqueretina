@@ -2388,9 +2388,7 @@ class Viz:
             Matplotlib Axes object to plot on. If not provided, uses the current axis.
         """
 
-        assert (
-            self.context.retina_parameters["temporal_model_type"] == "fixed"
-        ), "No fixed temporal filter for dynamic temporal model, aborting..."
+        self._check_for_fixed_model()
 
         spat_temp_filter_to_show = self.project_data.simulate_retina[
             "spat_temp_filter_to_show"
@@ -2413,120 +2411,6 @@ class Viz:
         plt.xlabel("Frequency (Hz)")
         plt.ylabel("Gain")
         ax.plot(freqs, ampl_s, ".")
-
-        if savefigname is not None:
-            self._figsave(figurename=savefigname)
-
-    def plot_midpoint_contrast(self, unit_index=0, ax=None, savefigname=None):
-        """
-        Plot the contrast at the midpoint pixel of the stimulus cropped to a specified RGC's surroundings.
-
-        Parameters
-        ----------
-        unit_index : int, optional
-            Index of the RGC for which to plot the contrast. Default is 0.
-        ax : matplotlib.axes.Axes, optional
-            Matplotlib Axes object to plot on. If not provided, uses the current axis.
-
-        """
-        stim_to_show = self.project_data.simulate_retina["stim_to_show"]
-        spatial_filter_sidelen = stim_to_show["spatial_filter_sidelen"]
-        stimulus_video = stim_to_show["stimulus_video"]
-        stimulus_cropped_all = stim_to_show["stimulus_cropped"]
-        stimulus_cropped = stimulus_cropped_all[unit_index]
-
-        midpoint_ix = (spatial_filter_sidelen - 1) // 2
-        signal = stimulus_cropped[midpoint_ix, midpoint_ix, :]
-
-        video_dt = (1 / stimulus_video.fps) * b2u.second
-        tvec = np.arange(0, len(signal)) * video_dt
-
-        if ax is None:
-            fig, ax = plt.subplots()
-
-        ax.plot(tvec, signal)
-        ax.set_ylim([-1, 1])
-
-        if savefigname is not None:
-            self._figsave(figurename=savefigname)
-
-    def plot_local_rms_contrast(self, unit_index=0, ax=None, savefigname=None):
-        """
-        Plot the local RMS contrast for the stimulus cropped to a specified RGC's surroundings.
-
-        Parameters
-        ----------
-        unit_index : int, optional
-            Index of the RGC for which to plot the local RMS contrast. Default is 0.
-        ax : matplotlib.axes.Axes, optional
-            Matplotlib Axes object to plot on. If not provided, uses the current axis.
-        """
-        stim_to_show = self.project_data.simulate_retina["stim_to_show"]
-        stimulus_cropped_all = stim_to_show["stimulus_cropped"]
-        stimulus_cropped = stimulus_cropped_all[unit_index]
-        stimulus_video = stim_to_show["stimulus_video"]
-        spatial_filter_sidelen = stim_to_show["spatial_filter_sidelen"]
-        # Invert from Weber contrast
-        stimulus_cropped = 127.5 * (stimulus_cropped + 1.0)
-
-        n_frames = stimulus_video.video_n_frames
-        sidelen = spatial_filter_sidelen
-        signal = np.zeros(n_frames)
-
-        for t in range(n_frames):
-            frame_mean = np.mean(stimulus_cropped[:, :, t])
-            squared_sum = np.sum((stimulus_cropped[:, :, t] - frame_mean) ** 2)
-            signal[t] = np.sqrt(1 / (frame_mean**2 * sidelen**2) * squared_sum)
-
-        video_dt = (1 / stimulus_video.fps) * b2u.second
-        tvec = np.arange(0, len(signal)) * video_dt
-
-        if ax is None:
-            fig, ax = plt.subplots()
-
-        ax.plot(tvec, signal)
-        ax.set_ylim([0, 1])
-
-        if savefigname is not None:
-            self._figsave(figurename=savefigname)
-
-    def plot_local_michelson_contrast(self, unit_index=0, ax=None, savefigname=None):
-        """
-        Plot the local Michelson contrast for the stimulus cropped to a specified RGC's surroundings.
-
-        Parameters
-        ----------
-        unit_index : int, optional
-            Index of the RGC for which to plot the local Michelson contrast. Default is 0.
-        ax : matplotlib.axes.Axes, optional
-            Matplotlib Axes object to plot on. If not provided, uses the current axis.
-        """
-        stim_to_show = self.project_data.simulate_retina["stim_to_show"]
-        stimulus_cropped_all = stim_to_show["stimulus_cropped"]
-        stimulus_cropped = stimulus_cropped_all[unit_index]
-        stimulus_video = stim_to_show["stimulus_video"]
-
-        # Invert from Weber contrast
-        stimulus_cropped = 127.5 * (stimulus_cropped + 1.0)
-
-        n_frames = stimulus_video.video_n_frames
-        signal = np.zeros(n_frames)
-
-        # unsigned int will overflow when frame_max + frame_min = 256
-        stimulus_cropped = stimulus_cropped.astype(np.uint16)
-        for t in range(n_frames):
-            frame_min = np.min(stimulus_cropped[:, :, t])
-            frame_max = np.max(stimulus_cropped[:, :, t])
-            signal[t] = (frame_max - frame_min) / (frame_max + frame_min)
-
-        video_dt = (1 / stimulus_video.fps) * b2u.second
-        tvec = np.arange(0, len(signal)) * video_dt
-
-        if ax is None:
-            fig, ax = plt.subplots()
-
-        ax.plot(tvec, signal)
-        ax.set_ylim([0, 1])
 
         if savefigname is not None:
             self._figsave(figurename=savefigname)
@@ -3048,7 +2932,7 @@ class Viz:
         if savefigname:
             plt.savefig(savefigname)
 
-    def show_gc_noise(self, savefigname=None):
+    def show_gc_noise_hist_cov_mtx(self, savefigname=None):
         """
         Display the noise in ganglion cell (gc) responses.
 
@@ -3165,9 +3049,7 @@ class Viz:
             If a string is provided, the figure will be saved with this filename.
         """
 
-        assert (
-            self.context.retina_parameters["temporal_model_type"] == "fixed"
-        ), "No fixed temporal filter for dynamic temporal model, aborting..."
+        self._check_for_fixed_model()
 
         spat_temp_filter_to_show = self.project_data.simulate_retina[
             "spat_temp_filter_to_show"
@@ -3200,7 +3082,6 @@ class Viz:
 
         plt.subplot(122)
         if self.context.retina_parameters["temporal_model_type"] == "dynamic":
-            # Print text to middle of ax[1]: "No fixed temporal filter for dynamic temporal model"
             ax[1].text(
                 0.5,
                 0.5,
@@ -3218,7 +3099,14 @@ class Viz:
         if savefigname is not None:
             self._figsave(figurename=savefigname)
 
-    def show_spatiotemporal_filter_summary(self, savefigname=None):
+    def _check_for_fixed_model(self):
+        temporal_model_type = self.context.retina_parameters["temporal_model_type"]
+        if temporal_model_type != "fixed":
+            raise ValueError(
+                f"Not available for {temporal_model_type} model, aborting..."
+            )
+
+    def show_spatiotemporal_filter_sums(self, savefigname=None):
         """
         Display the spatiotemporal filter for all units in the current simulation.
 
@@ -3228,10 +3116,7 @@ class Viz:
         savefigname : str or None, optional
             If a string is provided, the figure will be saved with this filename.
         """
-
-        # assert (
-        #     self.context.retina_parameters["temporal_model_type"] == "fixed"
-        # ), "No fixed temporal filter for dynamic temporal model, aborting..."
+        self._check_for_fixed_model()
 
         spat_temp_filter_to_show = self.project_data.simulate_retina[
             "spat_temp_filter_to_show"
@@ -5187,7 +5072,7 @@ class VizResponse:
         """
 
         stimulus_video = self.data_io.load_stimulus_from_videofile(video_file_name)
-        breakpoint()
+
         self.vs = self.VisualSignal(
             self.context.visual_stimulus_parameters,
             self.context.retina_parameters["retina_center"],
