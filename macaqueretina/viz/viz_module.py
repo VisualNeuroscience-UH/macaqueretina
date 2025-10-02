@@ -3658,68 +3658,6 @@ class Viz:
         if savefigname:
             self._figsave(figurename=savefigname)
 
-    def ptp_response(
-        self, filename, exp_variables, x_of_interest=None, savefigname=None
-    ):
-        """
-        Plot the peak-to-peak firing rate magnitudes across conditions.
-
-        Parameters
-        ----------
-        filename : str
-            The name of the file containing the data to be plotted.
-        exp_variables : list of str
-            List of experimental variable names to be used for fetching the data and plotting.
-        x_of_interest : list of str or None
-            If provided, the data will be filtered to include only these variables.
-            If None, all data will be included.
-        savefigname : str or None
-            If not empty, the figure is saved to this filename.
-        """
-
-        data_folder = self.context.output_folder
-        cond_names_string = "_".join(exp_variables)
-        assert (
-            len(exp_variables) == 1
-        ), "Only one variable can be plotted at a time, aborting..."
-
-        experiment_df = pd.read_csv(data_folder / filename, index_col=0)
-        data_df = pd.read_csv(
-            data_folder / f"{cond_names_string}_PTP_population_means.csv", index_col=0
-        )
-
-        if x_of_interest is None:
-            data_df_selected = data_df
-        else:
-            data_df_selected = data_df.loc[:, x_of_interest]
-
-        # Turn series into array of values
-        x_values_df = experiment_df.loc[:, exp_variables]
-        x_values_series = x_values_df.iloc[0, :]
-        x_values_series = pd.to_numeric(x_values_series)
-
-        fig, ax = plt.subplots(1, 2, figsize=(8, 4))
-
-        plt.subplot(121)
-        plt.plot(
-            x_values_series.values,
-            data_df.mean().values,
-            color="black",
-        )
-
-        sns.boxplot(
-            data=data_df_selected,
-            color="black",
-            ax=ax[1],
-        )
-
-        # Title
-        ax[0].set_title(f"{cond_names_string} ptp (population mean)")
-        ax[1].set_title(f"{cond_names_string} ptp at two peaks and a through")
-
-        if savefigname:
-            self._figsave(figurename=savefigname)
-
     def spike_raster_response(self, filename, sweeps_to_show=[0], savefigname=None):
         """
         Show spikes from a results file.

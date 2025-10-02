@@ -170,16 +170,6 @@ class VaeTrainParameters(BaseConfigModel):
     resolution_hw: int = Field(
         default=13, description="Both x and y images will be sampled to this space."
     )
-    grid_search: bool = Field(
-        default=True, description="False for tune by Optuna, True for grid search"
-    )
-    time_budget: int = Field(
-        default=60 * 60 * 24 * 4, description="Time budget in seconds"
-    )
-    grace_period: int = Field(
-        default=50,
-        description="Grace period in epochs. ASHA stops earliest at grace period.",
-    )
     latent_dim: int = Field(
         default=32, description="Latent dimension (powers of 2 between 2 and 128)"
     )
