@@ -463,12 +463,11 @@ class DataSampler:
             (x, y) for x, y in zip(*[data["calib_x"], data["calib_y"]])
         ]
 
-    def quality_control(self, restore=False):
+    def quality_control(self):
         """Displays the original image with calibration and data points."""
         imagedata = plt.imread(self.filename)
 
-        if restore is True:
-            self._load_data()
+        self._load_data()
 
         # Convert data points to image units for plotting
         data_x, data_y = zip(*[self._to_image_units(x, y) for x, y in self.data_points])
