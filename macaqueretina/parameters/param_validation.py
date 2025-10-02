@@ -291,12 +291,12 @@ class SignalGain(BaseConfigModel):
 
 
 class ExperimentalMetadata(BaseConfigModel):
-    data_microm_per_pix: int = 60
-    data_spatialfilter_height: int = 13
-    data_spatialfilter_width: int = 13
-    data_fps: int = 30
-    data_temporalfilter_samples: int = 15
-    relative_data_path: Path = Path(".")
+    data_microm_per_pix: int | None = 60
+    data_spatialfilter_height: int | None = 13
+    data_spatialfilter_width: int | None = 13
+    data_fps: int | None = 30
+    data_temporalfilter_samples: int | None = 15
+    relative_data_path: Path | None = Path(".")
 
     @computed_field
     @property
@@ -481,7 +481,7 @@ class ConfigParams(BaseConfigModel):
     noise_gain_default: NoiseGainDefault
     dd_regr_model: DdRegrModel
     retina_parameters_append: RetinaParametersAppend
-    experimental_metadata: ExperimentalMetadata
+    experimental_metadata: ExperimentalMetadata | None = ExperimentalMetadata()
 
     proportion_of_parasol_gc_type: float = 0.08
     proportion_of_midget_gc_type: float = 0.64
