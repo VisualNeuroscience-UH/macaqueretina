@@ -57,11 +57,10 @@ mr.PM.construct_retina._get_parameters_for_build()  # TODO: Hack to get the reti
 # ################################################################################
 # #####     Interactive plot of spike frequency on stimulus video     ############
 # ################################################################################
-
-# video_file_name = mr.config.visual_stimulus_parameters["stimulus_video_name"]
+# video_file_name = mr.config.visual_stimulus_parameters.stimulus_video_name
 # # Zero index points to first file
 # file_idx = 0
-# response_file_name = mr.config.run_parameters["gc_response_filenames"][file_idx] + ".gz"
+# response_file_name = mr.config.run_parameters.gc_response_filenames[file_idx] + ".gz"
 
 # window_length = 0.1  # seconds
 # rate_scale = 20  # Hz, Colorscale max amplitude
