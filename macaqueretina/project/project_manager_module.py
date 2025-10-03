@@ -14,7 +14,7 @@ import numpy as np
 from macaqueretina.analysis.analysis_module import Analysis
 from macaqueretina.context.context_module import Context
 from macaqueretina.data_io.data_io_module import DataIO
-from macaqueretina.project.project_utilities_module import ProjectUtilities
+from macaqueretina.project.project_utilities_module import ProjectUtilities, DataSampler
 from macaqueretina.retina.construct_retina_module import ConstructRetina
 from macaqueretina.retina.fit_module import Fit
 from macaqueretina.retina.retina_math_module import RetinaMath
@@ -123,6 +123,8 @@ class ProjectManager(ProjectUtilities):
             get_w_z_coords=self.simulate_retina.get_w_z_coords,
         )
         self.analog_input = analog_input
+
+        self.data_sampler = DataSampler
 
         # Set numpy random seed
         np.random.seed(self.context.numpy_seed)
