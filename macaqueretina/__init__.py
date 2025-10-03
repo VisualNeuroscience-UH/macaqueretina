@@ -34,6 +34,8 @@ countlines = PM.countlines
 
 get_data = PM.data_io.get_data
 
+DataSampler = PM.data_sampler
+
 __all__ = [
     "config",
     "construct_retina",

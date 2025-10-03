@@ -221,15 +221,12 @@ mr.PM.construct_retina._get_parameters_for_build()  # TODO: Hack to get the reti
 #     r"macaqueretina/retina/validation_data", filename
 # )
 
-# # Local
-# from macaqueretina.project.project_utilities_module import DataSampler
-
 # # Plot lowest and highest tick values in the image, use these as calibration points
 # min_X, max_X, min_Y, max_Y = (0.1, 10, 1, 100)  # Needs to be set for each figure
-# ds = DataSampler(filename_full, min_X, max_X, min_Y, max_Y, logX=True, logY=True)
+# ds = mr.DataSampler(filename_full, min_X, max_X, min_Y, max_Y, logX=True, logY=True)
 
 # # ds.collect_and_save_points() # Will overwrite existing data file
-# ds.quality_control() # Show image with calibration and data points
+# ds.quality_control()  # Show image with calibration and data points
 # # x_data, y_data = ds.get_data_arrays() # Get data arrays for further processing
 
 
