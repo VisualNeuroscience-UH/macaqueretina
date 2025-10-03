@@ -15,7 +15,7 @@ import macaqueretina as mr
 ###         Single Trial        ###
 ###################################
 ###################################
-mr.PM.construct_retina._get_parameters_for_build()  # Hack to get the retina_parameters updated
+mr.PM.construct_retina._get_parameters_for_build()  # TODO: Hack to get the retina_parameters updated
 
 
 # mr.construct_retina()
@@ -65,7 +65,7 @@ mr.PM.construct_retina._get_parameters_for_build()  # Hack to get the retina_par
 
 # window_length = 0.1  # seconds
 # rate_scale = 20  # Hz, Colorscale max amplitude
-# mr.PM.viz_spikes_with_stimulus.client(
+# mr.viz_spikes_with_stimulus(
 #     video_file_name, response_file_name, window_length, rate_scale
 # )
 
@@ -97,7 +97,7 @@ mr.PM.construct_retina._get_parameters_for_build()  # Hack to get the retina_par
 #     "distributions": {"uniform": None},
 # }
 
-# filename = mr.PM.experiment.build_and_run(
+# filename = mr.experiment.build_and_run(
 #     experiment_parameters, build_without_run=False, show_histogram=False
 # )
 # filename = "exp_metadata_orientation_spatial_frequency_edd770296d0e.csv"
@@ -111,25 +111,25 @@ mr.PM.construct_retina._get_parameters_for_build()  # Hack to get the retina_par
 #     "t_start_ana": 0.5,
 #     "t_end_ana": 6.5,
 # }
-# mr.PM.ana.analyze_experiment(filename, my_analysis_options)
-# mr.PM.ana.unit_correlation(
+# mr.analysis.analyze_experiment(filename, my_analysis_options)
+# mr.analysis.unit_correlation(
 #     filename, my_analysis_options, "parasol", "on", gc_units=None
 # )
 
 ############################
 ### Visualize experiment ###
 ############################
-# mr.PM.viz.spike_raster_response(filename, sweeps_to_show=[0], savefigname="exp.png")
-# mr.PM.viz.F1F2_popul_response(
+# mr.viz.spike_raster_response(filename, sweeps_to_show=[0], savefigname="exp.png")
+# mr.viz.F1F2_popul_response(
 #     filename,
 #     exp_variables,
 #     xlog=True,
 #     savefigname=None,
 # )
-# mr.PM.viz.F1F2_unit_response(filename, exp_variables, xlog=True, savefigname=None)
+# mr.viz.F1F2_unit_response(filename, exp_variables, xlog=True, savefigname=None)
 
 # # Contrast gain
-# mr.PM.viz.tf_vs_fr_cg(
+# mr.viz.tf_vs_fr_cg(
 #     filename,
 #     exp_variables,
 #     n_contrasts=2,
@@ -139,11 +139,11 @@ mr.PM.construct_retina._get_parameters_for_build()  # Hack to get the retina_par
 # )
 
 # # Unit correlation vs distance
-# mr.PM.viz.show_unit_correlation(
+# mr.viz.show_unit_correlation(
 #     filename, exp_variables, time_window=[-0.2, 0.2], savefigname=None
 # )
 
-# mr.PM.viz.fr_response(filename, exp_variables, xlog=True, savefigname=None)
+# mr.viz.fr_response(filename, exp_variables, xlog=True, savefigname=None)
 
 
 #################################
@@ -152,13 +152,13 @@ mr.PM.construct_retina._get_parameters_for_build()  # Hack to get the retina_par
 #################################
 #################################
 
-# mr.PM.countlines(Path("macaqueretina"))
+# mr.countlines(Path("macaqueretina"))
 
 # # Load arbitrary data to workspace
 # filename_parents = mr.config.output_folder
 # filename_offspring = f"gc_response_00.gz"
 # filename = Path(filename_parents).joinpath(filename_offspring)
-# xx = mr.PM.data_io.get_data(filename)
+# xx = mr.get_data(filename)
 # print(type(xx))
 
 
@@ -177,15 +177,15 @@ mr.PM.construct_retina._get_parameters_for_build()  # Hack to get the retina_par
 #########################################
 ##          Show unity data           ###
 #########################################
-# # See Gauthier_2009_PLoSBiol for details
-# mr.PM.simulate_retina.client(unity=True)
+# See Gauthier_2009_PLoSBiol for details
+# mr.simulate_retina(unity=True)
 # mr.viz.show_unity(savefigname=None)
 
 ##########################################
 ###       Show impulse response        ###
 ##########################################
-# mr.PM.context.run_parameters["contrasts_for_impulse"] = [1.0]
-# mr.PM.simulate_retina.client(impulse=True)
+# mr.config.run_parameters["contrasts_for_impulse"] = [1.0]
+# mr.simulate_retina(impulse=True)
 # mr.viz.show_impulse_response(savefigname=None)
 
 
@@ -219,7 +219,7 @@ mr.PM.construct_retina._get_parameters_for_build()  # Hack to get the retina_par
 # # TODO. make the git_repo_root_path available from the package
 # project_conf_module_file_path = Path(__file__).resolve()
 # git_repo_root_path = project_conf_module_file_path.parent.parent.parent
-# # breakpoint()
+
 
 # # Example validation file
 # filename = "Derrington_1984b_Fig10B_magno_spatial.jpg"
@@ -243,12 +243,12 @@ mr.PM.construct_retina._get_parameters_for_build()  # Hack to get the retina_par
 ### NOT FUNCTIONAL YET ###
 #########################################
 # # Relative gain
-# mr.PM.ana.relative_gain(filename, my_analysis_options)
-# mr.PM.viz.show_relative_gain(filename, exp_variables, savefigname=None)
+# mr.analysis.relative_gain(filename, my_analysis_options)
+# mr.viz.show_relative_gain(filename, exp_variables, savefigname=None)
 
 # # Subunit response vs background
-# mr.PM.ana.response_vs_background(filename, my_analysis_options)
-# mr.PM.viz.show_response_vs_background_experiment(unit="cd/m2", savefigname=None)
+# mr.ana.response_vs_background(filename, my_analysis_options)
+# mr.viz.show_response_vs_background_experiment(unit="cd/m2", savefigname=None)
 
 
 ############################
