@@ -216,14 +216,9 @@ mr.PM.construct_retina._get_parameters_for_build()  # TODO: Hack to get the reti
 #   Sample figure data from literature  ##
 ##########################################
 
-# # TODO. make the git_repo_root_path available from the package
-# project_conf_module_file_path = Path(__file__).resolve()
-# git_repo_root_path = project_conf_module_file_path.parent.parent.parent
-
-
 # # Example validation file
 # filename = "Derrington_1984b_Fig10B_magno_spatial.jpg"
-# filename_full = git_repo_root_path.joinpath(
+# filename_full = mr.config.git_repo_root_path.joinpath(
 #     r"macaqueretina/retina/validation_data", filename
 # )
 

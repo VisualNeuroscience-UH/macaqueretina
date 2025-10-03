@@ -548,6 +548,7 @@ class ConfigParams(BaseConfigModel):
     def set_derived_values(self):
         # Set parameters that depend on another value in a different class
         self.project_conf_module_file_path = proj_conf_mod_file_path
+        self.git_repo_root_path = git_repo_path
         if self.visual_stimulus_parameters.stimulus_video_name is None:
             self.visual_stimulus_parameters.stimulus_video_name = (
                 f"{self.stimulus_folder}.mp4"
