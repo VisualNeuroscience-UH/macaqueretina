@@ -39,10 +39,16 @@ DataSampler = PM.data_sampler
 __all__ = [
     "config",
     "construct_retina",
-    "stimulate",
+    "make_stimulus",
     "simulate_retina",
     "viz",
+    "viz_spikes_with_stimulus",
     "retina_math",
+    "experiment",
+    "analysis",
+    "countlines",
+    "get_data",
+    "DataSampler",
 ]
 
 del (_lp, _PM)
