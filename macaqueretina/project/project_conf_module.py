@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 # Built-in
 import time
 import warnings
@@ -13,8 +15,7 @@ from macaqueretina.parameters.param_reorganizer import ParamReorganizer
 from macaqueretina.project.project_manager_module import ProjectManager
 
 if TYPE_CHECKING:
-    # Local
-    from macaqueretina.data_io.config_io import ConfigManager
+    from macaqueretina.data_io.config_io import Configuration
 
 start_time = time.time()
 warnings.simplefilter("ignore")
@@ -53,7 +54,7 @@ def _get_validation_params_method(base: Path) -> Callable | None:
             )
 
 
-def load_parameters() -> "ConfigManager":
+def load_parameters() -> Configuration:
     """Load configuration parameters. TODO from where?"""
     project_conf_module_file_path = Path(__file__).resolve()
     git_repo_root_path = project_conf_module_file_path.parent.parent
@@ -65,7 +66,7 @@ def load_parameters() -> "ConfigManager":
 
     validate_params: Callable | None = _get_validation_params_method(base)
 
-    config: ConfigManager = load_yaml(yaml_files)
+    config: Configuration = load_yaml(yaml_files)
 
     if validate_params:
         validated_config = validate_params(
@@ -80,7 +81,7 @@ def load_parameters() -> "ConfigManager":
     return config
 
 
-def dispatcher(PM: "ProjectManager", config: "ConfigManager"):
+def dispatcher(PM: ProjectManager, config: Configuration):
     # TODO what does this do?
     run = config.run
     if run.build_retina:
