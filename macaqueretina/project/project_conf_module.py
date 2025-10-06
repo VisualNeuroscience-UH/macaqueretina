@@ -74,8 +74,9 @@ def load_parameters() -> "ConfigManager":
         validated_config = validated_config.model_dump()
         reorganized_config = reorganizer.reorganize(validated_config)
 
-        config._config = reorganized_config
-
+        # TODO: temporary hook to get the configuraion validated. Use a more elegant solution in validate_params.
+        config.clear()
+        config.update(reorganized_config)
     return config
 
 

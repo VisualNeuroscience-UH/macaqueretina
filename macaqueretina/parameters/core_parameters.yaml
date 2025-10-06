@@ -4,7 +4,7 @@
 
 model_root_path: "/opt3/projects"
 project: "macaqueretina"
-experiment: "test_exposing"
+experiment: "test_config_io_refactor_2"
 input_folder: "../in"  # input figs, videos, models
 output_folder: "test" # spikes, retinas, experiment metadata
 numpy_seed: 42  # random.randint(0, 1000000)  # 42

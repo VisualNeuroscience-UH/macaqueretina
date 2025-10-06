@@ -1,26 +1,43 @@
 """
-Load configuration parameters from YAML files into a ConfigManager object.
+Load and merge YAML configuration files into a Configuration object that supports
+accessing the parameters within with dict-like and attribute-like access.
 
 Notes
 -----
-Only the load_yaml façade is exposed; call:
+    Duplicate top-level keys across files raise ValueError showing YAML source
+    locations.
+    load_yaml(paths: Iterable[Path | str] | Path | str) -> Configuration: façade that
+    accepts either an iterable of paths or a single Path/str.
 
->>> from .config.config_manager import load_yaml
-
-to access all the module's functionalities.
+Examples
+--------
+    >>> yaml_files = [...] # List of your YAML files
+    >>> config = load_yaml(yaml_files)
+    >>> config.parameter # Prints "parameter"
+    >>> config.as_dict()  # Returns the configuration as a dict
 """
 
 # Built-in
+import datetime
+import hashlib
+from collections.abc import MutableMapping
 from pathlib import Path
-from typing import Any, Iterable, Mapping
+from typing import Any, Iterable, Iterator, Mapping
 
 # Third-party
+import numpy as np
+from brian2.units.fundamentalunits import Quantity
 from yaml import YAMLError, safe_load
 
+_SENTINEL = object()
 
-class YamlLoader:
-    """Loads one or multiple YAML files.
-    Merges multiple YAML files into a configuration dict."""
+
+class _YamlLoader:
+    """
+    Loads one or multiple YAML files.
+    Merges multiple YAML files into a Configuration object.
+    Top-level parameters must have unique names.
+    """
 
     def __init__(self, yaml_paths: Iterable[Path | str]) -> None:
         self.yaml_paths: list[Path] = [Path(p) for p in yaml_paths]
@@ -51,14 +68,16 @@ class YamlLoader:
 
             with open(path, "r", encoding="utf-8") as file:
                 try:
-                    config = safe_load(file)
-                    if config is None:
+                    yaml_contents = safe_load(file)
+                    if yaml_contents is None:
                         raise ValueError(f"Configuration file is empty: {path!s}")
-                    if not isinstance(config, dict):
+                    if not isinstance(yaml_contents, dict):
                         raise ValueError(
                             f"Top-level of YAML must be a mapping in {path!s}"
                         )
-                    combined_config = self._merge_configs(combined_config, config, path)
+                    combined_config = self._merge_configs(
+                        combined_config, yaml_contents, path
+                    )
                 except YAMLError as e:
                     raise ValueError(
                         f"Invalid YAML in configuration file {path}: {e}"
@@ -67,7 +86,7 @@ class YamlLoader:
                     if isinstance(e, ValueError):
                         raise
                     raise RuntimeError(
-                        f"Failed to load required config from {path}: {e}"
+                        f"Failed to load required Configuration from {path}: {e}"
                     ) from e
         return combined_config
 
@@ -116,180 +135,258 @@ class YamlLoader:
         return combined_config
 
 
-class NestedConfig:
+class Configuration(MutableMapping):
     """
-    Provides the attribute-style access to nested dictionary values.
-
-    Notes
-    -----
-    Allows to access parameters throughout the codebase as, e.g.:
-        self.context.unit_pos.TH.shape
-    Instead of:
-        self.context.unit_pos["TH"]["shape"]
-    or:
-        self.context.unit_pos.get("TH").get("shape").
+    Configuration object.
+    It provides attribute-like and dict-like read/write access to all parameters.
     """
 
-    def __init__(self, config_dict: dict[str, Any]) -> None:
-        self._config = dict(config_dict)
+    def __init__(self, initial: Mapping[str, Any] | None = None) -> None:
+        super().__setattr__("_data", {})
+        if initial:
+            for k, v in dict(initial).items():
+                self._data[k] = Configuration(v) if isinstance(v, dict) else v
 
-    def _wrap(self, value: Any) -> Any:
-        if isinstance(value, dict):
-            return NestedConfig(value)
-        return value
-
-    def __getattr__(self, name: str) -> Any:
-        if name in self._config:
-            return self._wrap(self._config[name])
-        raise AttributeError(f"No attribute '{name}' found")
-
+    # MutableMapping core methods
     def __getitem__(self, key: str) -> Any:
-        if key in self._config:
-            return self._wrap(self._config[key])
-        raise KeyError(f"Configuration key not found: {key}")
+        return self._data[key]
 
     def __setitem__(self, key: str, value: Any) -> None:
-        """Allow dictionary-style item assignment."""
-        self._config[key] = value
+        self._data[key] = Configuration(value) if isinstance(value, dict) else value
+
+    def __delitem__(self, key: str) -> None:
+        del self._data[key]
+
+    def __iter__(self) -> Iterator[str]:
+        return iter(self._data)
+
+    def __len__(self) -> int:
+        return len(self._data)
+
+    # Dict-like access
+    def __contains__(self, item):
+        return item in self._data
 
     def get(self, key: str, default=None) -> Any:
-        """Backwards compatibility with dictionary get() method."""
-        return self._config.get(key, default)
+        return self._data.get(key, default)
 
     def keys(self):
-        return self._config.keys()
+        return self._data.keys()
 
     def items(self):
-        return self._config.items()
+        return self._data.items()
 
     def values(self):
-        return self._config.values()
+        return self._data.values()
 
-    def __iter__(self):
-        return iter(self._config)
+    def pop(self, key: str, default=_SENTINEL):
+        if default is _SENTINEL:
+            return self._data.pop(key)
+        return self._data.pop(key, default)
 
-    def __len__(self):
-        return len(self._config)
+    def popitem(self):
+        return self._data.popitem()
 
-    def __contains__(self, item):
-        return item in self._config
+    def clear(self):
+        self._data.clear()
 
-    def __repr__(self):
-        return f"NestedConfig({self._config!r})"
+    def update(self, other: Mapping[str, Any] | None = None, **kwargs):
+        if other:
+            for k, v in dict(other).items():
+                self._data[k] = type(self)(v) if isinstance(v, dict) else v
+        for k, v in kwargs.items():
+            self._data[k] = type(self)(v) if isinstance(v, dict) else v
 
+    def setdefault(self, key: str, default=None):
+        if key in self._data:
+            return self._data[key]
+        value = type(self)(default) if isinstance(default, dict) else default
+        self._data[key] = value
+        return value
+
+    # Convert Configuration object to dict
     def to_dict(self) -> dict[str, Any]:
         def _unwrap(v):
-            if isinstance(v, NestedConfig):
+            if isinstance(v, Configuration):
                 return v.to_dict()
             if isinstance(v, dict):
-                return {k: _unwrap(vv) for k, vv in v.items()}
+                return {kk: _unwrap(vv) for kk, vv in v.items()}
             return v
 
-        return {k: _unwrap(v) for k, v in self._config.items()}
-
-
-class ConfigManager:
-    """
-    Handles loading and accessing values from the YAML configuration file.
-    Provides both attribute-style and dictionary access to configuration values.
-    """
-
-    def __init__(self, *args: Path | str) -> None:
-
-        self.config_file_paths: list[Path] = [Path(p) for p in args]
-        _config = YamlLoader(self.config_file_paths).load_config()
-        self._config: dict[str, Any] = {k: _config[k] for k in sorted(_config.keys())}
-
-    def update_config(self, new_config: Mapping[str, Any]) -> None:
-        """Public method to replace internal configuration in a controlled way."""
-        self._config = dict(new_config)
-
-    def __getattr__(self, name: str) -> Any:
-        """Attribute-style access to configuration values."""
-        if name in self._config:
-            value = self._config[name]
-            if isinstance(value, dict):
-                return NestedConfig(value)
-            return value
-        raise AttributeError(f"Configuration has no attribute '{name}'")
-
-    def __getitem__(self, key: str) -> Any:
-        """Dictionary-style access to configuration values."""
-        if key in self._config:
-            value = self._config[key]
-            if isinstance(value, dict):
-                return NestedConfig(value)
-            return value
-        raise KeyError(f"Configuration key not found: {key}")
-
-    def keys(self):
-        return self._config.keys()
-
-    def items(self):
-        return self._config.items()
-
-    def values(self):
-        return self._config.values()
-
-    def __iter__(self):
-        return iter(self._config)
-
-    def __len__(self):
-        return len(self._config)
-
-    def __contains__(self, item):
-        return item in self._config
-
-    def __repr__(self):
-        return f"ConfigManager({self._config!r})"
-
-    @property
-    def config(self) -> dict[str, Any]:
-        """Access the whole configuration dictionary."""
-        return dict(self._config)
+        return {k: _unwrap(v) for k, v in self._data.items()}
 
     def as_dict(self) -> dict[str, Any]:
-        """Access the whole configuration dictionary."""
-        return dict(self._config)
+        return self.to_dict()
+
+    # Attribute-like access and assignment
+    def __getattr__(self, name: str) -> Any:
+        if name in self._data:
+            return self._data[name]
+        raise AttributeError(f"No attribute '{name}' found.")
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        if name.startswith("_") or name in type(self).__dict__:
+            raise AttributeError(
+                f"Cannot set attribute '{name}' because it conflicts with a built-in member. "
+            )
+        else:
+            self.__setitem__(name, value)
+
+    def __delattr__(self, name: str) -> None:
+        """Support: del Configuration.foo"""
+        if name.startswith("_") or name in type(self).__dict__:
+            raise AttributeError(
+                f"Cannot delete attribute '{name}'. '{name}' is a built-in member, not a configuration parameter. "
+            )
+        else:
+            try:
+                del self._data[name]
+            except KeyError as e:
+                raise AttributeError(f"No attribute '{name}' found.") from e
+
+    # Representation and comparison
+    def __dir__(self) -> list[str]:
+        return list(super().__dir__()) + list(self._data.keys())
+
+    def __repr__(self):
+        return f"{self._data!r}"
+
+    def __str__(self):
+        return str(self.as_dict())
+
+    def __eq__(self, other: object) -> bool:
+        """Compare to Configuration or plain dict by value."""
+        if isinstance(other, type(self)):
+            return self.to_dict() == other.to_dict()
+        if isinstance(other, dict):
+            return self.to_dict() == other
+        return False
+
+    def __ne__(self, other: object) -> bool:
+        return not self.__eq__(other)
+
+    def __bool__(self) -> bool:
+        return bool(self._data)
+
+    # Copying
+    def __copy__(self):
+        return type(self)(self.to_dict())
+
+    def __deepcopy__(self, memo):
+        import copy as _copy
+
+        return type(self)(_copy.deepcopy(self.to_dict(), memo))
+
+    # Pickling
+    def __getstate__(self):
+        return self.to_dict()
+
+    def __setstate__(self, state):
+        super().__setattr__("_data", {})
+        for k, v in dict(state).items():
+            self._data[k] = type(self)(v) if isinstance(v, dict) else v
+
+    def __reduce__(self):
+        return (type(self), (self.to_dict(),))
+
+    @classmethod
+    def from_yaml(cls, *paths: Path | str) -> "Configuration":
+        """Get parameters from the YAML files in paths"""
+        loader = _YamlLoader(paths)
+        raw_config = loader.load_config()
+        return cls(raw_config)
+
+    # Hashing
+    def hash(self, length: int = 10) -> str:
+        """
+        Generate a hash based on a frozen snapshot of the configuration.
+        It returns the first length characters of the sha256 hash.
+        """
+
+        def _immutable(obj: Any) -> Any:
+            """Recursively convert to immutable types for hashing."""
+            if isinstance(obj, dict):
+                return tuple(sorted((k, _immutable(v)) for k, v in obj.items()))
+            if isinstance(obj, list):
+                return tuple(_immutable(item) for item in obj)
+            if isinstance(obj, set):
+                return frozenset(_immutable(item) for item in obj)
+            if isinstance(obj, tuple):
+                return tuple(_immutable(item) for item in obj)
+            if isinstance(obj, bytearray):
+                return bytes(obj)
+            if isinstance(obj, Quantity):  # Something with Brian2 units
+                return obj.tostring()
+            if isinstance(obj, complex):
+                return (obj.real, obj.imag)
+            if isinstance(obj, (datetime.datetime)):
+                return obj.isoformat()
+            if isinstance(obj, np.ndarray):
+                return (tuple(obj.shape), tuple(obj.flatten().tolist()))
+            return obj
+
+        # Make Configuration hashable
+        frozen = _immutable(self.to_dict())
+
+        # Calculate SHA256 hash
+        frozen_bytes = str(frozen).encode("utf-8")
+        hash_digest = hashlib.sha256(frozen_bytes).hexdigest()
+
+        # Return truncated or full hash
+        if length < 0:
+            return hash_digest
+        return hash_digest[:length]
+
+    def __hash__(self) -> int:
+        """
+        Configuration is mutable and therefore unhashable.
+
+        Raises
+        ------
+        TypeError
+            Always raises with instructions to use .hash() method instead
+        """
+        raise TypeError(
+            f"{type(self).__name__} object is not directly hashable. "
+            f"Use .hash() method to get a hash string of the current configuration."
+        )
 
 
 # Façade
-def load_yaml(args: list) -> ConfigManager:
+def load_yaml(paths: Iterable[Path | str] | Path | str) -> Configuration:
     """
     Load project configuration from one or more YAML files.
 
     Parameters
     ----------
 
-    *args: list
-        Paths to YAML configuration files to load and merge.
+    paths: Iterable[Path | str] | Path | str
+        Iterable of paths to YAML configuration files to load and merge.
 
     Returns
     -------
-    ConfigManager
-        Configured ConfigManager instance providing access
-        to the configuration parameters set in YAML files.
+    Configuration
+        Configuration object providing read/write access to the configuration
+        parameters set in the YAML files.
 
     Raises
     ------
     FileNotFoundError
         If any of the args (paths) does not exist
 
-
     Examples
     --------
-    Import as:
-    >>> from .config.config_manager import load_yaml
+        Import as:
+        >>> from .data_io.config_io import load_yaml
 
-    Use as:
-    load_yaml(path_to_yaml, path_to_another_yaml)
-    For as many YAML files as needed.
+        Use as:
+        >>> load_yaml(path_to_yaml, path_to_another_yaml)
+        For as many YAML files as needed.
     """
 
-    for path in args:
-        if not path.exists():
-            raise FileNotFoundError(f"Found no YAML configuration file in {path}")
+    if isinstance(paths, (str, Path)):
+        paths_list = [paths]
+    else:
+        paths_list = list(paths)
 
-    config = ConfigManager(*args)
-
-    return config
+    return Configuration.from_yaml(*paths_list)
