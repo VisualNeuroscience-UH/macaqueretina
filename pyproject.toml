@@ -18,19 +18,24 @@ classifiers = [
 ]
 
 [tool.poetry.dependencies]
-python = "^3.11"
+brian2 = "2.7.1"
+brian2cuda = "^1.0a6"
 colorednoise = "*"
+cython = "^3.0.11"
 h5py = "*"
 imageio = "*"
 ipython = "*"
-jupyterlab = "*"
+isort = "*"
 matplotlib = "*"
-notebook = "*"
 numpy = "*"
 opencv-python-headless = "*"
 pandas = "*"
 Pillow = "*"
+pydantic = "^2.11.7"
 pyshortcuts = "*"
+pytest = "*"
+python = "^3.11"
+pyqt5 = "^5.15.11"
 scikit-image = "*"
 scikit-learn = "*"
 scipy = "*"
@@ -42,18 +47,17 @@ torchmetrics = "*"
 torchsummary = "*"
 torchaudio = "*"
 torchvision = "*"
-tqdm = "*"
-cython = "^3.0.11"
-brian2 = "2.7.1"
-pyqt5 = "^5.15.11"
-brian2cuda = "^1.0a6"
-isort = "*"
-pytest = "*"
-pydantic = "^2.11.7"
 tomli = "^2.2.1"
+tqdm = "*"
 
 [tool.poetry.scripts]
 run_macaqueretina = "project.project_conf_module:main"
+
+[tool.poetry.group.dev.dependencies]
+click = "8.2.1"
+mkdocs = "^1.6.1"
+mkdocs-material = "^9.6.21"
+mkdocstrings-python = "^1.18.2"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

@@ -1,0 +1,34 @@
+site_name: Macaque Retina Simulator
+site_description: Documentation for the Macaque Retina Simulator project
+site_author: Simo Vanni
+
+theme:
+  name: material
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - toc.integrate
+
+nav:
+  - Home: index.md
+  - Installation: installation.md
+  - Usage: usage.md
+  - API Reference: api.md
+  - Contributors: contributors.md
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [macaqueretina]
+
+
+watch:
+  - docs/src/
+  - macaqueretina/
+
+docs_dir: docs/src/
+site_dir: docs/html/
+repo_url: https://version.helsinki.fi/sivanni/macaqueretina
+repo_name: GitLab@University of Helsinki
