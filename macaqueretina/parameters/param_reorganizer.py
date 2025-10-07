@@ -4,7 +4,7 @@ Since YAML files were introduced, the configuration object carries a slight
 mismatch between the dict structure coming from the YAML files and the
 previous structure that was achieved with the project_conf_module. This is
 temporarily addressed with this file. Solutions might be:
-- Refactor the codebase to accept the new ConfigManager object (recommended,
+- Refactor the codebase to accept the new Configuration object (recommended,
   can also refactor to use attribute-like access)
 - Refactor the YAML files to match the previous structure (not recommended
   as it would make the YAML files more complex)

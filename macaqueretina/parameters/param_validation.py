@@ -608,7 +608,7 @@ def validate_params(
     Parameters
     ----------
     config:
-        ConfigManager object with the loaded configuration from the YAML files
+        Configuration object with the loaded configuration from the YAML files
 
     Returns
     -------
