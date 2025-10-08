@@ -18,7 +18,7 @@ import numpy as np
 import pandas as pd
 
 
-class ProjectUtilities:
+class ProjectUtilitiesMixin:
     """
     Utilities for ProjectManager class. This class is not instantiated. It serves as a container for project independent helper functions.
     """
@@ -523,7 +523,7 @@ class DataSampler:
         )
 
 
-class Printable:
+class PrintableMixin:
     def __str__(self):
         class_info = f"Instance of {self.__class__.__name__}, ID: {id(self)}\n"
 

@@ -13,7 +13,7 @@ import numpy as np
 # Local
 from macaqueretina.analysis.analysis_module import Analysis
 from macaqueretina.data_io.data_io_module import DataIO
-from macaqueretina.project.project_utilities_module import ProjectUtilities, DataSampler
+from macaqueretina.project.project_utilities_module import ProjectUtilitiesMixin, DataSampler
 from macaqueretina.retina.construct_retina_module import ConstructRetina
 from macaqueretina.retina.fit_module import Fit
 from macaqueretina.retina.retina_math_module import RetinaMath
@@ -39,7 +39,7 @@ class ProjectData:
         self.fit = {}
 
 
-class ProjectManager(ProjectUtilities):
+class ProjectManager(ProjectUtilitiesMixin):
     def __init__(self, config):
         """
         Main project manager.

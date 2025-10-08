@@ -12,7 +12,7 @@ from scipy.optimize import curve_fit, minimize
 from tqdm import tqdm
 
 # Local
-from macaqueretina.project.project_utilities_module import Printable
+from macaqueretina.project.project_utilities_module import PrintableMixin
 from macaqueretina.retina.experimental_data_module import ExperimentalData
 from macaqueretina.retina.retina_math_module import RetinaMath
 
@@ -23,7 +23,7 @@ class ReceptiveFieldSD:
     surround_sd: float
 
 
-class FitDoGTemplate(ABC, RetinaMath, Printable):
+class FitDoGTemplate(ABC, RetinaMath, PrintableMixin):
 
     def fit_spatial_filters_template(
         self,
@@ -761,7 +761,7 @@ class FitCircular(FitDoGTemplate):
         return ReceptiveFieldSD(center_sd=mean_center_sd, surround_sd=mean_surround_sd)
 
 
-class FitDataTypeTemplate(ABC, Printable):
+class FitDataTypeTemplate(ABC, PrintableMixin):
 
     def fit_data_type_template(self):
 

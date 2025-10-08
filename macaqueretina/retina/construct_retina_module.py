@@ -24,11 +24,11 @@ from tqdm import tqdm
 
 # Local
 from .rf_repulsion_utils import apply_rf_repulsion
-from macaqueretina.project.project_utilities_module import Printable
+from macaqueretina.project.project_utilities_module import PrintableMixin
 from macaqueretina.retina.retina_math_module import RetinaMath
 
 
-class Retina(Printable):
+class Retina(PrintableMixin):
     """
     A class housing the retina-level parameters and collecting the retina product.
     Most values are defined in the project configuration file.
@@ -270,7 +270,7 @@ class DistributionSampler:
         return multivariate_samples_df
 
 
-class GanglionCellBase(ABC, Printable):
+class GanglionCellBase(ABC, PrintableMixin):
     """
     Abstract base class for storing and processing data related to ganglion cell receptive field models.
 
@@ -4738,7 +4738,7 @@ class RetinaBuildDirector:
         return ret, gc
 
 
-class ConstructRetina(Printable):
+class ConstructRetina(PrintableMixin):
     """
     Constructs the ganglion cell mosaic and associated retinal components.
 

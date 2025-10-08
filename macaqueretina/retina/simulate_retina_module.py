@@ -27,7 +27,7 @@ from skimage.transform import resize
 from tqdm import tqdm
 
 # Local
-from macaqueretina.project.project_utilities_module import Printable
+from macaqueretina.project.project_utilities_module import PrintableMixin
 from macaqueretina.retina.retina_math_module import RetinaMath
 
 BrianLogger.log_level_error()
@@ -583,7 +583,7 @@ class GanglionCellMidget(GanglionCellBase):
         return generator_potential
 
 
-class ResponseTypeBase(ABC, Printable):
+class ResponseTypeBase(ABC, PrintableMixin):
 
     @abstractmethod
     def get_contrast_by_response_type(
@@ -2435,7 +2435,7 @@ class SimulationDirector:
         return vs, gcs
 
 
-class ReceptiveFieldsBase(ABC, Printable, RetinaMath):
+class ReceptiveFieldsBase(ABC, PrintableMixin, RetinaMath):
     """
     Base class for receptive fields information.
 
@@ -3506,7 +3506,7 @@ class GanglionCellProduct(ReceptiveFieldsBase):
         self.temporal_filter_len = int(self.data_filter_duration / (1000 / vs.fps))
 
 
-class VisualSignal(Printable):
+class VisualSignal(PrintableMixin):
     """
     Class containing simulation product, i.e. the information associated
     with visual signal passing through the retina.
