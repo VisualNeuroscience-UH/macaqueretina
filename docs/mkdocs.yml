@@ -1,0 +1,48 @@
+site_name: Macaque Retina Simulator
+site_description: Documentation for the Macaque Retina Simulator project
+site_author: Simo Vanni
+
+theme:
+  name: readthedocs
+  highlightjs: true
+  hljs_languages:
+    - yaml
+    - python
+
+nav:
+  - Home: index.md
+  - Installation: installation.md
+  - Quick Start: quickstart.md
+  - Usage: usage.md
+  - API Reference: api.md
+  - Contributors: contributors.md
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [..]
+          options:
+            show_root_heading: true
+            show_root_full_path: false
+            show_root_members_full_path: false
+            show_object_full_path: false
+            show_category_heading: true
+            show_if_no_docstring: false
+            show_signature_annotations: false
+            show_source: false
+            members_order: source
+            filters: ["!^_"]  # Exclude private members
+            inherited_members: false
+            merge_init_into_class: false
+            docstring_style: numpy
+
+watch:
+  - src/
+  - ../macaqueretina/
+
+docs_dir: src/
+site_dir: html/
+repo_url: https://version.helsinki.fi/sivanni/macaqueretina
+repo_name: GitLab@University of Helsinki

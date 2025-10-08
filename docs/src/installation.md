@@ -4,7 +4,7 @@
 - Git must be installed.
 
 
-For GPU acceleration, you can install CUDA on systems with an NVIDIA GPU. This is available on both [WSL2](https://docs.nvidia.com/cuda/wsl-user-guide/index.html) and [Linux](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html). While GPU use is optional, it significantly speeds up training the VAE models. The standard VAE model takes about an hour to train on a fast CPU.
+For GPU acceleration, you can install CUDA on systems with an NVIDIA GPU. This is available on both [WSL2](https://docs.nvidia.com/cuda/wsl-user-guide/index.html) and [Linux](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html). While GPU use is optional, it significantly speeds up training the VAE models and other compute intensive tasks.
 
 ## Install with Windows
 
@@ -40,29 +40,5 @@ poetry install
 
 ### Optional: Install Pytorch Separately
 
-If you encounter issues with the Pytorch installation through Poetry and have an NVIDIA GPU with CUDA, [install Pytorch using a system-specific command](https://pytorch.org/) before proceeding with the rest of the setup. 
+If you encounter issues with the Pytorch installation through Poetry and have an NVIDIA GPU with CUDA, [install Pytorch using a system-specific command](https://pytorch.org/) into your environment before proceeding. 
 
-### How to run
-
-Navigate to your local MacaqueRetina git repository root.
-
-Open file macaqueretina/project/project_conf_module.py. At the moment, this file is the main interface for the software. It instantiates the ProjectManager which is a facade for the rest of the software. 
-
-In the project_conf_module.py -file update the model_root_path to match your system. This is where all data will be written out.
-
-Review and adjust the configuration as needed. 
-
-For the variational autoencoder mode -- see retina_parameters dictionary "spatial_model_type" : "VAE" --  you need the "vae_run_mode": "train_model" for the first run, and thereafter you can use the much faster "load_model" option. The hyperparameters are fixed in the VAE module, so no tuning will be necessary.
-
-
-Activate your Poetry-managed environment:
-
-```
-poetry shell
-```
-
-Run the project:
-
-```
-python macaqueretina/project/project_conf_module.py
-```
