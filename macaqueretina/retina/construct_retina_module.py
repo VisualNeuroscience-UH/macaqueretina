@@ -5252,36 +5252,12 @@ class ConstructRetina(Printable):
 
         return experimental_archive
 
-    def _get_parameters_for_build(self):
-        """Creates a hash from retina_parameters to be used when
-        loading/saving the retina file, and changes parameters within
-        context."""
-        main_retina_parameters_list = [
-            "gc_type",
-            "response_type",
-            "spatial_model_type",
-            "temporal_model_type",
-            "dog_model_type",
-            "ecc_limits_deg",
-            "pol_limits_deg",
-            "model_density",
-            "retina_center",
-            "force_retina_build",
-            "vae_run_mode",
-            "model_file_name",
-            "ray_tune_trial_id",
-            "signal_gain",
-        ]
-        main_retina_parameters = {
-            key: value
-            for key, value in self.context.retina_parameters.items()
-            if key in main_retina_parameters_list
-        }
+    def _set_retina_parameters(self):
+        """Sets some retina parameters, specific to the current build."""
+        
+        hashstr = self.context.hash()
+        self.context.retina_parameters["retina_parameters_hash"] = hashstr
 
-        hash = self.context.generate_hash(main_retina_parameters)
-        self.context.retina_parameters["retina_parameters_hash"] = hash
-
-        hashstr = self.context.retina_parameters["retina_parameters_hash"]
         gc_type = self.context.retina_parameters["gc_type"]
         response_type = self.context.retina_parameters["response_type"]
 
@@ -5307,6 +5283,33 @@ class ConstructRetina(Printable):
         ]
         self.ret_filename = self.context.retina_parameters["ret_file"]
 
+
+    def _save_minimal_config_yaml(self):
+        """Saves a minimal configuration in a YAML file."""
+
+        main_retina_parameters_list = [
+            "gc_type",
+            "response_type",
+            "spatial_model_type",
+            "temporal_model_type",
+            "dog_model_type",
+            "ecc_limits_deg",
+            "pol_limits_deg",
+            "model_density",
+            "retina_center",
+            "force_retina_build",
+            "vae_run_mode",
+            "model_file_name",
+            "ray_tune_trial_id",
+            "signal_gain",
+        ]
+        
+        main_retina_parameters = {
+            key: value
+            for key, value in self.context.retina_parameters.items()
+            if key in main_retina_parameters_list
+        }
+
         yaml_filename = self.context.retina_parameters["retina_metadata_file"]
         yaml_filename_full = self.context.output_folder.joinpath(yaml_filename)
 
@@ -5326,12 +5329,8 @@ class ConstructRetina(Printable):
             self.context.retina_parameters["retina_center"]
         )
 
-        # Add all retina parameters to retina_parameters
-        if hasattr(self.context, "retina_parameters_append"):
-            self.context.retina_parameters.update(self.context.retina_parameters_append)
-            del self.context.retina_parameters_append
-
-        # Calculate cone noise hash
+    def _set_cone_noise_hash(self):
+        """Calculate the cone noise hash."""
         cone_noise_dict = self.context.retina_parameters["cone_general_parameters"]
 
         retina_limits = {
@@ -5351,9 +5350,7 @@ class ConstructRetina(Printable):
         }
 
         cone_noise_dict.update(stim_duration)
-        self.context.retina_parameters["cone_noise_hash"] = self.context.generate_hash(
-            cone_noise_dict, n_hashes=1
-        )
+        self.context.retina_parameters["cone_noise_hash"] = cone_noise_dict.hash()
 
     def build_retina_client(self) -> None:
         """
@@ -5363,7 +5360,12 @@ class ConstructRetina(Printable):
         After the build, the retina is saved to the output directory.
         """
 
-        self._get_parameters_for_build()
+        # Set build-specific retina parameters and cone noise hash
+        self._set_retina_parameters()
+        self._set_cone_noise_hash()
+
+        # Save a minimal configuration in a YAML file
+        self._save_minimal_config_yaml()
 
         retina_parameters = self.context.retina_parameters
 

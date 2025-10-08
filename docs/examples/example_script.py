@@ -15,8 +15,6 @@ import macaqueretina as mr
 ###         Single Trial        ###
 ###################################
 ###################################
-mr.PM.construct_retina._get_parameters_for_build()  # TODO: Hack to get the retina_parameters updated
-
 
 # mr.construct_retina()
 # mr.make_stimulus()
@@ -81,7 +79,7 @@ mr.PM.construct_retina._get_parameters_for_build()  # TODO: Hack to get the reti
 
 # # See visual_stimulus_parameters, safe up to two variables
 # exp_variables = ["temporal_frequency"]
-# experiment_parameters = {
+# mr.config.experiment_parameters = {
 #     "exp_variables": exp_variables,
 #     # two vals below for each exp_variable, even is it is not changing
 #     # "min_max_values": [[5, 5]],
@@ -96,9 +94,7 @@ mr.PM.construct_retina._get_parameters_for_build()  # TODO: Hack to get the reti
 #     "distributions": {"uniform": None},
 # }
 
-# filename = mr.experiment.build_and_run(
-#     experiment_parameters, build_without_run=False, show_histogram=False
-# )
+# filename = mr.experiment.build_and_run(build_without_run=False, show_histogram=False)
 # filename = "exp_metadata_orientation_spatial_frequency_edd770296d0e.csv"
 
 # ########################################

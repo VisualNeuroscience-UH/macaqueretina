@@ -59,8 +59,6 @@ def load_parameters() -> Configuration:
     project_conf_module_file_path = Path(__file__).resolve()
     git_repo_root_path = project_conf_module_file_path.parent.parent
 
-    reorganizer = ParamReorganizer()
-
     base: Path = git_repo_root_path.joinpath("parameters/")
     yaml_files = list(base.glob("*.yaml"))
 
@@ -70,14 +68,11 @@ def load_parameters() -> Configuration:
 
     if validate_params:
         validated_config = validate_params(
-            config.as_dict(), project_conf_module_file_path, git_repo_root_path
+            config, project_conf_module_file_path, git_repo_root_path
         )
-        validated_config = validated_config.model_dump()
-        reorganized_config = reorganizer.reorganize(validated_config)
+        reorganizer = ParamReorganizer()
+        config = reorganizer.reorganize(validated_config)
 
-        # TODO: temporary hook to get the configuraion validated. Use a more elegant solution in validate_params.
-        config.clear()
-        config.update(reorganized_config)
     return config
 
 

@@ -30,19 +30,6 @@ class DataIO:
         self.savemat = sio.savemat
         self.csr_matrix = scprs.csr_matrix
 
-    @property
-    def context(self):
-        return self._context
-
-    @context.setter
-    def context(self, value):
-        if isinstance(value, Context):
-            self._context = value
-        else:
-            raise AttributeError(
-                "Trying to set improper context. Context must be a context object."
-            )
-
     def _write_to_file(self, save_path, data):
         def _remove_timed_arrays(obj):
             # Timed arrays of brian contain some expressions which cannot be saved by pickle,

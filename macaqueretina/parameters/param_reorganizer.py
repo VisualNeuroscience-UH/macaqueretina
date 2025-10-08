@@ -10,8 +10,13 @@ temporarily addressed with this file. Solutions might be:
   as it would make the YAML files more complex)
 """
 
+from __future__ import annotations
+
 # Built-in
-from typing import Any
+from typing import Any, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from macaqueretina.data_io.config_io import Configuration
 
 
 class ParamReorganizer:
@@ -21,16 +26,21 @@ class ParamReorganizer:
     def __init__(self) -> None:
         pass
 
-    def reorganize(self, validated_config: dict[str, Any]) -> dict[str, Any]:
-        self.config = validated_config.copy()
+    def reorganize(self, config: Configuration) -> dict[str, Any]:
+        
+        self.config = config.as_dict().copy()
 
         # TODO: check if gc_response_filenames must be left as an iterator
 
         self._update_retina_parameters_append()
         self._create_literature_data_files()
+        self.config["retina_parameters"].update(self.config["retina_parameters_append"])
         self._pop_extra_keys()
 
-        return self.config
+        config.clear()
+        config.update(self.config)
+
+        return config
 
     def _update_retina_parameters_append(self) -> None:
         target = "retina_parameters_append"
@@ -117,3 +127,4 @@ class ParamReorganizer:
         self.config.pop("spatial_DoG_datafile_midget")
         self.config.pop("literature_data_folder")
         self.config.pop("model_root_path")
+        self.config.pop("retina_parameters_append")

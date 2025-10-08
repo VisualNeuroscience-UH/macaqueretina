@@ -48,10 +48,9 @@ class ProjectManager(ProjectUtilities):
         This class is allowed to house project-dependent data and methods.
         """
 
-        context = Context(config.as_dict())
-        self.context = context
+        self.context = config 
 
-        data_io = DataIO(context)
+        data_io = DataIO(self.context)
         self.data_io = data_io
 
         self.project_data = ProjectData()
@@ -60,7 +59,7 @@ class ProjectManager(ProjectUtilities):
 
         ana = Analysis(
             # Dependencies
-            context,
+            self.context,
             data_io,
             # Methods which are needed also elsewhere
             pol2cart=self.retina_math.pol2cart,
@@ -71,7 +70,7 @@ class ProjectManager(ProjectUtilities):
 
         viz = Viz(
             # Dependencies
-            context,
+            self.context,
             data_io,
             self.project_data,
             ana,
@@ -88,7 +87,7 @@ class ProjectManager(ProjectUtilities):
         self.viz = viz
 
         self.viz_spikes_with_stimulus = VizResponse(
-            context,
+            self.context,
             data_io,
             self.project_data,
             VisualSignal,
@@ -98,24 +97,24 @@ class ProjectManager(ProjectUtilities):
 
         self.viz.construct_retina = self.construct_retina
 
-        stimulate = VisualStimulus(context, data_io, self.get_xy_from_npz)
+        stimulate = VisualStimulus(self.context, data_io, self.get_xy_from_npz)
         self.stimulate = stimulate
 
         simulate_retina = SimulateRetina(
-            context,
+            self.context,
             data_io,
             self.project_data,
             self.retina_math,
-            context.device,
+            self.context.device,
             stimulate,
         )
         self.simulate_retina = simulate_retina
 
-        experiment = Experiment(context, data_io, stimulate, simulate_retina)
+        experiment = Experiment(self.context, data_io, stimulate, simulate_retina)
         self.experiment = experiment
 
         analog_input = AnalogInput(
-            context,
+            self.context,
             data_io,
             viz,
             ReceptiveFields=ReceptiveFieldsBase,
@@ -147,19 +146,6 @@ class ProjectManager(ProjectUtilities):
             self.get_xy_from_npz,
         )
         return construct_retina
-
-    @property
-    def context(self):
-        return self._context
-
-    @context.setter
-    def context(self, value):
-        if isinstance(value, Context):
-            self._context = value
-        else:
-            raise AttributeError(
-                "Trying to set improper context. Context must be a context object."
-            )
 
     @property
     def data_io(self):

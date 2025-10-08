@@ -105,8 +105,7 @@ class Experiment(VideoBaseClass):
     Build your experiment here
     """
 
-    def __init__(
-        self, context, data_io, stimulate, simulate_retina):
+    def __init__(self, context, data_io, stimulate, simulate_retina):
         super().__init__()
 
         self._context = context
@@ -470,20 +469,19 @@ class Experiment(VideoBaseClass):
 
     def build_and_run(
         self,
-        experiment_parameters,
         build_without_run=False,
         show_histogram=False,
     ):
 
-        exp_variables = experiment_parameters["exp_variables"]
+        exp_variables = self.context.experiment_parameters["exp_variables"]
         cond_names_string = "_".join(exp_variables)
-        experiment_hash = self.context.generate_hash(experiment_parameters)
+        experiment_hash = self.context.experiment_parameters.hash()
         filename_df = f"exp_metadata_{cond_names_string}_{experiment_hash}.csv"
         output_folder = self.context.output_folder
         save_exp_metadata_path = output_folder / filename_df
         if not save_exp_metadata_path.is_file():
             cond_options, cond_names = self._build(
-                experiment_parameters, show_histogram=show_histogram
+                self.context.experiment_parameters, show_histogram=show_histogram
             )
         else:
             print(
@@ -504,8 +502,8 @@ class Experiment(VideoBaseClass):
         # Replace filename with None. If don't want to save the stimulus, None is valid,
         # but if want to save, then filename will be generated in the loop below
         run_parameters = self.context.run_parameters
-        self.options["n_sweeps"] = experiment_parameters["n_sweeps"]
-        run_parameters["n_sweeps"] = experiment_parameters["n_sweeps"]
+        self.options["n_sweeps"] = self.context.experiment_parameters["n_sweeps"]
+        run_parameters["n_sweeps"] = self.context.experiment_parameters["n_sweeps"]
 
         # Replace with input options
         for idx, input_options in enumerate(cond_options):
@@ -539,7 +537,7 @@ class Experiment(VideoBaseClass):
 
         if not save_exp_metadata_path.is_file():
 
-            self.options["logarithmic"] = tuple(experiment_parameters["logarithmic"])
+            self.options["logarithmic"] = tuple(self.context.experiment_parameters["logarithmic"])
             self.options["retina_center"] = self.context.retina_parameters[
                 "retina_center"
             ]

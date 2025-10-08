@@ -8,9 +8,11 @@ against the required type. Any parameters that need to be derived from
 other parameters are computed here.
 """
 
+from __future__ import annotations
+
 # Built-in
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, TYPE_CHECKING
 
 # Third-party
 import brian2.units as b2u
@@ -22,6 +24,9 @@ from pydantic import (
     field_validator,
     model_validator,
 )
+
+if TYPE_CHECKING:
+    from macaqueretina.data_io.config_io import Configuration
 
 
 class BaseConfigModel(BaseModel):
@@ -77,7 +82,7 @@ class RetinaParameters(BaseConfigModel):
     vae_run_mode: Literal["load_model", "train_model"] = Field(
         default="load_model", description="train_model requires experimental data"
     )
-    model_file_name: str | None = Field(
+    model_file_name: Path | None = Field(
         default=None,
         description="null for most recent or 'model_[GC TYPE]_[RESPONSE TYPE]_[DEVICE]_[TIMESTAMP].pt' at input_folder. Applies to VAE only",
     )
@@ -141,7 +146,7 @@ class VisualStimulusParameters(BaseConfigModel):
 
 
 class StimulusMetadataParameters(BaseConfigModel):
-    stimulus_file: str
+    stimulus_file: Path
     pix_per_deg: int = Field(
         default=30, description="VanHateren_1998_ProcRSocLondB 2 arcmin per pixel"
     )
@@ -542,7 +547,7 @@ class ConfigParams(BaseConfigModel):
     @property
     def stimulus_folder(self) -> str:
         """Stimulus images and videos"""
-        return f"stim_{self.output_folder}"
+        return Path(f"stim_{self.output_folder}")
 
     @model_validator(mode="after")
     def set_derived_values(self):
@@ -596,9 +601,30 @@ class ConfigParams(BaseConfigModel):
         return self
 
 
+def _validate_paths(config):
+    # Validate main project path
+    if not config.path.is_dir():
+        raise KeyError("The 'path' parameter is not a valid path, aborting...")
+    if not config.path.is_absolute():
+        raise KeyError("The 'path' parameter is not an absolute path, aborting...")
+
+    # Validate input and output folders
+    if config.path.joinpath(config.output_folder).is_dir():
+        config.output_folder = config.path.joinpath(config.output_folder)
+    if config.path.joinpath(config.stimulus_folder).is_dir():
+        config.stimulus_folder = config.path.joinpath(config.stimulus_folder)
+    if config.path.joinpath(config.input_folder).is_dir():
+        config.input_folder = config.path.joinpath(config.input_folder)
+
+    # Create the output, stimulus and input folders if they don't exist
+    config.input_folder.mkdir(parents=True, exist_ok=True)
+    config.output_folder.mkdir(parents=True, exist_ok=True)
+    config.stimulus_folder.mkdir(parents=True, exist_ok=True)
+
+
 # Façade
 def validate_params(
-    config: dict[str, Any],
+    config: Configuration,
     project_conf_module_file_path: Path,
     git_repo_root_path: Path,
 ) -> ConfigParams:
@@ -622,4 +648,12 @@ def validate_params(
     global git_repo_path
     git_repo_path = git_repo_root_path
 
-    return ConfigParams(**config)
+    validated_config: ConfigParams = ConfigParams(**config.as_dict())
+    validated_config: dict = validated_config.model_dump()
+
+    config.clear()
+    config.update(validated_config)
+
+    _validate_paths(config)
+
+    return config
