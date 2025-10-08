@@ -2833,7 +2833,7 @@ class ConeProduct(ReceptiveFieldsBase):
     ) -> np.ndarray:
         """
         Gaussian smoothing of images with optical aberration.
-                optical_aberration = self.context.retina_parameters["optical_aberration"]
+                optical_aberration = self.config.retina_parameters["optical_aberration"]
 
         """
 
@@ -2874,7 +2874,7 @@ class ConeProduct(ReceptiveFieldsBase):
         self.cone_response = cone_response
 
         # Save the cone response to output folder
-        filename = self.context.stimulus_metadata_parameters["stimulus_file"]
+        filename = self.config.stimulus_metadata_parameters["stimulus_file"]
         self.data_io.save_cone_response_to_hdf5(filename, cone_response)
 
     # Public functions
@@ -3670,8 +3670,8 @@ class SimulateRetina(RetinaMath):
 
     Parameters
     ----------
-    context : Any
-        Configuration and context for the simulation.
+    config : Configuration
+        Configuration parameters object.
     data_io : Any
         Data input/output handler.
     viz : Any
@@ -3685,8 +3685,8 @@ class SimulateRetina(RetinaMath):
 
     Attributes
     ----------
-    context : Any
-        Configuration and context for the simulation.
+    config : Configuration
+        Configuration parameters object.
     data_io : Any
         Data input/output handler.
     viz : Any
@@ -3701,14 +3701,14 @@ class SimulateRetina(RetinaMath):
 
     def __init__(
         self,
-        context: Any,
+        config: Any,
         data_io: Any,
         project_data: Any,
         retina_math: RetinaMath,
         device: str,
         stimulate: Any,
     ) -> None:
-        self._context: Any = context
+        self._config: Any = config
         self._data_io: Any = data_io
         self._project_data: Any = project_data
         self._retina_math: RetinaMath = retina_math
@@ -3716,8 +3716,8 @@ class SimulateRetina(RetinaMath):
         self._stimulate: Any = stimulate
 
     @property
-    def context(self) -> Any:
-        return self._context
+    def config(self) -> Any:
+        return self._config
 
     @property
     def data_io(self) -> Any:
@@ -3757,7 +3757,7 @@ class SimulateRetina(RetinaMath):
         # Create w_coord, z_coord for cortical and visual coordinates, respectively
         z_coord = gcs.df["x_deg"].values + 1j * gcs.df["y_deg"].values
 
-        visual2cortical_params = self.context.retina_parameters[
+        visual2cortical_params = self.config.retina_parameters[
             "visual2cortical_params"
         ]
         a = visual2cortical_params["a"]
@@ -3835,7 +3835,7 @@ class SimulateRetina(RetinaMath):
         if gcs.temporal_model_type == "subunit":
             cone_responses_to_show["cone_signal"] = vs.cone_signal
             cone_responses_to_show["cone_signal_u"] = vs.cone_signal_u
-            cone_responses_to_show["unit"] = self.context.retina_parameters[
+            cone_responses_to_show["unit"] = self.config.retina_parameters[
                 "cone_signal_parameters"
             ]["unit"]
             cone_responses_to_show["photodiode_Rstar_range"] = (
@@ -3855,15 +3855,15 @@ class SimulateRetina(RetinaMath):
         ConeProduct
             Initialized cone photoreceptor object.
         """
-        ret_npz_file = self.context.retina_parameters["ret_file"]
+        ret_npz_file = self.config.retina_parameters["ret_file"]
         ret_npz = self.data_io.get_data(filename=ret_npz_file)
         target_gc_for_multiple_trials = None  # Option to use only one gc unit
 
         cones = ConeProduct(
-            self.context.retina_parameters,
+            self.config.retina_parameters,
             ret_npz,
-            self.context.device,
-            self.context.visual_stimulus_parameters["ND_filter"],
+            self.config.device,
+            self.config.visual_stimulus_parameters["ND_filter"],
             # RetinaMath methods:
             self.interpolate_data,
             self.lin_interp_and_double_lorenzian,
@@ -3887,7 +3887,7 @@ class SimulateRetina(RetinaMath):
             Updated visual signal object.
         """
 
-        cone_noise_hash = self.context.retina_parameters["cone_noise_hash"]
+        cone_noise_hash = self.config.retina_parameters["cone_noise_hash"]
         filename_stem_cone_noise = f"cone_noise_{cone_noise_hash}"
         cone_noise_filename_full = self.data_io.parse_path(
             "", substring=filename_stem_cone_noise
@@ -3898,8 +3898,8 @@ class SimulateRetina(RetinaMath):
             vs.cone_noise = cone_noise_npz["cone_noise"]
             vs.cone_noise_u = cone_noise_npz["cone_noise_u"]
 
-        gc_type = self.context.retina_parameters["gc_type"]
-        response_type = self.context.retina_parameters["response_type"]
+        gc_type = self.config.retina_parameters["gc_type"]
+        response_type = self.config.retina_parameters["response_type"]
 
         filename_stem_gc_noise = f"{gc_type}_{response_type}_noise_{cone_noise_hash}"
         gc_noise_filename_full = self.data_io.parse_path(
@@ -3931,28 +3931,28 @@ class SimulateRetina(RetinaMath):
         cones = self._initialize_cones()
 
         # Abstraction for clarity
-        rfs_npz_file = self.context.retina_parameters["spatial_rfs_file"]
+        rfs_npz_file = self.config.retina_parameters["spatial_rfs_file"]
         rfs_npz = self.data_io.get_data(filename=rfs_npz_file)
-        mosaic_file = self.context.retina_parameters["mosaic_file"]
+        mosaic_file = self.config.retina_parameters["mosaic_file"]
         gc_dataframe = self.data_io.get_data(filename=mosaic_file)
-        spike_generator_model = self.context.run_parameters["spike_generator_model"]
-        simulation_dt = self.context.run_parameters["simulation_dt"]
+        spike_generator_model = self.config.run_parameters["spike_generator_model"]
+        simulation_dt = self.config.run_parameters["simulation_dt"]
 
         gcs = GanglionCellProduct(
-            self.context.retina_parameters,
-            self.context.experimental_metadata,
+            self.config.retina_parameters,
+            self.config.experimental_metadata,
             rfs_npz,
             gc_dataframe,
             spike_generator_model,
             self.pol2cart_df,
         )
 
-        ret_npz_file = self.context.retina_parameters["ret_file"]
+        ret_npz_file = self.config.retina_parameters["ret_file"]
         ret_npz = self.data_io.get_data(filename=ret_npz_file)
 
         if gcs.temporal_model_type == "subunit":
             bipolars = BipolarProduct(
-                self.context.retina_parameters,
+                self.config.retina_parameters,
                 ret_npz,
                 target_gc_for_multiple_trials=None,  # Option to target one gc unit
             )
@@ -3960,13 +3960,13 @@ class SimulateRetina(RetinaMath):
             bipolars = None
 
         vs = VisualSignal(
-            self.context.visual_stimulus_parameters,
-            self.context.retina_parameters["retina_center"],
+            self.config.visual_stimulus_parameters,
+            self.config.retina_parameters["retina_center"],
             self.data_io.load_stimulus_from_videofile,
             simulation_dt,
-            self.context.retina_parameters["deg_per_mm"],
-            self.context.retina_parameters["optical_aberration"],
-            self.context.visual_stimulus_parameters["pix_per_deg"],
+            self.config.retina_parameters["deg_per_mm"],
+            self.config.retina_parameters["optical_aberration"],
+            self.config.visual_stimulus_parameters["pix_per_deg"],
             stimulus_video=stimulus,
         )
 
@@ -3997,7 +3997,7 @@ class SimulateRetina(RetinaMath):
             If True, runs uniformity index simulation.
         """
         vs, gcs, cones, bipolars = self._get_products(stimulus)
-        n_sweeps = self.context.run_parameters["n_sweeps"]
+        n_sweeps = self.config.run_parameters["n_sweeps"]
         builder = ConcreteSimulationBuilder(
             vs,
             gcs,
@@ -4011,7 +4011,7 @@ class SimulateRetina(RetinaMath):
 
         director = SimulationDirector(builder)
         if impulse:
-            contrasts = self.context.run_parameters["contrasts_for_impulse"]
+            contrasts = self.config.run_parameters["contrasts_for_impulse"]
             director.run_impulse_response(contrasts)
         elif unity:
             director.run_uniformity_index()
@@ -4019,12 +4019,12 @@ class SimulateRetina(RetinaMath):
             if filename is not None:
                 filenames = [filename]
             else:
-                filenames = self.context.run_parameters["gc_response_filenames"]
+                filenames = self.config.run_parameters["gc_response_filenames"]
             for filename in filenames:
                 director.run_simulation()
                 vs, gcs = director.get_simulation_result()
-                if self.context.run_parameters["save_data"]:
-                    save_variables = self.context.run_parameters["save_variables"]
+                if self.config.run_parameters["save_data"]:
+                    save_variables = self.config.run_parameters["save_variables"]
                     self.data_io.save_retina_output(vs, gcs, filename, save_variables)
 
             self._get_project_data_for_viz(vs, gcs, n_sweeps)

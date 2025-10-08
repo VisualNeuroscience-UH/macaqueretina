@@ -18,13 +18,10 @@ import scipy.sparse as scprs
 import yaml
 from brian2.input.timedarray import TimedArray
 
-# Local
-from macaqueretina.context.context_module import Context
-
 
 class DataIO:
-    def __init__(self, context) -> None:
-        self.context = context
+    def __init__(self, config) -> None:
+        self.config = config
 
         # Attach other methods/packages
         self.savemat = sio.savemat
@@ -117,11 +114,11 @@ class DataIO:
         Note that the substring can be timestamp in the filename.
         """
         data_fullpath_filename = None
-        path = self.context.path
-        experiment = self.context.experiment
-        input_folder = self.context.input_folder
-        output_folder = self.context.output_folder
-        stimulus_folder = self.context.stimulus_folder
+        path = self.config.path
+        experiment = self.config.experiment
+        input_folder = self.config.input_folder
+        output_folder = self.config.output_folder
+        stimulus_folder = self.config.stimulus_folder
 
         if output_folder is not None:
             # Check if output folder is absolute path
@@ -541,7 +538,7 @@ class DataIO:
         Create output directory if it does not exist.
         Return full path to output directory.
         """
-        output_path = Path.joinpath(self.context.path, self.context.output_folder)
+        output_path = Path.joinpath(self.config.path, self.config.output_folder)
         if not Path(output_path).exists():
             Path(output_path).mkdir(parents=True)
 
@@ -552,7 +549,7 @@ class DataIO:
         Create output directory if it does not exist.
         Return full path to output directory.
         """
-        stimulus_path = Path.joinpath(self.context.path, self.context.stimulus_folder)
+        stimulus_path = Path.joinpath(self.config.path, self.config.stimulus_folder)
         if not Path(stimulus_path).exists():
             Path(stimulus_path).mkdir(parents=True)
 
@@ -623,7 +620,7 @@ class DataIO:
         stimulus_dict = {
             key: value
             for key, value in stimulus.__dict__.items()
-            if key not in ["_context", "_data_io", "_cones"]
+            if key not in ["_config", "_data_io", "_cones"]
         }
 
         full_path_out = f"{fullpath_filename}.hdf5"
@@ -715,7 +712,7 @@ class DataIO:
         :return: cone response
         """
 
-        parent_path = self.context.output_folder
+        parent_path = self.config.output_folder
 
         filename_stem, filename_suffix = self._get_filename_stem_and_suffix(filename)
         if filename_suffix in ["hdf5"]:
@@ -757,7 +754,7 @@ class DataIO:
             "stimulus_duration_in_seconds": total_duration,
         }
 
-        filename_out_full = self.context.output_folder.joinpath(filename_out)
+        filename_out_full = self.config.output_folder.joinpath(filename_out)
 
         sio.savemat(filename_out_full, mat_out_dict)
         print(f"Duration of stimulus is {total_duration} seconds")
@@ -831,9 +828,9 @@ class DataIO:
             data_to_save["dt"] = dt
 
         if filename is None:
-            save_path = self.context.output_folder.joinpath("most_recent_spikes")
+            save_path = self.config.output_folder.joinpath("most_recent_spikes")
         else:
-            save_path = self.context.output_folder.joinpath(filename)
+            save_path = self.config.output_folder.joinpath(filename)
 
         filename_full = save_path.with_suffix(".gz")
 
@@ -869,9 +866,9 @@ class DataIO:
         spikes_df = spikes_df.sort_values(by="spike_time")
 
         if filename is None:
-            save_path = self.context.output_folder.joinpath("most_recent_spikes")
+            save_path = self.config.output_folder.joinpath("most_recent_spikes")
         else:
-            save_path = self.context.output_folder.joinpath(filename)
+            save_path = self.config.output_folder.joinpath(filename)
         filename_full = save_path.with_suffix(".csv")
 
         spikes_df.to_csv(filename_full, index=False, header=False)
@@ -887,9 +884,9 @@ class DataIO:
             generated automatically.
         """
         if filename is None:
-            save_path = self.context.output_folder.joinpath("most_recent_structure")
+            save_path = self.config.output_folder.joinpath("most_recent_structure")
         else:
-            save_path = self.context.output_folder.joinpath(
+            save_path = self.config.output_folder.joinpath(
                 str(filename) + "_structure"
             )
         filename_full = save_path.with_suffix(".csv")
@@ -943,7 +940,7 @@ class DataIO:
 
         self.save_np_dict_to_npz(
             data_dict,
-            self.context.output_folder,
+            self.config.output_folder,
             filename_stem=filename_stem,
             overwrite=overwrite,
         )
@@ -965,7 +962,7 @@ class DataIO:
                     )
 
                 case "cone_noise":
-                    cone_noise_hash = self.context.retina_parameters["cone_noise_hash"]
+                    cone_noise_hash = self.config.retina_parameters["cone_noise_hash"]
                     self._save_additional_variables(
                         vs,
                         f"cone_noise_{cone_noise_hash}",
@@ -974,9 +971,9 @@ class DataIO:
                     )
 
                 case "gc_synaptic_noise":
-                    cone_noise_hash = self.context.retina_parameters["cone_noise_hash"]
-                    gc_type = self.context.retina_parameters["gc_type"]
-                    response_type = self.context.retina_parameters["response_type"]
+                    cone_noise_hash = self.config.retina_parameters["cone_noise_hash"]
+                    gc_type = self.config.retina_parameters["gc_type"]
+                    response_type = self.config.retina_parameters["response_type"]
 
                     filename_gc_noise = (
                         f"{gc_type}_{response_type}_noise_{cone_noise_hash}"

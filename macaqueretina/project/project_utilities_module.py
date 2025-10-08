@@ -69,7 +69,7 @@ class ProjectUtilities:
         """
         Sometimes you have recorded too much and you want to reduce the filesize by removing some data.
 
-        For not manipulating accidentally data in other folders (from path context), this method works only either at the metadata folder or with full path.
+        For not manipulating accidentally data in other folders (from path config), this method works only either at the metadata folder or with full path.
 
         :param meta_fname: str or pathlib object, metadata file name or full path
         :param dict_key_list: list, list of dict keys to remove from the file.

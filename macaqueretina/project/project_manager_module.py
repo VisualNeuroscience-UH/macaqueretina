@@ -12,7 +12,6 @@ import numpy as np
 
 # Local
 from macaqueretina.analysis.analysis_module import Analysis
-from macaqueretina.context.context_module import Context
 from macaqueretina.data_io.data_io_module import DataIO
 from macaqueretina.project.project_utilities_module import ProjectUtilities, DataSampler
 from macaqueretina.retina.construct_retina_module import ConstructRetina
@@ -48,9 +47,9 @@ class ProjectManager(ProjectUtilities):
         This class is allowed to house project-dependent data and methods.
         """
 
-        self.context = config 
+        self.config = config
 
-        data_io = DataIO(self.context)
+        data_io = DataIO(self.config)
         self.data_io = data_io
 
         self.project_data = ProjectData()
@@ -59,7 +58,7 @@ class ProjectManager(ProjectUtilities):
 
         ana = Analysis(
             # Dependencies
-            self.context,
+            self.config,
             data_io,
             # Methods which are needed also elsewhere
             pol2cart=self.retina_math.pol2cart,
@@ -70,7 +69,7 @@ class ProjectManager(ProjectUtilities):
 
         viz = Viz(
             # Dependencies
-            self.context,
+            self.config,
             data_io,
             self.project_data,
             ana,
@@ -87,7 +86,7 @@ class ProjectManager(ProjectUtilities):
         self.viz = viz
 
         self.viz_spikes_with_stimulus = VizResponse(
-            self.context,
+            self.config,
             data_io,
             self.project_data,
             VisualSignal,
@@ -97,24 +96,24 @@ class ProjectManager(ProjectUtilities):
 
         self.viz.construct_retina = self.construct_retina
 
-        stimulate = VisualStimulus(self.context, data_io, self.get_xy_from_npz)
+        stimulate = VisualStimulus(self.config, data_io, self.get_xy_from_npz)
         self.stimulate = stimulate
 
         simulate_retina = SimulateRetina(
-            self.context,
+            self.config,
             data_io,
             self.project_data,
             self.retina_math,
-            self.context.device,
+            self.config.device,
             stimulate,
         )
         self.simulate_retina = simulate_retina
 
-        experiment = Experiment(self.context, data_io, stimulate, simulate_retina)
+        experiment = Experiment(self.config, data_io, stimulate, simulate_retina)
         self.experiment = experiment
 
         analog_input = AnalogInput(
-            self.context,
+            self.config,
             data_io,
             viz,
             ReceptiveFields=ReceptiveFieldsBase,
@@ -126,17 +125,17 @@ class ProjectManager(ProjectUtilities):
         self.data_sampler = DataSampler
 
         # Set numpy random seed
-        np.random.seed(self.context.numpy_seed)
+        np.random.seed(self.config.numpy_seed)
 
     def build_retina_instance(self):
         project_data = ProjectData()
 
-        fit = Fit(project_data, self.context.experimental_metadata)
+        fit = Fit(project_data, self.config.experimental_metadata)
 
-        retina_vae = RetinaVAE(self.context)
+        retina_vae = RetinaVAE(self.config)
 
         construct_retina = ConstructRetina(
-            self.context,
+            self.config,
             self.data_io,
             self.viz,
             fit,

@@ -655,28 +655,28 @@ class RetinaVAE(RetinaMath):
     SSIM : Wang_2009_IEEESignProcMag, Wang_2004_IEEETransImProc
     """
 
-    def __init__(self, context: dict) -> None:
+    def __init__(self, config) -> None:
 
-        self._context = context
-        self.vae_run_mode = context.retina_parameters["vae_run_mode"]
-        self.gc_type = context.retina_parameters["gc_type"]
-        self.response_type = context.retina_parameters["response_type"]
+        self._config = config
+        self.vae_run_mode = config.retina_parameters["vae_run_mode"]
+        self.gc_type = config.retina_parameters["gc_type"]
+        self.response_type = config.retina_parameters["response_type"]
         self.gc_response_types = [[self.gc_type], [self.response_type]]
 
-        self.random_seed = self.context.numpy_seed
+        self.random_seed = self.config.numpy_seed
         torch.manual_seed(self.random_seed)
         np.random.seed(self.random_seed)
 
     @property
-    def context(self):
-        return self._context
+    def config(self):
+        return self._config
 
     def client(
         self,
     ):
 
-        self.experimental_metadata = self.context.experimental_metadata
-        vae_train_parameters = self.context.retina_parameters["vae_train_parameters"]
+        self.experimental_metadata = self.config.experimental_metadata
+        vae_train_parameters = self.config.retina_parameters["vae_train_parameters"]
         self.epochs = vae_train_parameters["epochs"]
         self.lr_step_size = vae_train_parameters["lr_step_size"]
         self.lr_gamma = vae_train_parameters["lr_gamma"]
@@ -697,7 +697,7 @@ class RetinaVAE(RetinaMath):
         # Utility parameters
         ####################
         self.latent_space_plot_scale = 15.0
-        self.models_folder = self._set_models_folder(self.context)
+        self.models_folder = self._set_models_folder(self.config)
         self.train_log_folder = self.models_folder / "train_logs"
         self.dependent_variables = [
             "train_loss",
@@ -707,12 +707,12 @@ class RetinaVAE(RetinaMath):
             "kid_std",
             "kid_mean",
         ]
-        self.device = self.context.device
+        self.device = self.config.device
 
         match self.vae_run_mode:
 
             case "load_model":
-                model_file_name = self.context.retina_parameters.get(
+                model_file_name = self.config.retina_parameters.get(
                     "model_file_name", None
                 )
                 if model_file_name is None:
@@ -720,7 +720,7 @@ class RetinaVAE(RetinaMath):
                     self._load_logging()
                     self._load_latent_stats()
                 else:
-                    # model_file_name = self.context.retina_parameters["model_file_name"]
+                    # model_file_name = self.config.retina_parameters["model_file_name"]
                     self._validate_model_file_name(model_file_name)
                     model_path_full = self.models_folder / model_file_name
                     self.vae = self._load_model(model_path=model_path_full)
@@ -776,16 +776,16 @@ class RetinaVAE(RetinaMath):
             self.response_type in model_file_name
         ), "response_type not in model_file_name, aborting..."
 
-    def _set_models_folder(self, context=None):
+    def _set_models_folder(self, config=None):
         """Set the folder where models are saved"""
 
         # If input_folder is Path instance or string, use it as models_folder
-        if isinstance(self.context.input_folder, Path) or isinstance(
-            self.context.input_folder, str
+        if isinstance(self.config.input_folder, Path) or isinstance(
+            self.config.input_folder, str
         ):
-            models_folder = self.context.input_folder
+            models_folder = self.config.input_folder
         else:
-            models_folder = self.context.output_folder / "models"
+            models_folder = self.config.output_folder / "models"
         Path(models_folder).mkdir(parents=True, exist_ok=True)
 
         return models_folder
