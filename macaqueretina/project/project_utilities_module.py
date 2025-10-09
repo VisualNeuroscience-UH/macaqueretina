@@ -18,7 +18,7 @@ import numpy as np
 import pandas as pd
 
 
-class ProjectUtilities:
+class ProjectUtilitiesMixin:
     """
     Utilities for ProjectManager class. This class is not instantiated. It serves as a container for project independent helper functions.
     """
@@ -69,7 +69,7 @@ class ProjectUtilities:
         """
         Sometimes you have recorded too much and you want to reduce the filesize by removing some data.
 
-        For not manipulating accidentally data in other folders (from path context), this method works only either at the metadata folder or with full path.
+        For not manipulating accidentally data in other folders (from path config), this method works only either at the metadata folder or with full path.
 
         :param meta_fname: str or pathlib object, metadata file name or full path
         :param dict_key_list: list, list of dict keys to remove from the file.
@@ -523,7 +523,7 @@ class DataSampler:
         )
 
 
-class Printable:
+class PrintableMixin:
     def __str__(self):
         class_info = f"Instance of {self.__class__.__name__}, ID: {id(self)}\n"
 

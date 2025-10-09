@@ -12,9 +12,8 @@ import numpy as np
 
 # Local
 from macaqueretina.analysis.analysis_module import Analysis
-from macaqueretina.context.context_module import Context
 from macaqueretina.data_io.data_io_module import DataIO
-from macaqueretina.project.project_utilities_module import ProjectUtilities, DataSampler
+from macaqueretina.project.project_utilities_module import ProjectUtilitiesMixin, DataSampler
 from macaqueretina.retina.construct_retina_module import ConstructRetina
 from macaqueretina.retina.fit_module import Fit
 from macaqueretina.retina.retina_math_module import RetinaMath
@@ -40,7 +39,7 @@ class ProjectData:
         self.fit = {}
 
 
-class ProjectManager(ProjectUtilities):
+class ProjectManager(ProjectUtilitiesMixin):
     def __init__(self, config):
         """
         Main project manager.
@@ -48,10 +47,9 @@ class ProjectManager(ProjectUtilities):
         This class is allowed to house project-dependent data and methods.
         """
 
-        context = Context(config.as_dict())
-        self.context = context
+        self.config = config
 
-        data_io = DataIO(context)
+        data_io = DataIO(self.config)
         self.data_io = data_io
 
         self.project_data = ProjectData()
@@ -60,7 +58,7 @@ class ProjectManager(ProjectUtilities):
 
         ana = Analysis(
             # Dependencies
-            context,
+            self.config,
             data_io,
             # Methods which are needed also elsewhere
             pol2cart=self.retina_math.pol2cart,
@@ -71,7 +69,7 @@ class ProjectManager(ProjectUtilities):
 
         viz = Viz(
             # Dependencies
-            context,
+            self.config,
             data_io,
             self.project_data,
             ana,
@@ -88,7 +86,7 @@ class ProjectManager(ProjectUtilities):
         self.viz = viz
 
         self.viz_spikes_with_stimulus = VizResponse(
-            context,
+            self.config,
             data_io,
             self.project_data,
             VisualSignal,
@@ -98,24 +96,24 @@ class ProjectManager(ProjectUtilities):
 
         self.viz.construct_retina = self.construct_retina
 
-        stimulate = VisualStimulus(context, data_io, self.get_xy_from_npz)
+        stimulate = VisualStimulus(self.config, data_io, self.get_xy_from_npz)
         self.stimulate = stimulate
 
         simulate_retina = SimulateRetina(
-            context,
+            self.config,
             data_io,
             self.project_data,
             self.retina_math,
-            context.device,
+            self.config.device,
             stimulate,
         )
         self.simulate_retina = simulate_retina
 
-        experiment = Experiment(context, data_io, stimulate, simulate_retina)
+        experiment = Experiment(self.config, data_io, stimulate, simulate_retina)
         self.experiment = experiment
 
         analog_input = AnalogInput(
-            context,
+            self.config,
             data_io,
             viz,
             ReceptiveFields=ReceptiveFieldsBase,
@@ -127,17 +125,17 @@ class ProjectManager(ProjectUtilities):
         self.data_sampler = DataSampler
 
         # Set numpy random seed
-        np.random.seed(self.context.numpy_seed)
+        np.random.seed(self.config.numpy_seed)
 
     def build_retina_instance(self):
         project_data = ProjectData()
 
-        fit = Fit(project_data, self.context.experimental_metadata)
+        fit = Fit(project_data, self.config.experimental_metadata)
 
-        retina_vae = RetinaVAE(self.context)
+        retina_vae = RetinaVAE(self.config)
 
         construct_retina = ConstructRetina(
-            self.context,
+            self.config,
             self.data_io,
             self.viz,
             fit,
@@ -147,19 +145,6 @@ class ProjectManager(ProjectUtilities):
             self.get_xy_from_npz,
         )
         return construct_retina
-
-    @property
-    def context(self):
-        return self._context
-
-    @context.setter
-    def context(self, value):
-        if isinstance(value, Context):
-            self._context = value
-        else:
-            raise AttributeError(
-                "Trying to set improper context. Context must be a context object."
-            )
 
     @property
     def data_io(self):

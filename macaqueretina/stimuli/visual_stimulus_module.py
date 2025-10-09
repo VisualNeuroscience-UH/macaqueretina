@@ -513,7 +513,7 @@ class StimulusPattern:
         Create a temporal wave pattern from digitized temporal sequence.
 
         """
-        filepath = self.context.literature_data_files["temporal_pattern_path"]
+        filepath = self.config.literature_data_files["temporal_pattern_path"]
         data_npz = self.data_io.get_data(filepath)
         tp, amp = self.get_xy_from_npz(data_npz)
         duration = self.options["duration_seconds"]
@@ -658,7 +658,7 @@ class StimulusPattern:
         After this integration, the method performs additional filtering and updates
         the raw intensity values based on the new data.
         """
-        image_file_name = self.context.stimulus_metadata_parameters["stimulus_file"]
+        image_file_name = self.config.stimulus_metadata_parameters["stimulus_file"]
         self.image = self.data_io.get_data(image_file_name)
 
         # resize image by specifying custom width and height
@@ -674,7 +674,7 @@ class StimulusPattern:
 
     def natural_video(self):
 
-        video_file_name = self.context.stimulus_metadata_parameters["stimulus_file"]
+        video_file_name = self.config.stimulus_metadata_parameters["stimulus_file"]
         video_cap = self.data_io.get_data(video_file_name)
 
         self.fps = self.options["fps"]
@@ -707,7 +707,7 @@ class StimulusPattern:
             )
         )
 
-        if self.context.stimulus_metadata_parameters["apply_cone_filter"] is True:
+        if self.config.stimulus_metadata_parameters["apply_cone_filter"] is True:
             pass
 
         self._raw_intensity_from_data()
@@ -762,17 +762,17 @@ class VisualStimulus(VideoBaseClass):
     Create stimulus video and save
     """
 
-    def __init__(self, context, data_io, get_xy_from_npz):
+    def __init__(self, config, data_io, get_xy_from_npz):
         super().__init__()
 
-        self._context = context
+        self._config = config
         self._data_io = data_io
 
         self.get_xy_from_npz = get_xy_from_npz
 
     @property
-    def context(self):
-        return self._context
+    def config(self):
+        return self._config
 
     @property
     def data_io(self):
@@ -825,7 +825,7 @@ class VisualStimulus(VideoBaseClass):
         print("Making a stimulus with the following properties:")
 
         if options is None:
-            visual_stimulus_parameters = self.context.visual_stimulus_parameters
+            visual_stimulus_parameters = self.config.visual_stimulus_parameters
         else:
             visual_stimulus_parameters = options
 
@@ -926,10 +926,10 @@ class AnalogInput:
     frameduration assumes milliseconds
     """
 
-    def __init__(self, context, data_io, viz, **kwargs):
+    def __init__(self, config, data_io, viz, **kwargs):
         super().__init__()
 
-        self._context = context
+        self._config = config
         self._data_io = data_io
         self._viz = viz
 
@@ -937,8 +937,8 @@ class AnalogInput:
             setattr(self, attr, value)
 
     @property
-    def context(self):
-        return self._context
+    def config(self):
+        return self._config
 
     @property
     def data_io(self):
@@ -978,8 +978,8 @@ class AnalogInput:
             w_coord, z_coord = self._get_dummy_coordinates(Nx=N_units)
         elif coord_type == "real":
             rf = self.ReceptiveFields(
-                self.context.retina_parameters,
-                self.context.experimental_metadata,
+                self.config.retina_parameters,
+                self.config.experimental_metadata,
                 self.data_io.get_data,
                 self.pol2cart_df,
             )
@@ -1167,7 +1167,7 @@ class AnalogInput:
         z_coord = np.linspace(4.8, 5.2, Nx)
         z_coord = z_coord + 0j  # Add second dimension
 
-        visual2cortical_params = self.context.retina_parameters_options[
+        visual2cortical_params = self.config.retina_parameters_options[
             "visual2cortical_params"
         ]
         a = visual2cortical_params["a"]

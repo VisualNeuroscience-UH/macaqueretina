@@ -13,16 +13,16 @@ from scipy.stats import pearsonr
 
 
 class Analysis:
-    def __init__(self, context, data_io, **kwargs) -> None:
-        self._context = context
+    def __init__(self, config, data_io, **kwargs) -> None:
+        self._config = config
         self._data_io = data_io
 
         for attr, value in kwargs.items():
             setattr(self, attr, value)
 
     @property
-    def context(self):
-        return self._context
+    def config(self):
+        return self._config
 
     @property
     def data_io(self):
@@ -609,7 +609,7 @@ class Analysis:
 
         exp_variables = my_analysis_options["exp_variables"]
         cond_names_string = "_".join(exp_variables)
-        data_folder = self.context.output_folder
+        data_folder = self.config.output_folder
         experiment_df = self.data_io.get_data(filename=filename)
         cond_names = experiment_df.index.values
         t_start = my_analysis_options["t_start_ana"]
@@ -663,7 +663,7 @@ class Analysis:
 
         # Load mosaic
         gc_dataframe = self.data_io.get_data(
-            filename=self.context.retina_parameters["mosaic_file"]
+            filename=self.config.retina_parameters["mosaic_file"]
         )
         # Get xy coords from dataframe
         pos_ecc_mm = gc_dataframe["pos_ecc_mm"].values
@@ -711,16 +711,16 @@ class Analysis:
         exp_variables = my_analysis_options["exp_variables"]
         cond_names_string = "_".join(exp_variables)
         experiment_df = self.data_io.get_data(filename=filename)
-        data_folder = self.context.output_folder
+        data_folder = self.config.output_folder
         cond_names = experiment_df.index.values
         t_start = my_analysis_options["t_start_ana"]
         t_end = my_analysis_options["t_end_ana"]
         n_sweeps_vec = pd.to_numeric(experiment_df.loc[:, "n_sweeps"].values)
-        gc_type = self.context.retina_parameters["gc_type"]
-        response_type = self.context.retina_parameters["response_type"]
+        gc_type = self.config.retina_parameters["gc_type"]
+        response_type = self.config.retina_parameters["response_type"]
 
         if "temporal_frequency" not in exp_variables:
-            temp_freq = self.context.visual_stimulus_parameters["temporal_frequency"]
+            temp_freq = self.config.visual_stimulus_parameters["temporal_frequency"]
             experiment_df["temporal_frequency"] = temp_freq
 
         # Assert for equal number of trials
@@ -856,7 +856,7 @@ class Analysis:
     def get_gain_calibration_df(self, threshold, folder_pattern, signal_gain=1.0):
 
         matching_files_or_folders = self.data_io.all_patterns(
-            self.context.path, folder_pattern
+            self.config.path, folder_pattern
         )
         matching_folders = [f for f in matching_files_or_folders if f.is_dir()]
         matching_folders.sort()
@@ -914,12 +914,12 @@ class Analysis:
 
         exp_variables = my_analysis_options["exp_variables"]
         cond_names_string = "_".join(exp_variables)
-        data_folder = self.context.output_folder
+        data_folder = self.config.output_folder
         experiment_df = self.data_io.get_data(filename=filename)
         cond_names = experiment_df.index.values
         n_sweeps_vec = pd.to_numeric(experiment_df.loc[:, "n_sweeps"].values)
-        gc_type = self.context.retina_parameters["gc_type"]
-        response_type = self.context.retina_parameters["response_type"]
+        gc_type = self.config.retina_parameters["gc_type"]
+        response_type = self.config.retina_parameters["response_type"]
 
         t_start = my_analysis_options["t_start_ana"]
         t_end = my_analysis_options["t_end_ana"]
@@ -990,11 +990,11 @@ class Analysis:
         """ """
         exp_variables = my_analysis_options["exp_variables"]
         cond_names_string = "_".join(exp_variables)
-        data_folder = self.context.output_folder
+        data_folder = self.config.output_folder
         experiment_df = self.data_io.get_data(filename=filename)
         cond_names = experiment_df.index.values
-        gc_type = self.context.retina_parameters["gc_type"]
-        response_type = self.context.retina_parameters["response_type"]
+        gc_type = self.config.retina_parameters["gc_type"]
+        response_type = self.config.retina_parameters["response_type"]
 
         t_start = my_analysis_options["t_start_ana"]
         t_end = my_analysis_options["t_end_ana"]

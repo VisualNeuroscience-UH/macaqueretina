@@ -39,8 +39,8 @@ class Viz:
 
     cmap = "gist_earth"  # viridis or cividis would be best for color-blind
 
-    def __init__(self, context, data_io, project_data, ana, **kwargs) -> None:
-        self._context = context
+    def __init__(self, config, data_io, project_data, ana, **kwargs) -> None:
+        self._config = config
         self._data_io = data_io
         self._project_data = project_data
         self._ana = ana
@@ -53,8 +53,8 @@ class Viz:
         self.cmap_spatial_filter = "bwr"
 
     @property
-    def context(self):
-        return self._context
+    def config(self):
+        return self._config
 
     @property
     def data_io(self):
@@ -144,8 +144,8 @@ class Viz:
             final_filename = f"{base_name}{extension}"
 
         # Construct full save path
-        path = self.context.path
-        project_conf_module_file_path = self.context.project_conf_module_file_path
+        path = self.config.path
+        project_conf_module_file_path = self.config.project_conf_module_file_path
         full_subfolderpath = Path.joinpath(path, subfolderpath)
         save_path = Path.joinpath(full_subfolderpath, final_filename)
 
@@ -517,25 +517,25 @@ class Viz:
             The name of the file to save the figure. If None, the figure is not saved.
         """
 
-        mosaic_file = self.context.retina_parameters["mosaic_file"]
+        mosaic_file = self.config.retina_parameters["mosaic_file"]
         gc_df = self.data_io.get_data(mosaic_file)
 
         ecc_mm = gc_df["pos_ecc_mm"].to_numpy()
         pol_deg = gc_df["pos_polar_deg"].to_numpy()
 
-        ecc_lim_deg = self.context.retina_parameters["ecc_limits_deg"]
+        ecc_lim_deg = self.config.retina_parameters["ecc_limits_deg"]
         ecc_lim_mm = (
-            np.array(ecc_lim_deg) / self.context.retina_parameters["deg_per_mm"]
+            np.array(ecc_lim_deg) / self.config.retina_parameters["deg_per_mm"]
         )
-        pol_lim_deg = self.context.retina_parameters["pol_limits_deg"]
+        pol_lim_deg = self.config.retina_parameters["pol_limits_deg"]
         boundary_polygon = self.boundary_polygon(ecc_lim_mm, pol_lim_deg)
 
         # Obtain mm values
-        if self.context.retina_parameters["dog_model_type"] == "circular":
+        if self.config.retina_parameters["dog_model_type"] == "circular":
             semi_xc = gc_df["rad_c_mm"]
             semi_yc = gc_df["rad_c_mm"]
             angle_in_deg = np.zeros(len(gc_df))
-        elif self.context.retina_parameters["dog_model_type"] in [
+        elif self.config.retina_parameters["dog_model_type"] in [
             "ellipse_independent",
             "ellipse_fixed",
         ]:
@@ -555,7 +555,7 @@ class Viz:
             xcoord.flatten(),
             ycoord.flatten(),
             "b.",
-            label=self.context.retina_parameters["gc_type"],
+            label=self.config.retina_parameters["gc_type"],
         )
         # Ellipse parameters: Ellipse(xy, width, height, angle=0, **kwargs). Only possible one at the time, unfortunately.
         for index in np.arange(len(xcoord)):
@@ -612,7 +612,7 @@ class Viz:
         """
 
         include_multivariate = (statistics == "multivariate") & (
-            self.context.retina_parameters["spatial_model_type"] == "DOG"
+            self.config.retina_parameters["spatial_model_type"] == "DOG"
         )
 
         match distribution:
@@ -923,7 +923,7 @@ class Viz:
         ax.legend()
 
         if dd_model_caption:
-            if self.context.retina_parameters["dd_regr_model"] == "linear":
+            if self.config.retina_parameters["dd_regr_model"] == "linear":
                 intercept = fit_parameters[1]
                 slope = fit_parameters[0]
                 ax.plot(data_all_x, intercept + slope * data_all_x, "k--")
@@ -935,7 +935,7 @@ class Viz:
                     color="k",
                 )
 
-            elif self.context.retina_parameters["dd_regr_model"] == "quadratic":
+            elif self.config.retina_parameters["dd_regr_model"] == "quadratic":
                 intercept = fit_parameters[2]
                 slope = fit_parameters[1]
                 square = fit_parameters[0]
@@ -952,7 +952,7 @@ class Viz:
                     color="k",
                 )
 
-            elif self.context.retina_parameters["dd_regr_model"] == "cubic":
+            elif self.config.retina_parameters["dd_regr_model"] == "cubic":
                 intercept = fit_parameters[3]
                 slope = fit_parameters[2]
                 square = fit_parameters[1]
@@ -973,7 +973,7 @@ class Viz:
                     color="k",
                 )
 
-            elif self.context.retina_parameters["dd_regr_model"] == "exponential":
+            elif self.config.retina_parameters["dd_regr_model"] == "exponential":
                 constant = fit_parameters[0]
                 lamda = fit_parameters[1]
                 ax.plot(data_all_x, constant + np.exp(data_all_x / lamda), "k--")
@@ -985,7 +985,7 @@ class Viz:
                     color="k",
                 )
 
-            elif self.context.retina_parameters["dd_regr_model"] == "powerlaw":
+            elif self.config.retina_parameters["dd_regr_model"] == "powerlaw":
                 # a = 10 ** fit_parameters[0]
                 a = fit_parameters[0]
                 b = fit_parameters[1]
@@ -1018,7 +1018,7 @@ class Viz:
         Plot cone noise as a function of temporal frequency using the model by Victor 1987 JPhysiol.
         """
 
-        ret_file_npz = self.data_io.get_data(self.context.retina_parameters["ret_file"])
+        ret_file_npz = self.data_io.get_data(self.config.retina_parameters["ret_file"])
         noise_frequency_data = ret_file_npz["noise_frequency_data"]
         noise_power_data = ret_file_npz["noise_power_data"]
         cone_noise_parameters = ret_file_npz["cone_noise_parameters"]
@@ -1031,7 +1031,7 @@ class Viz:
         self.cone_interp_function = self.interpolate_data(
             cone_frequency_data, cone_power_data
         )
-        self.cone_noise_wc = self.context.retina_parameters["cone_general_parameters"][
+        self.cone_noise_wc = self.config.retina_parameters["cone_general_parameters"][
             "cone_noise_wc"
         ]
 
@@ -1129,7 +1129,7 @@ class Viz:
         savefigname : str, optional
             The name of the file to save the figure. If None, the figure is not saved.
         """
-        if self.context.retina_parameters["spatial_model_type"] == "DOG":
+        if self.config.retina_parameters["spatial_model_type"] == "DOG":
             spat_filt = self.project_data.fit["exp_spat_filt"]
             self.show_spatial_filter_response(
                 spat_filt,
@@ -1138,7 +1138,7 @@ class Viz:
                 title="Experimental",
                 savefigname=savefigname,
             )
-        elif self.context.retina_parameters["spatial_model_type"] == "VAE":
+        elif self.config.retina_parameters["spatial_model_type"] == "VAE":
             gen_rfs = self.project_data.construct_retina["gen_rfs"]
             spat_filt = self.project_data.fit["gen_spat_filt"]
             self.show_spatial_filter_response(
@@ -1305,7 +1305,7 @@ class Viz:
         """
         retina_vae = self.project_data.construct_retina["retina_vae"]
         assert (
-            self.context.retina_parameters["spatial_model_type"] == "VAE"
+            self.config.retina_parameters["spatial_model_type"] == "VAE"
         ), "Only model type VAE is supported for show_gen_exp_spatial_rf()"
         if ds_name == "train_ds":
             ds = retina_vae.train_loader.dataset
@@ -1657,9 +1657,9 @@ class Viz:
         Visualize a ganglion cell and its connected cones.
         """
 
-        gc_df = self.data_io.get_data(self.context.retina_parameters["mosaic_file"])
+        gc_df = self.data_io.get_data(self.config.retina_parameters["mosaic_file"])
         gc_npz = self.data_io.get_data(
-            self.context.retina_parameters["spatial_rfs_file"]
+            self.config.retina_parameters["spatial_rfs_file"]
         )
 
         x_mm, y_mm = self.pol2cart(
@@ -1670,7 +1670,7 @@ class Viz:
         Y_grid_cen_mm = gc_npz["Y_grid_cen_mm"]
         gc_img_mask = gc_npz["gc_img_mask"]
 
-        ret_npz = self.data_io.get_data(self.context.retina_parameters["ret_file"])
+        ret_npz = self.data_io.get_data(self.config.retina_parameters["ret_file"])
         weights = ret_npz["cones_to_gcs_weights"]
         cone_positions = ret_npz["cone_optimized_pos_mm"]
 
@@ -1687,14 +1687,14 @@ class Viz:
 
         for idx, this_sample in enumerate(gc_list):
             gc_position = gc_pos_mm[this_sample, :]
-            if self.context.retina_parameters["dog_model_type"] == "circular":
+            if self.config.retina_parameters["dog_model_type"] == "circular":
                 DoG_patch = Circle(
                     xy=gc_position,
                     radius=gc_df.loc[this_sample, "rad_c_mm"],
                     edgecolor="g",
                     facecolor="none",
                 )
-            elif self.context.retina_parameters["dog_model_type"] in [
+            elif self.config.retina_parameters["dog_model_type"] in [
                 "ellipse_independent",
                 "ellipse_fixed",
             ]:
@@ -1754,9 +1754,9 @@ class Viz:
         Visualize a ganglion cell and its connected bipolars.
         """
 
-        gc_df = self.data_io.get_data(self.context.retina_parameters["mosaic_file"])
+        gc_df = self.data_io.get_data(self.config.retina_parameters["mosaic_file"])
         gc_npz = self.data_io.get_data(
-            self.context.retina_parameters["spatial_rfs_file"]
+            self.config.retina_parameters["spatial_rfs_file"]
         )
 
         x_mm, y_mm = self.pol2cart(
@@ -1767,7 +1767,7 @@ class Viz:
         Y_grid_cen_mm = gc_npz["Y_grid_cen_mm"]
         gc_img_mask = gc_npz["gc_img_mask"]
 
-        ret_npz = self.data_io.get_data(self.context.retina_parameters["ret_file"])
+        ret_npz = self.data_io.get_data(self.config.retina_parameters["ret_file"])
 
         weights = ret_npz["bipolar_to_gcs_cen_weights"]
         bipolar_positions = ret_npz["bipolar_optimized_pos_mm"]
@@ -1785,14 +1785,14 @@ class Viz:
 
         for idx, this_sample in enumerate(gc_list):
             gc_position = gc_pos_mm[this_sample, :]
-            if self.context.retina_parameters["dog_model_type"] == "circular":
+            if self.config.retina_parameters["dog_model_type"] == "circular":
                 DoG_patch = Circle(
                     xy=gc_position,
                     radius=gc_df.loc[this_sample, "rad_c_mm"],
                     edgecolor="g",
                     facecolor="none",
                 )
-            elif self.context.retina_parameters["dog_model_type"] in [
+            elif self.config.retina_parameters["dog_model_type"] in [
                 "ellipse_independent",
                 "ellipse_fixed",
             ]:
@@ -1853,7 +1853,7 @@ class Viz:
             If provided, the figure will be saved with this filename.
         """
 
-        ret_npz = self.data_io.get_data(self.context.retina_parameters["ret_file"])
+        ret_npz = self.data_io.get_data(self.config.retina_parameters["ret_file"])
 
         cones_to_bipolars_center_weights = ret_npz["cones_to_bipolars_center_weights"]
         cones_to_bipolars_surround_weights = ret_npz[
@@ -1922,7 +1922,7 @@ class Viz:
         savefigname : str, optional
             If provided, the figure will be saved with this filename.
         """
-        ret_data = self.data_io.get_data(self.context.retina_parameters["ret_file"])
+        ret_data = self.data_io.get_data(self.config.retina_parameters["ret_file"])
 
         weights = {
             "cones_to_bipolars_center": ret_data["cones_to_bipolars_center_weights"],
@@ -1971,7 +1971,7 @@ class Viz:
         savefigname : str, optional
             If provided, the figure will be saved with this filename.
         """
-        ret_data = self.data_io.get_data(self.context.retina_parameters["ret_file"])
+        ret_data = self.data_io.get_data(self.config.retina_parameters["ret_file"])
 
         weights = {
             "cones_to_bipolars_center": ret_data["cones_to_bipolars_center_weights"],
@@ -2032,9 +2032,9 @@ class Viz:
         Visualize a ganglion cell image, DoG fit and center grid points.
         """
 
-        gc_df = self.data_io.get_data(self.context.retina_parameters["mosaic_file"])
+        gc_df = self.data_io.get_data(self.config.retina_parameters["mosaic_file"])
         gc_npz = self.data_io.get_data(
-            self.context.retina_parameters["spatial_rfs_file"]
+            self.config.retina_parameters["spatial_rfs_file"]
         )
 
         x_mm, y_mm = self.pol2cart(
@@ -2046,7 +2046,7 @@ class Viz:
         gc_img_mask = gc_npz["gc_img_mask"]
         gc_img = gc_npz["gc_img"]
 
-        gc_df = self.data_io.get_data(self.context.retina_parameters["mosaic_file"])
+        gc_df = self.data_io.get_data(self.config.retina_parameters["mosaic_file"])
         half_pix_mm = (gc_npz["um_per_pix"] / 1000) / 2
 
         if isinstance(gc_list, list):
@@ -2081,14 +2081,14 @@ class Viz:
 
             # Create circle/ellipse patch for visualizing the RF
             gc_position = gc_pos_mm[this_sample, :]
-            if self.context.retina_parameters["dog_model_type"] == "circular":
+            if self.config.retina_parameters["dog_model_type"] == "circular":
                 DoG_patch = Circle(
                     xy=gc_position,
                     radius=gc_df.loc[this_sample, "rad_c_mm"],
                     edgecolor="g",
                     facecolor="none",
                 )
-            elif self.context.retina_parameters["dog_model_type"] in [
+            elif self.config.retina_parameters["dog_model_type"] in [
                 "ellipse_independent",
                 "ellipse_fixed",
             ]:
@@ -2129,8 +2129,8 @@ class Viz:
         this_function = cell_density_dict["function"]
         fit_parameters = cell_density_dict["fit_parameters"]
 
-        ecc_limits_deg = self.context.retina_parameters["ecc_limits_deg"]
-        deg_per_mm = self.context.retina_parameters["deg_per_mm"]
+        ecc_limits_deg = self.config.retina_parameters["ecc_limits_deg"]
+        deg_per_mm = self.config.retina_parameters["deg_per_mm"]
         ecc_lim_mm = np.asarray(ecc_limits_deg) / deg_per_mm
         mean_ecc = np.mean(ecc_lim_mm)
 
@@ -2188,7 +2188,7 @@ class Viz:
 
     def show_bipolar_nonlinearity(self, savefigname=None):
 
-        ret_file_npz = self.data_io.get_data(self.context.retina_parameters["ret_file"])
+        ret_file_npz = self.data_io.get_data(self.config.retina_parameters["ret_file"])
         popt = ret_file_npz["bipolar_nonlinearity_parameters"]
         bipolar_g_sur_scaled = ret_file_npz["bipolar_g_sur_scaled"]
         bipolar_RI_values = ret_file_npz["bipolar_RI_values"]
@@ -2241,7 +2241,7 @@ class Viz:
         deg_per_mm = stim_to_show["deg_per_mm"]
         retina_center = stim_to_show["retina_center"]
 
-        dog_model_type = self.context.retina_parameters["dog_model_type"]
+        dog_model_type = self.config.retina_parameters["dog_model_type"]
         fig, ax = plt.subplots()
         ax.imshow(stimulus_video.frames[frame_number, :, :])
         ax = plt.gca()
@@ -2669,7 +2669,7 @@ class Viz:
         bin_width = 10 * b2u.ms
 
         # Find the nearest integer number of simulation_dt units for hist_dt
-        simulation_dt = self.context.run_parameters["simulation_dt"] * b2u.second
+        simulation_dt = self.config.run_parameters["simulation_dt"] * b2u.second
         hist_dt = np.round(bin_width / simulation_dt) * simulation_dt
 
         # Update bin_edges based on the new hist_dt
@@ -2784,7 +2784,7 @@ class Viz:
         generator_potentials = gc_responses_to_show["generator_potentials"]
         video_dt = gc_responses_to_show["video_dt"]
         firing_rates = gc_responses_to_show["firing_rates"]
-        visual_stimulus_parameters = self.context.visual_stimulus_parameters
+        visual_stimulus_parameters = self.config.visual_stimulus_parameters
         fps = visual_stimulus_parameters["fps"]
         baseline_start_seconds = visual_stimulus_parameters["baseline_start_seconds"]
 
@@ -2796,7 +2796,7 @@ class Viz:
         photodiode_to_show = self.project_data.simulate_retina["photodiode_to_show"]
         photodiode_response = photodiode_to_show["photodiode_response"]
 
-        temporal_model_type = self.context.retina_parameters["temporal_model_type"]
+        temporal_model_type = self.config.retina_parameters["temporal_model_type"]
 
         # Create subplots
         fig, ax = plt.subplots(4, 1, sharex=False, figsize=(12, 8))
@@ -2867,7 +2867,7 @@ class Viz:
             raise ValueError(
                 "Cone responses not available. Requires simulation w/ subunit temporal_model. Aborting..."
             )
-        visual_stimulus_parameters = self.context.visual_stimulus_parameters
+        visual_stimulus_parameters = self.config.visual_stimulus_parameters
 
         # Prepare data
         duration = gc_responses["duration"]
@@ -3081,7 +3081,7 @@ class Viz:
         plt.colorbar(im, ax=ax[0])
 
         plt.subplot(122)
-        if self.context.retina_parameters["temporal_model_type"] == "dynamic":
+        if self.config.retina_parameters["temporal_model_type"] == "dynamic":
             ax[1].text(
                 0.5,
                 0.5,
@@ -3100,7 +3100,7 @@ class Viz:
             self._figsave(figurename=savefigname)
 
     def _check_for_fixed_model(self):
-        temporal_model_type = self.context.retina_parameters["temporal_model_type"]
+        temporal_model_type = self.config.retina_parameters["temporal_model_type"]
         if temporal_model_type != "fixed":
             raise ValueError(
                 f"Not available for {temporal_model_type} model, aborting..."
@@ -3406,7 +3406,7 @@ class Viz:
         Plot the mean firing rate response curve.
         """
 
-        data_folder = self.context.output_folder
+        data_folder = self.config.output_folder
         cond_names_string = "_".join(exp_variables)
         assert (
             len(exp_variables) == 1
@@ -3483,7 +3483,7 @@ class Viz:
             If not empty, the figure is saved to this filename.
         """
 
-        data_folder = self.context.output_folder
+        data_folder = self.config.output_folder
         cond_names_string = "_".join(exp_variables)
         n_variables = len(exp_variables)
 
@@ -3583,7 +3583,7 @@ class Viz:
         savefigname : str or None
             If not empty, the figure is saved to this filename."""
 
-        data_folder = self.context.output_folder
+        data_folder = self.config.output_folder
         cond_names_string = "_".join(exp_variables)
         n_variables = len(exp_variables)
 
@@ -3685,8 +3685,8 @@ class Viz:
             # make sure ax is subscriptable
             ax = np.array(ax, ndmin=1)
 
-            gc_type = self.context.retina_parameters["gc_type"]
-            response_type = self.context.retina_parameters["response_type"]
+            gc_type = self.config.retina_parameters["gc_type"]
+            response_type = self.config.retina_parameters["response_type"]
             # Loop conditions
             for idx, cond_name in enumerate(cond_names):
                 gz_filename = f"Response_{gc_type}_{response_type}_{cond_name}.gz"
@@ -3774,9 +3774,9 @@ class Viz:
         cond_names_string = "_".join(exp_variables)
         experiment_df = self.data_io.get_data(filename=filename)
         cond_names = experiment_df.index.values
-        gc_type = self.context.retina_parameters["gc_type"]
-        response_type = self.context.retina_parameters["response_type"]
-        data_folder = self.context.output_folder
+        gc_type = self.config.retina_parameters["gc_type"]
+        response_type = self.config.retina_parameters["response_type"]
+        data_folder = self.config.output_folder
 
         pattern = f"exp_results_{gc_type}_{response_type}_{cond_names_string}_*.csv"
         data_fullpath = self.data_io.most_recent_pattern(data_folder, pattern)
@@ -3824,7 +3824,7 @@ class Viz:
 
         cond_names_string = "_".join(exp_variables)
         experiment_df = self.data_io.get_data(filename=filename)
-        data_folder = self.context.output_folder
+        data_folder = self.config.output_folder
 
         # Load results
         filename_in = f"{cond_names_string}_correlation.npz"
@@ -3927,7 +3927,7 @@ class Viz:
             If True, y-axis is logarithmic.
         """
 
-        data_folder = self.context.output_folder
+        data_folder = self.config.output_folder
         cond_names_string = "_".join(exp_variables)
 
         # Experiment metadata
@@ -4015,8 +4015,8 @@ class Viz:
         savefigname (str, optional): Name of the figure to save. Defaults to None.
         """
 
-        gc_type = self.context.retina_parameters["gc_type"]
-        response_type = self.context.retina_parameters["response_type"]
+        gc_type = self.config.retina_parameters["gc_type"]
+        response_type = self.config.retina_parameters["response_type"]
 
         # Load results
         filename = f"exp_results_{gc_type}_{response_type}_response_vs_background.csv"
@@ -4166,7 +4166,7 @@ class Viz:
     def validate_gc_rf_size(self, savefigname=None):
         gen_rfs = self.project_data.construct_retina["gen_rfs"]
 
-        if self.context.retina_parameters["spatial_model_type"] == "VAE":
+        if self.config.retina_parameters["spatial_model_type"] == "VAE":
             gen_rfs = gen_rfs
             gc_vae_img = gen_rfs["gc_vae_img"]
 
@@ -4177,7 +4177,7 @@ class Viz:
             gc_vae_df = self.construct_retina.gc_vae_df
 
             fit = self.construct_retina.Fit(
-                self.context.experimental_metadata,
+                self.config.experimental_metadata,
                 self.construct_retina.gc_type,
                 self.construct_retina.response_type,
                 spatial_data=gc_vae_img,
@@ -4222,7 +4222,7 @@ class Viz:
         ecc_deg_vae = ecc_mm_vae * deg_per_mm
 
         # Read in corresponding data from literature
-        spatial_DoG_path = self.context.literature_data_files["spatial_DoG_path"]
+        spatial_DoG_path = self.config.literature_data_files["spatial_DoG_path"]
         spatial_DoG_data = self.data_io.get_data(spatial_DoG_path)
 
         lit_ecc_deg = spatial_DoG_data["Xdata"]  # ecc (deg)
@@ -4289,14 +4289,14 @@ class Viz:
         """
 
         coll_ana_df = copy.deepcopy(self.coll_spa_dict["coll_ana_df"])
-        to_spa_dict = copy.deepcopy(self.context.to_spa_dict)
+        to_spa_dict = copy.deepcopy(self.config.to_spa_dict)
 
         titles = to_spa_dict[param_plot_dict["title"]]
 
         if param_plot_dict["save_description"] is True:
             describe_df_list = []
             describe_df_columns_list = []
-            describe_folder_full = Path.joinpath(self.context.path, "Descriptions")
+            describe_folder_full = Path.joinpath(self.config.path, "Descriptions")
             describe_folder_full.mkdir(parents=True, exist_ok=True)
 
         # If param_plot_dict["inner_paths"] is True, replace titles with and [""] .
@@ -4326,7 +4326,7 @@ class Viz:
                 # read optimal values to dataframe from path/optimal_values/optimal_unfit_description.csv
                 optimal_df = pd.read_csv(
                     Path.joinpath(
-                        self.context.path,
+                        self.config.path,
                         optimal_value_foldername,
                         optimal_description_name,
                     )
@@ -4820,7 +4820,7 @@ class Viz:
             will not be saved.
         """
 
-        data_folder = self.context.output_folder
+        data_folder = self.config.output_folder
         cond_names_string = "_".join(exp_variables)
 
         if "frequency" in cond_names_string:
@@ -4952,8 +4952,8 @@ class VizResponse:
     Show spiking rate dynamically together with the stimulus.
     """
 
-    def __init__(self, context, data_io, project_data, VisualSignal):
-        self.context = context
+    def __init__(self, config, data_io, project_data, VisualSignal):
+        self.config = config
         self.data_io = data_io
         self.project_data = project_data
 
@@ -5012,19 +5012,19 @@ class VizResponse:
         stimulus_video = self.data_io.load_stimulus_from_videofile(video_file_name)
 
         self.vs = self.VisualSignal(
-            self.context.visual_stimulus_parameters,
-            self.context.retina_parameters["retina_center"],
+            self.config.visual_stimulus_parameters,
+            self.config.retina_parameters["retina_center"],
             self.data_io.load_stimulus_from_videofile,
-            self.context.run_parameters["simulation_dt"],
-            self.context.retina_parameters["deg_per_mm"],
-            self.context.retina_parameters["optical_aberration"],
-            self.context.visual_stimulus_parameters["pix_per_deg"],
+            self.config.run_parameters["simulation_dt"],
+            self.config.retina_parameters["deg_per_mm"],
+            self.config.retina_parameters["optical_aberration"],
+            self.config.visual_stimulus_parameters["pix_per_deg"],
             stimulus_video=stimulus_video,
         )
         stimulus_video = self.vs.load_stimulus_from_videofile(video_file_name)
 
         # Extract retina center and unit positions
-        retina_center = self.context.retina_parameters["retina_center"]
+        retina_center = self.config.retina_parameters["retina_center"]
         retina_center_deg = (retina_center.real, retina_center.imag)
 
         # normalize frames to [0, 1] for visualization

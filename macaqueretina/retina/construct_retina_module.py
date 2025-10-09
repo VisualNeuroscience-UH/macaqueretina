@@ -24,11 +24,11 @@ from tqdm import tqdm
 
 # Local
 from .rf_repulsion_utils import apply_rf_repulsion
-from macaqueretina.project.project_utilities_module import Printable
+from macaqueretina.project.project_utilities_module import PrintableMixin
 from macaqueretina.retina.retina_math_module import RetinaMath
 
 
-class Retina(Printable):
+class Retina(PrintableMixin):
     """
     A class representing the biological and computational model of the macaque retina.
 
@@ -293,7 +293,7 @@ class DistributionSampler:
         return multivariate_samples_df
 
 
-class GanglionCellBase(ABC, Printable):
+class GanglionCellBase(ABC, PrintableMixin):
     """
     Abstract base class for storing and processing data related to ganglion cell receptive field models.
 
@@ -3828,7 +3828,7 @@ class ConcreteRetinaBuilder(RetinaBuildInterface):
         It uses Lloyd's relaxation for iteratively adjusting seed points.
         """
 
-        # Extract parameters from context
+        # Extract parameters from config
         n_iterations = unit_placement_params["n_iterations"]
         change_rate = unit_placement_params["change_rate"]
         show_placing_progress = unit_placement_params["show_placing_progress"]
@@ -4761,7 +4761,7 @@ class RetinaBuildDirector:
         return ret, gc
 
 
-class ConstructRetina(Printable):
+class ConstructRetina(PrintableMixin):
     """
     Constructs the ganglion cell mosaic and associated retinal components.
 
@@ -4771,8 +4771,8 @@ class ConstructRetina(Printable):
 
     Attributes
     ----------
-    context : Context
-        The context object containing configuration and parameters.
+    config : config
+        The config object containing configuration and parameters.
     data_io : DataIO
         An object for handling data input/output operations.
     viz : Visualization
@@ -4793,7 +4793,7 @@ class ConstructRetina(Printable):
 
     def __init__(
         self,
-        context: Any,
+        config: Any,
         data_io: Any,
         viz: Any,
         fit: Any,
@@ -4807,8 +4807,8 @@ class ConstructRetina(Printable):
 
         Parameters
         ----------
-        context : Context
-            The context object containing configuration and parameters.
+        config : Configuration
+            The config object containing configuration and parameters.
         data_io : DataIO
             An object for handling data input/output operations.
         viz : Visualization
@@ -4825,7 +4825,7 @@ class ConstructRetina(Printable):
             Function to extract X and Y data from a .npz file.
         """
         # Dependency injection at ProjectManager construction
-        self._context = context
+        self._config = config
         self._data_io = data_io
         self._viz = viz
         self._fit = fit
@@ -4837,10 +4837,10 @@ class ConstructRetina(Printable):
         self.get_xy_from_npz = get_xy_from_npz
 
         # Set attributes
-        self._device = self.context.device
+        self._device = self.config.device
 
         # Make or read fits
-        retina_parameters = self.context.retina_parameters
+        retina_parameters = self.config.retina_parameters
 
         if "spatial_model_type" in retina_parameters and retina_parameters[
             "spatial_model_type"
@@ -4852,9 +4852,9 @@ class ConstructRetina(Printable):
         self.mosaic_filename = []
 
     @property
-    def context(self):
-        """Context object containing configuration and parameters."""
-        return self._context
+    def config(self):
+        """Configuration object containing configuration and parameters."""
+        return self._config
 
     @property
     def data_io(self):
@@ -4980,8 +4980,8 @@ class ConstructRetina(Printable):
         """
         data_io = self.data_io
 
-        # Read literature data paths from the context
-        files = self.context.literature_data_files
+        # Read literature data paths from the config
+        files = self.config.literature_data_files
         literature = {}
 
         # Get unit density data
@@ -4989,7 +4989,7 @@ class ConstructRetina(Printable):
         literature["gc_eccentricity_1"] = gc_ecc_1
         literature["gc_density_1"] = gc_density_1
         literature["gc_density_1_scaling_data_and_function"] = (
-            self.context.literature_data_files["gc_density_1_scaling_data_and_function"]
+            self.config.literature_data_files["gc_density_1_scaling_data_and_function"]
         )
         gc_ecc_2, gc_density_2 = self._get_density_from([files["gc_density_2_path"]])
         literature["gc_eccentricity_2"] = gc_ecc_2
@@ -5002,8 +5002,8 @@ class ConstructRetina(Printable):
         literature["gc_control_density"] = gc_control_density
 
         cone_filepaths = [
-            self.context.literature_data_files["cone_density1_path"],
-            self.context.literature_data_files["cone_density2_path"],
+            self.config.literature_data_files["cone_density1_path"],
+            self.config.literature_data_files["cone_density2_path"],
         ]
         cone_eccentricity, cone_density = self._get_density_from(cone_filepaths)
         literature["cone_eccentricity"] = cone_eccentricity
@@ -5030,28 +5030,28 @@ class ConstructRetina(Printable):
 
         # Get cone response and noise data
         cone_response = self.data_io.get_data(
-            self.context.literature_data_files["cone_response_path"]
+            self.config.literature_data_files["cone_response_path"]
         )
         cone_frequency_data, cone_power_data = self.get_xy_from_npz(cone_response)
         literature["cone_frequency_data"] = cone_frequency_data
         literature["cone_power_data"] = cone_power_data
 
-        cone_noise_wc = self.context.retina_parameters["cone_general_parameters"][
+        cone_noise_wc = self.config.retina_parameters["cone_general_parameters"][
             "cone_noise_wc"
         ]
         literature["cone_noise_wc"] = cone_noise_wc
 
         cone_noise = self.data_io.get_data(
-            self.context.literature_data_files["cone_noise_path"]
+            self.config.literature_data_files["cone_noise_path"]
         )
         noise_frequency_data, noise_power_data = self.get_xy_from_npz(cone_noise)
         literature["noise_frequency_data"] = noise_frequency_data
         literature["noise_power_data"] = noise_power_data
 
         # Get bipolar rectification index data
-        response_type = self.context.retina_parameters["response_type"]
+        response_type = self.config.retina_parameters["response_type"]
         RI_values_npz = self.data_io.get_data(
-            self.context.literature_data_files[
+            self.config.literature_data_files[
                 f"parasol_{response_type}_RI_values_path"
             ]
         )
@@ -5075,10 +5075,10 @@ class ConstructRetina(Printable):
         dict
             The updated data dictionary with metadata.
         """
-        data["experimental_metadata"] = self.context.experimental_metadata
+        data["experimental_metadata"] = self.config.experimental_metadata
         return data
 
-    def _get_statistics_context(
+    def _get_statistics_config(
         self,
         gc_type: str,
         response_type: str,
@@ -5095,7 +5095,7 @@ class ConstructRetina(Printable):
             "temporal_multivariate_stat.csv",
             "exp_cen_radius_mm.npy",
         ]
-        self.dog_context = {
+        self.dog_config = {
             "path": path,
             "filename_stem": filename_stem,
             "filetypes": filetypes,
@@ -5103,7 +5103,7 @@ class ConstructRetina(Printable):
 
         filename_stem = f"{gc_type}_{response_type}"
 
-        self.vae_context = {
+        self.vae_config = {
             "path": path,
             "filename_stem": filename_stem,
         }
@@ -5112,9 +5112,9 @@ class ConstructRetina(Printable):
         """
         Updates the dog statistics on disk with the current experimental statistics.
         """
-        path = self.dog_context["path"]
-        filename_stem = self.dog_context["filename_stem"]
-        filetypes = self.dog_context["filetypes"]
+        path = self.dog_config["path"]
+        filename_stem = self.dog_config["filename_stem"]
+        filetypes = self.dog_config["filetypes"]
 
         for filetype in filetypes:
             filename = f"{filename_stem}_{filetype}"
@@ -5132,9 +5132,9 @@ class ConstructRetina(Printable):
         If not found, recalculates the statistics by fitting the model to
         experimental data and saves the statistics on disk.
         """
-        path = self.dog_context["path"]
-        filename_stem = self.dog_context["filename_stem"]
-        filetypes = self.dog_context["filetypes"]
+        path = self.dog_config["path"]
+        filename_stem = self.dog_config["filename_stem"]
+        filetypes = self.dog_config["filetypes"]
 
         dog_statistics = {}
         try:
@@ -5176,11 +5176,11 @@ class ConstructRetina(Printable):
 
     def _get_vae_statistics_filepath(self) -> str:
         """
-        Returns the file path for the VAE statistics based on the context.
+        Returns the file path for the VAE statistics based on the config.
         """
         # breakpoint()
-        path = self.vae_context["path"]
-        filename_stem = self.vae_context["filename_stem"]
+        path = self.vae_config["path"]
+        filename_stem = self.vae_config["filename_stem"]
         return str(path / f"{filename_stem}_vae_latent_stats.npy")
 
     def _get_vae_statistics(self, retina_vae: Any) -> np.ndarray:
@@ -5199,7 +5199,7 @@ class ConstructRetina(Printable):
             print("Loaded VAE statistics from disk.")
 
         except FileNotFoundError:
-            vae_train_parameters = self.context.retina_parameters[
+            vae_train_parameters = self.config.retina_parameters[
                 "vae_train_parameters"
             ]
             augmentation_dict = vae_train_parameters.get("augmentation_dict", {})
@@ -5249,7 +5249,7 @@ class ConstructRetina(Printable):
             The type of DoG model to be used for fitting.
         """
 
-        self._get_statistics_context(
+        self._get_statistics_config(
             retina_parameters["gc_type"],
             retina_parameters["response_type"],
             retina_parameters["dog_model_type"],
@@ -5275,10 +5275,41 @@ class ConstructRetina(Printable):
 
         return experimental_archive
 
-    def _get_parameters_for_build(self):
-        """Creates a hash from retina_parameters to be used when
-        loading/saving the retina file, and changes parameters within
-        context."""
+    def _set_retina_parameters(self):
+        """Sets some retina parameters, specific to the current build."""
+        
+        hashstr = self.config.hash()
+        self.config.retina_parameters["retina_parameters_hash"] = hashstr
+
+        gc_type = self.config.retina_parameters["gc_type"]
+        response_type = self.config.retina_parameters["response_type"]
+
+        self.config.retina_parameters["mosaic_filename"] = (
+            gc_type + "_" + response_type + "_" + hashstr + "_mosaic.csv"
+        )
+        self.config.retina_parameters["spatial_rfs_file"] = (
+            gc_type + "_" + response_type + "_" + hashstr + "_spatial_rfs.npz"
+        )
+        self.config.retina_parameters["ret_file"] = (
+            gc_type + "_" + response_type + "_" + hashstr + "_ret.npz"
+        )
+        self.config.retina_parameters["retina_metadata_file"] = (
+            gc_type + "_" + response_type + "_" + hashstr + "_metadata.yaml"
+        )
+
+        self.mosaic_filename = self.config.retina_parameters["mosaic_filename"]
+        self.config.retina_parameters["mosaic_file"] = self.config.retina_parameters[
+            "mosaic_filename"
+        ]
+        self.spatial_rfs_file_filename = self.config.retina_parameters[
+            "spatial_rfs_file"
+        ]
+        self.ret_filename = self.config.retina_parameters["ret_file"]
+
+
+    def _save_minimal_config_yaml(self):
+        """Saves a minimal configuration in a YAML file."""
+
         main_retina_parameters_list = [
             "gc_type",
             "response_type",
@@ -5295,47 +5326,19 @@ class ConstructRetina(Printable):
             "ray_tune_trial_id",
             "signal_gain",
         ]
+        
         main_retina_parameters = {
             key: value
-            for key, value in self.context.retina_parameters.items()
+            for key, value in self.config.retina_parameters.items()
             if key in main_retina_parameters_list
         }
 
-        hash = self.context.generate_hash(main_retina_parameters)
-        self.context.retina_parameters["retina_parameters_hash"] = hash
-
-        hashstr = self.context.retina_parameters["retina_parameters_hash"]
-        gc_type = self.context.retina_parameters["gc_type"]
-        response_type = self.context.retina_parameters["response_type"]
-
-        self.context.retina_parameters["mosaic_filename"] = (
-            gc_type + "_" + response_type + "_" + hashstr + "_mosaic.csv"
-        )
-        self.context.retina_parameters["spatial_rfs_file"] = (
-            gc_type + "_" + response_type + "_" + hashstr + "_spatial_rfs.npz"
-        )
-        self.context.retina_parameters["ret_file"] = (
-            gc_type + "_" + response_type + "_" + hashstr + "_ret.npz"
-        )
-        self.context.retina_parameters["retina_metadata_file"] = (
-            gc_type + "_" + response_type + "_" + hashstr + "_metadata.yaml"
-        )
-
-        self.mosaic_filename = self.context.retina_parameters["mosaic_filename"]
-        self.context.retina_parameters["mosaic_file"] = self.context.retina_parameters[
-            "mosaic_filename"
-        ]
-        self.spatial_rfs_file_filename = self.context.retina_parameters[
-            "spatial_rfs_file"
-        ]
-        self.ret_filename = self.context.retina_parameters["ret_file"]
-
-        yaml_filename = self.context.retina_parameters["retina_metadata_file"]
-        yaml_filename_full = self.context.output_folder.joinpath(yaml_filename)
+        yaml_filename = self.config.retina_parameters["retina_metadata_file"]
+        yaml_filename_full = self.config.output_folder.joinpath(yaml_filename)
 
         # yaml does not support complex numbers, so we convert to string
-        self.context.retina_parameters["retina_center"] = str(
-            self.context.retina_parameters["retina_center"]
+        self.config.retina_parameters["retina_center"] = str(
+            self.config.retina_parameters["retina_center"]
         )
 
         self.data_io.save_dict_to_yaml(
@@ -5345,26 +5348,22 @@ class ConstructRetina(Printable):
         )
 
         # And then we change it back to complex number
-        self.context.retina_parameters["retina_center"] = complex(
-            self.context.retina_parameters["retina_center"]
+        self.config.retina_parameters["retina_center"] = complex(
+            self.config.retina_parameters["retina_center"]
         )
 
-        # Add all retina parameters to retina_parameters
-        if hasattr(self.context, "retina_parameters_append"):
-            self.context.retina_parameters.update(self.context.retina_parameters_append)
-            del self.context.retina_parameters_append
-
-        # Calculate cone noise hash
-        cone_noise_dict = self.context.retina_parameters["cone_general_parameters"]
+    def _set_cone_noise_hash(self):
+        """Calculate the cone noise hash."""
+        cone_noise_dict = self.config.retina_parameters["cone_general_parameters"]
 
         retina_limits = {
-            key: self.context.retina_parameters[key]
+            key: self.config.retina_parameters[key]
             for key in ["ecc_limits_deg", "pol_limits_deg"]
         }
         cone_noise_dict.update(retina_limits)
 
         stim_duration = {
-            key: self.context.visual_stimulus_parameters[key]
+            key: self.config.visual_stimulus_parameters[key]
             for key in [
                 "fps",
                 "duration_seconds",
@@ -5374,9 +5373,7 @@ class ConstructRetina(Printable):
         }
 
         cone_noise_dict.update(stim_duration)
-        self.context.retina_parameters["cone_noise_hash"] = self.context.generate_hash(
-            cone_noise_dict, n_hashes=1
-        )
+        self.config.retina_parameters["cone_noise_hash"] = cone_noise_dict.hash()
 
     def build_retina_client(self) -> None:
         """
@@ -5386,9 +5383,14 @@ class ConstructRetina(Printable):
         After the build, the retina is saved to the output directory.
         """
 
-        self._get_parameters_for_build()
+        # Set build-specific retina parameters and cone noise hash
+        self._set_retina_parameters()
+        self._set_cone_noise_hash()
 
-        retina_parameters = self.context.retina_parameters
+        # Save a minimal configuration in a YAML file
+        self._save_minimal_config_yaml()
+
+        retina_parameters = self.config.retina_parameters
 
         if self._build_exists(retina_parameters):
             return
@@ -5431,7 +5433,7 @@ class ConstructRetina(Printable):
             The ganglion cell object associated with the retina.
         """
         print("\nSaving gc and ret data...")
-        output_path = self.context.output_folder
+        output_path = self.config.output_folder
 
         # Save the generated receptive field pixel images, masks, and locations
         spatial_rfs_dict = {
