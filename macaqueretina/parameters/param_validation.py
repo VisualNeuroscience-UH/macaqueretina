@@ -531,7 +531,7 @@ class ConfigParams(BaseConfigModel):
         if not model_root_path.exists():
             print(
                 f"\033[91m \nModel root path {model_root_path} does not exist.\n"
-                f"Update project/project_conf_module.py model_root_path.\n"
+                f"Update core_parameters.yaml model_root_path.\n"
                 f"Using current working directory. \033[0m\n"
             )
             return Path.cwd()

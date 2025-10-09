@@ -15,6 +15,7 @@ from macaqueretina.parameters.param_reorganizer import ParamReorganizer
 from macaqueretina.project.project_manager_module import ProjectManager
 
 if TYPE_CHECKING:
+    # Local
     from macaqueretina.data_io.config_io import Configuration
 
 start_time = time.time()
