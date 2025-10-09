@@ -4,8 +4,8 @@
 
 model_root_path: "/opt3/projects"
 project: "macaqueretina"
-experiment: "test_config_io_refactor_2"
-input_folder: "../in"  # input figs, videos, models
+experiment: "test_experiment"
+input_folder: "../in"  # input VAE models, other data
 output_folder: "test" # spikes, retinas, experiment metadata
 numpy_seed: 42  # random.randint(0, 1000000)  # 42
 device: "cpu"  # "cpu" or "cuda"
