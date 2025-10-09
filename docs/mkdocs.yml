@@ -13,8 +13,9 @@ nav:
   - Home: index.md
   - Installation: installation.md
   - Quick Start: quickstart.md
-  - Usage: usage.md
-  - API Reference: api.md
+  - Introduction: introduction.md
+  - Developer: developer.md
+  - API: api.md
   - Contributors: contributors.md
 
 plugins:

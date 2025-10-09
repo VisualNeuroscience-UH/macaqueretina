@@ -1,12 +1,17 @@
 
 ## Getting started with MacaqueRetina simulator
 
+The simulator can be run either directly or imported as package. When run directly, all parameters are read from macaqueretina/parameters folder. When imported you have the option of changing parameters at runtime.
+
+
+### First, update the model root path to match your system
+
 Navigate to your local MacaqueRetina git repository root.
 
 Open file macaqueretina/parameters/core_parameters.yaml and change the  `model_root_path` to point into an existing directory in your system. This is where all data will be written out.
 
 
-### How to run using parameters from the yaml files
+### Run using parameters from the yaml files
 
 Activate your Poetry-managed environment:
 
@@ -22,7 +27,7 @@ python macaqueretina/project/project_conf_module.py
 
 This will run the simulator with the parameters from the yaml files. 
 
-### How to import and run
+### Import as package and run
 
 Activate your Poetry-managed environment:
 
