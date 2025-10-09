@@ -30,53 +30,85 @@ from macaqueretina.retina.retina_math_module import RetinaMath
 
 class Retina(Printable):
     """
-    A class housing the retina-level parameters and collecting the retina product.
-    Most values are defined in the project configuration file.
+    A class representing the biological and computational model of the macaque retina.
+
+    This class houses retina-level parameters, manages the placement and properties of retinal cells,
+    and collects the computational products of the retina simulation. Most parameters are loaded from
+    the yaml files, but some are computed during initialization or simulation.
 
     Parameters
     ----------
     retina_parameters : dict
-        A dictionary containing various parameters and settings for the retina.
-        Defined in the project configuration file.
+        A dictionary containing all parameters and settings for the retina model.
+        This includes placement, spatial, temporal, and response properties for all cell types.
+        Expected keys include:
+        - "gc_type", "response_type", "spatial_model_type", "dog_model_type", "temporal_model_type"
+        - "gc_placement_parameters", "cone_placement_parameters", "bipolar_placement_parameters"
+        - "cone_general_parameters", "bipolar_general_parameters"
+        - "dd_regr_model", "deg_per_mm", "ecc_limits_deg", "ecc_limit_for_dd_fit", "pol_limits_deg"
+        - "fit_statistics", "center_mask_threshold", "bipolar2gc_dict", "receptive_field_repulsion_parameters"
+        - "model_density", "proportion_of_parasol_gc_type", "proportion_of_midget_gc_type"
+        - "proportion_of_ON_response_type", "proportion_of_OFF_response_type"
+        - "experimental_archive"
 
     Attributes
     ----------
-    whole_ret_img : np.ndarray, optional
-        An image representing the whole retina (computed later).
-    whole_ret_lu_mm : np.ndarray, optional
-        Coordinates of the left upper corner of the whole retina image in millimeters (computed later).
-    cones_to_gcs_weights : np.ndarray, optional
-        Weights mapping cones to ganglion cells (computed later).
+    whole_ret_img : np.ndarray or None
+        A 2D array representing the whole retina image. Computed during simulation.
+    whole_ret_lu_mm : np.ndarray or None
+        Coordinates of the left upper corner of the whole retina image, in millimeters. Computed during simulation.
+    cones_to_gcs_weights : np.ndarray or None
+        Weights mapping cones to ganglion cells. Computed during simulation.
+    experimental_archive : str
+        Identifier for the experimental dataset or archive used for parameter fitting.
+    gc_type : str
+        Type of ganglion cell (e.g., "parasol", "midget").
+    response_type : str
+        Response type of the ganglion cell (e.g., "ON", "OFF").
+    spatial_model_type : str
+        Type of spatial model used for cell placement.
+    dog_model_type : str
+        Type of difference-of-Gaussians model used for receptive fields.
+    temporal_model_type : str
+        Type of temporal model used for cell responses.
+    fit_statistics : dict
+        Statistics related to the fitting of model parameters.
+    mask_threshold : float
+        Threshold for the center mask of the receptive field.
     gc_placement_parameters : dict
-        Parameters for placing ganglion cells.
+        Parameters for placing ganglion cells on the retina.
     cone_placement_parameters : dict
-        Parameters for placing cones.
+        Parameters for placing cone cells on the retina.
     bipolar_placement_parameters : dict
-        Parameters for placing bipolar cells.
+        Parameters for placing bipolar cells on the retina.
     cone_general_parameters : dict
-        Natural stimulus filtering parameters and cone-to-GC connection parameters.
+        Parameters for natural stimulus filtering and cone-to-GC connections.
+    bipolar_general_parameters : dict
+        General parameters for bipolar cells.
     dd_regr_model : Any
-        Regression model for dendritic diameter.
+        Regression model for dendritic diameter as a function of eccentricity.
     deg_per_mm : float
-        Degrees visual field per millimeter of the retina.
+        Conversion factor: degrees of visual field per millimeter of retina.
+    bipolar2gc_dict : dict
+        Mapping of bipolar cell types to ganglion cell types.
+    receptive_field_repulsion_parameters : dict
+        Parameters controlling the repulsion between receptive fields.
     ecc_lim_mm : np.ndarray
-        Eccentricity limits in millimeters.
+        Eccentricity limits of the retina, in millimeters (converted from degrees).
     ecc_limit_for_dd_fit_mm : float
-        Eccentricity limit for dendritic density fit in millimeters.
+        Eccentricity limit for dendritic density fit, in millimeters (converted from degrees).
     polar_lim_deg : np.ndarray
-        Polar limits in degrees.
-    gc_proportion : float
-        Proportion of a specific type of ganglion cell based on type and response.
-
-    Methods
-    -------
-    __init__(self, retina_parameters: dict) -> None
-        Initializes the Retina instance with the given parameters.
-
-    Raises
-    ------
-    ValueError
-        If an unknown ganglion cell type is specified in `retina_parameters`.
+        Polar angle limits of the retina, in degrees.
+    model_density : float
+        Density of the model cells on the retina (must be <= 1.0).
+    proportion_of_parasol_gc_type : float
+        Proportion of parasol ganglion cells in the model.
+    proportion_of_midget_gc_type : float
+        Proportion of midget ganglion cells in the model.
+    proportion_of_ON_response_type : float
+        Proportion of ON-response ganglion cells in the model.
+    proportion_of_OFF_response_type : float
+        Proportion of OFF-response ganglion cells in the model.
     """
 
     def __init__(self, retina_parameters: Dict[str, Any]) -> None:
@@ -125,16 +157,7 @@ class Retina(Printable):
         ecc_limit_for_dd_fit: float = retina_parameters["ecc_limit_for_dd_fit"]
         pol_limits_deg: list[float] = retina_parameters["pol_limits_deg"]
 
-        # Assertions
-        assert (
-            isinstance(ecc_limits_deg, list) and len(ecc_limits_deg) == 2
-        ), "Wrong type or length of eccentricity, aborting"
-        assert (
-            isinstance(pol_limits_deg, list) and len(pol_limits_deg) == 2
-        ), "Wrong type or length of pol_limits_deg, aborting"
-
         self.model_density: float = retina_parameters["model_density"]
-        assert self.model_density <= 1.0, "Density should be <=1.0, aborting"
 
         # Turn list to numpy array and deg to mm
         self.ecc_lim_mm: np.ndarray = (
