@@ -4,6 +4,7 @@ site_author: Simo Vanni
 
 theme:
   name: readthedocs
+  collapse_navigation: true
   highlightjs: true
   hljs_languages:
     - yaml
@@ -13,7 +14,14 @@ nav:
   - Home: index.md
   - Installation: installation.md
   - Quick Start: quickstart.md
-  - Introduction: introduction.md
+  - Introduction:
+      - Overview: introduction.md
+      - Building: building.md
+      - Stimuli: stimuli.md
+      - Simulations: simulations.md
+      - Visualization: visualization.md    
+  - Parameters:
+      - Overview: parameters_introduction.md
   - Developer: developer.md
   - API: api.md
   - Contributors: contributors.md

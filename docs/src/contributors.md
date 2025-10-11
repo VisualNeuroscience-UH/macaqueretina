@@ -1,6 +1,7 @@
-# Contributors
+## Contributors
+- Henri Hokkanen (Developer)
 - Simo Vanni (Lead Developer)
 - Francescangelo Vedele (Developer)
-- Silviya Hasana (Bayesian Ideal Observer model)
-- Henri Hokkanen (Developer)
-- [Acknowledgements to funders, labs, etc.]
+
+## Acknowledgements
+We thank E.J. Chichilnisky who kindly allowed us to access their spatiotemporal receptive field data, and Petri Ala-Laurila for insightful comment on model construction. This work was supported by Research Council of Finland grant N:o 361816.

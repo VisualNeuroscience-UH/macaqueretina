@@ -1,0 +1,1 @@
+Most parameters are available for modification in yaml files at macaqueretina/parameters. 
