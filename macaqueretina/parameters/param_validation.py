@@ -151,7 +151,6 @@ class StimulusMetadataParameters(BaseConfigModel):
     pix_per_deg: int = Field(
         default=30, description="VanHateren_1998_ProcRSocLondB 2 arcmin per pixel"
     )
-    apply_cone_filter: bool = False
     fps: int = 25
 
 

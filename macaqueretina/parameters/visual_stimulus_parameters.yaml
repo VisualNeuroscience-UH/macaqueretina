@@ -29,7 +29,6 @@ visual_stimulus_parameters:
 stimulus_metadata_parameters:
   stimulus_file: "testi.jpg"  # nature1.avi, testi.jpg
   pix_per_deg: 30  # VanHateren_1998_ProcRSocLondB 2 arcmin per pixel
-  apply_cone_filter: False
   fps: 25
 
 # Each gc response file contain n_sweeps with independent cone noise and spike generator.

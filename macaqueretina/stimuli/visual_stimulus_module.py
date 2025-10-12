@@ -394,8 +394,12 @@ class VideoBaseClass(object):
         """
         Extracts and resizes the frames from a cv2.VideoCapture object
 
-        :param cap:
-        :return:
+        Parameters
+        ----------
+        cap : cv2.VideoCapture
+            The video capture object from which frames are extracted.
+        n_frames : int
+            The number of frames to extract.
         """
         w = self.options["image_width"]
         h = self.options["image_height"]
@@ -649,14 +653,12 @@ class StimulusPattern:
         """
         Process natural images for use in stimulus patterns.
 
-        This method handles natural images by either applying a cone filter response
-        or loading an image file based on the provided stimulus metadata. The selected
-        image is then resized to match the frame dimensions. The resized image is
-        integrated with the frames by multiplying it, enabling the creation of a
-        stimulus pattern.
+        This method handles natural images loading an image file based on the provided
+        stimulus metadata. The selected image is then resized to match the frame dimensions.
+        The resized image is integrated with the frames by multiplying it, enabling the
+        creation of astimulus pattern.
 
-        After this integration, the method performs additional filtering and updates
-        the raw intensity values based on the new data.
+        After this integration, the method updates the raw intensity values based on the new data.
         """
         image_file_name = self.config.stimulus_metadata_parameters["stimulus_file"]
         self.image = self.data_io.get_data(image_file_name)
@@ -669,10 +671,19 @@ class StimulusPattern:
 
         self.frames = self.frames * resized_image
 
-        # filtering: http://www.djmannion.net/psych_programming/vision/sf_filt/sf_filt.html
         self._raw_intensity_from_data()
 
     def natural_video(self):
+        """
+        Process natural video for use in stimulus patterns.
+
+        This method processes a natural video file specified in the stimulus metadata.
+        It extracts frames from the video, resizes them to match the desired dimensions,
+        and integrates them into the stimulus frames. The method also sets the frames
+        to a specified frames per second (fps) and pixels per degree (pix_per_deg).
+
+        After processing, it updates the raw intensity values based on the new data.
+        """
 
         video_file_name = self.config.stimulus_metadata_parameters["stimulus_file"]
         video_cap = self.data_io.get_data(video_file_name)
@@ -706,9 +717,6 @@ class StimulusPattern:
                 self.fps,
             )
         )
-
-        if self.config.stimulus_metadata_parameters["apply_cone_filter"] is True:
-            pass
 
         self._raw_intensity_from_data()
         video_cap.release()
