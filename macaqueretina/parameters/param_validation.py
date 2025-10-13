@@ -627,7 +627,7 @@ def validate_params(
     config: Configuration,
     project_conf_module_file_path: Path,
     git_repo_root_path: Path,
-) -> ConfigParams:
+) -> Configuration:
     """
     Validate and convert parameters to the appropriate types.
 
@@ -638,8 +638,8 @@ def validate_params(
 
     Returns
     -------
-    ConfigParams:
-        ConfigParams object with the validated parameters, plus any computed
+    Configuration:
+        Configuration object with the validated parameters, plus any computed
         field from ConfigParams.
     """
     global proj_conf_mod_file_path
