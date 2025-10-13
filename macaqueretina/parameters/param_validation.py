@@ -604,17 +604,14 @@ class ConfigParams(BaseConfigModel):
 def _validate_paths(config):
     # Validate main project path
     if not config.path.is_dir():
-        raise KeyError("The 'path' parameter is not a valid path, aborting...")
+        config.path.mkdir(parents=True, exist_ok=True)
     if not config.path.is_absolute():
         raise KeyError("The 'path' parameter is not an absolute path, aborting...")
 
-    # Validate input and output folders
-    if config.path.joinpath(config.output_folder).is_dir():
-        config.output_folder = config.path.joinpath(config.output_folder)
-    if config.path.joinpath(config.stimulus_folder).is_dir():
-        config.stimulus_folder = config.path.joinpath(config.stimulus_folder)
-    if config.path.joinpath(config.input_folder).is_dir():
-        config.input_folder = config.path.joinpath(config.input_folder)
+    # Create input and output folder filepaths from "path"
+    config.output_folder = config.path.joinpath(config.output_folder)
+    config.stimulus_folder = config.path.joinpath(config.stimulus_folder)
+    config.input_folder = config.path.joinpath(config.input_folder)
 
     # Create the output, stimulus and input folders if they don't exist
     config.input_folder.mkdir(parents=True, exist_ok=True)
