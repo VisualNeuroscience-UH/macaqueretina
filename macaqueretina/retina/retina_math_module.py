@@ -339,6 +339,10 @@ class RetinaMath:
         # Calculate the luminance (L) in cd/m²
         L = L_td / A_pupil
 
+        # Strip seconds if I_cone has been given without units
+        if type(L) == b2u.Quantity:
+            L = L / L.get_best_unit()
+
         return L
 
     def get_photoisomerizations_from_luminance(
