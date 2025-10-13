@@ -46,3 +46,6 @@ mr.simulate_retina()
 mr.viz.show_all_gc_responses(savefigname=None)
 plt.show()
 ```
+
+Variables saved to disk can be accessed after `import macaqueretina as mr` and using `my_data = mr.get_data("filename")`
+

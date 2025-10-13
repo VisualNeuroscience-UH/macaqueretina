@@ -42,6 +42,19 @@ mr.viz.show_gc_noise_hist_cov_mtx(savefigname=None)
 # mr.viz.show_cone_responses(time_range=[0.0, 1.1], savefigname=None)
 
 
+################################################################################
+#####     Interactive plot of spike frequency on stimulus video     ############
+################################################################################
+video_file_name = mr.config.visual_stimulus_parameters.stimulus_video_name
+response_file_name = mr.config.run_parameters.gc_response_filenames[0] + ".gz"
+
+window_length = 0.1  # seconds
+rate_scale = 20  # Hz, Colorscale max amplitude
+mr.viz_spikes_with_stimulus(
+    video_file_name, response_file_name, window_length, rate_scale
+)
+
+
 ###############################################
 
 plt.show()

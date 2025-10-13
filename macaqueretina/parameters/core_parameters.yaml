@@ -4,7 +4,7 @@
 
 model_root_path: "/opt3/projects"
 project: "macaqueretina"
-experiment: "test_experiment"
+experiment: "test"
 input_folder: "../in"  # input VAE models, other data
 output_folder: "test" # spikes, retinas, experiment metadata
 numpy_seed: 42  # random.randint(0, 1000000)  # 42
