@@ -5051,9 +5051,7 @@ class ConstructRetina(PrintableMixin):
         # Get bipolar rectification index data
         response_type = self.config.retina_parameters["response_type"]
         RI_values_npz = self.data_io.get_data(
-            self.config.literature_data_files[
-                f"parasol_{response_type}_RI_values_path"
-            ]
+            self.config.literature_data_files[f"parasol_{response_type}_RI_values_path"]
         )
         g_sur_values, target_RI_values = self.get_xy_from_npz(RI_values_npz)
         literature["g_sur_values"] = g_sur_values
@@ -5178,7 +5176,6 @@ class ConstructRetina(PrintableMixin):
         """
         Returns the file path for the VAE statistics based on the config.
         """
-        # breakpoint()
         path = self.vae_config["path"]
         filename_stem = self.vae_config["filename_stem"]
         return str(path / f"{filename_stem}_vae_latent_stats.npy")
@@ -5199,9 +5196,7 @@ class ConstructRetina(PrintableMixin):
             print("Loaded VAE statistics from disk.")
 
         except FileNotFoundError:
-            vae_train_parameters = self.config.retina_parameters[
-                "vae_train_parameters"
-            ]
+            vae_train_parameters = self.config.retina_parameters["vae_train_parameters"]
             augmentation_dict = vae_train_parameters.get("augmentation_dict", {})
 
             retina_vae.get_and_split_experimental_data()
@@ -5277,7 +5272,7 @@ class ConstructRetina(PrintableMixin):
 
     def _set_retina_parameters(self):
         """Sets some retina parameters, specific to the current build."""
-        
+
         hashstr = self.config.hash()
         self.config.retina_parameters["retina_parameters_hash"] = hashstr
 
@@ -5306,7 +5301,6 @@ class ConstructRetina(PrintableMixin):
         ]
         self.ret_filename = self.config.retina_parameters["ret_file"]
 
-
     def _save_minimal_config_yaml(self):
         """Saves a minimal configuration in a YAML file."""
 
@@ -5326,7 +5320,7 @@ class ConstructRetina(PrintableMixin):
             "ray_tune_trial_id",
             "signal_gain",
         ]
-        
+
         main_retina_parameters = {
             key: value
             for key, value in self.config.retina_parameters.items()

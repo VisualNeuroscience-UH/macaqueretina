@@ -524,9 +524,7 @@ class Viz:
         pol_deg = gc_df["pos_polar_deg"].to_numpy()
 
         ecc_lim_deg = self.config.retina_parameters["ecc_limits_deg"]
-        ecc_lim_mm = (
-            np.array(ecc_lim_deg) / self.config.retina_parameters["deg_per_mm"]
-        )
+        ecc_lim_mm = np.array(ecc_lim_deg) / self.config.retina_parameters["deg_per_mm"]
         pol_lim_deg = self.config.retina_parameters["pol_limits_deg"]
         boundary_polygon = self.boundary_polygon(ecc_lim_mm, pol_lim_deg)
 
@@ -2484,7 +2482,6 @@ class Viz:
 
         # Ensure the gain column is numeric
         df["gain"] = pd.to_numeric(df["gain"])
-        # breakpoint()
         # Melt the DataFrame to long format for seaborn
         df_melted = df.melt(
             id_vars=["gain"],
@@ -2563,7 +2560,6 @@ class Viz:
         savefigname : str, optional
             The name of the file where the figure will be saved. If None, the figure is not saved.
         """
-        # breakpoint()
         data_dict = self.data_io.get_data(filename)
         spiketrains = data_dict[sweepname]
         n_units = data_dict["n_units"]
@@ -2957,7 +2953,7 @@ class Viz:
             cov_matrix[..., trial] = np.cov(gc_synaptic_noise[..., trial])
 
         cov_matrix_mean = np.mean(cov_matrix, axis=2)
-        # breakpoint()
+
         fig, ax = plt.subplots(1, 2, figsize=(10, 5))
         ax[0].hist(gc_synaptic_noise.flatten(), 100)
         ax[1].imshow(cov_matrix_mean, cmap="viridis")
