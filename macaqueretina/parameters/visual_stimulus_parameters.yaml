@@ -1,5 +1,5 @@
 visual_stimulus_parameters:
-  pattern: "temporal_sine_pattern"  # One of the StimulusPatterns
+  pattern: "sine_grating"  # One of the StimulusPatterns
   image_width: 240  # 752 for nature1.avi
   image_height: 240  # 432 for nature1.avi
   pix_per_deg: 60
