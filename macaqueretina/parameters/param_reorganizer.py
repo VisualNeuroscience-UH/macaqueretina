@@ -13,9 +13,10 @@ temporarily addressed with this file. Solutions might be:
 from __future__ import annotations
 
 # Built-in
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
+    # Local
     from macaqueretina.data_io.config_io import Configuration
 
 
@@ -27,7 +28,7 @@ class ParamReorganizer:
         pass
 
     def reorganize(self, config: Configuration) -> dict[str, Any]:
-        
+
         self.config = config.as_dict().copy()
 
         # TODO: check if gc_response_filenames must be left as an iterator
