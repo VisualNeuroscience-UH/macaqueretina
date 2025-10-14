@@ -14,7 +14,7 @@ import macaqueretina as mr
 # ###  Count lines in codebase, relative to working directory  ###
 # ################################################################
 
-mr.countlines(Path("macaqueretina"))
+# mr.countlines(Path("macaqueretina"))
 
 
 # #####################################################
@@ -40,11 +40,11 @@ mr.countlines(Path("macaqueretina"))
 # print(f"{luminance * A_pupil:.2f} trolands")
 
 
-# ############################################
-# ###  Sample figure data from literature  ###
-# ############################################
+# #####################################################
+# ###  Sample and view figure data from literature  ###
+# #####################################################
 
-# # Example validation file
+# # Example validation file, at
 # filename = "Derrington_1984b_Fig10B_magno_spatial.jpg"
 # filename_full = mr.config.git_repo_root_path.joinpath(
 #     r"retina/validation_data", filename
@@ -62,19 +62,22 @@ mr.countlines(Path("macaqueretina"))
 # #######################################################################
 # ###  For the rest, you need to run these once to create data files  ###
 # #######################################################################
-# mr.construct_retina()
-# mr.make_stimulus()
-# mr.simulate_retina()  # Requires mr.construct_retina() and mr.make_stimulus() to be run first
 
-# ##########################################
-# ###  Load arbitrary data to workspace  ###
-# ##########################################
+mr.construct_retina()
+mr.make_stimulus()
+mr.simulate_retina()
 
-# filename_parents = mr.config.output_folder
-# filename_offspring = f"gc_response_00.gz"
-# filename = Path(filename_parents).joinpath(filename_offspring)
-# xx = mr.get_data(filename)
-# print(type(xx))
+##########################################
+###  Load arbitrary data to workspace  ###
+##########################################
+filename_parents = mr.config.output_folder
+filename_offspring = (
+    f"parasol_on_49fab4ba4a_mosaic.csv"  # Example filename, change as needed
+)
+filename = Path(filename_parents).joinpath(filename_offspring)
+
+data = mr.get_data(filename)
+print(type(data))
 
 
 # ###################################
@@ -89,6 +92,23 @@ mr.countlines(Path("macaqueretina"))
 #     savefigname=None,  # None for no save, or string with type suffix
 # )
 
+
+#########################################
+##       Show impulse response        ###
+#########################################
+
+# mr.config.retina_parameters.gc_type = "parasol"  # "parasol", "midget"
+# mr.config.retina_parameters.response_type = "on"  # "on", "off"
+# mr.config.retina_parameters.spatial_model_type = "DOG"  # "DOG", "VAE"
+# mr.config.retina_parameters.temporal_model_type = (
+#     "fixed"  # "fixed", "dynamic", "subunit"
+# )
+# mr.construct_retina()
+
+# mr.config.run_parameters["contrasts_for_impulse"] = [1.0]
+# mr.simulate_retina(impulse=True)
+# mr.viz.show_impulse_response(savefigname=None)
+
 # # ######################################
 # # ###        Show unity data         ###
 # # ######################################
@@ -99,21 +119,6 @@ mr.countlines(Path("macaqueretina"))
 
 # mr.simulate_retina(unity=True)
 # mr.viz.show_unity(savefigname=None)
-
-# #########################################
-# ##       Show impulse response        ###
-# #########################################
-# # DYSFUNCTIONAL
-# mr.config.retina_parameters.gc_type = "parasol"  # "parasol", "midget"
-# mr.config.retina_parameters.response_type = "on"  # "on", "off"
-# mr.config.retina_parameters.spatial_model_type = "DOG"  # "DOG", "VAE"
-# mr.config.retina_parameters.temporal_model_type = (
-#     "fixed"  # "fixed", "dynamic", "subunit"
-# )
-
-# mr.config.run_parameters["contrasts_for_impulse"] = [1.0]
-# mr.simulate_retina(impulse=True)
-# mr.viz.show_impulse_response(savefigname=None)
 
 
 plt.show()
