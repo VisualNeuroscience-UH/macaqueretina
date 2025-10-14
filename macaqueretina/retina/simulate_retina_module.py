@@ -3015,8 +3015,7 @@ class ConeProduct(ReceptiveFieldsBase):
         max_response = params_dict["max_response"]
 
         cone_noise_norm_T = np.moveaxis(cone_noise_norm, 0, 1)
-        vs.cone_noise = cone_noise_norm_T * magn
-        vs.cone_noise_u = cone_noise_norm_T * magn * max_response
+        vs.cone_noise = cone_noise_norm_T
 
         return vs
 
@@ -3030,7 +3029,10 @@ class ConeProduct(ReceptiveFieldsBase):
         # if model is dynamic or fixed, connect cone noise directly to ganglion cells
         cones_to_gcs_weights = self.cones_to_gcs_weights
         magn = self.retina_parameters["noise_gain"]
-        cone_noise_norm_T = vs.cone_noise / magn
+        print(f"Noise gain (magn): {magn}")
+        # breakpoint()
+        cone_noise_norm_T = vs.cone_noise * magn
+        # cone_noise_norm_T = vs.cone_noise / magn
         cone_noise_norm = np.moveaxis(cone_noise_norm_T, 0, 1)
 
         if np.any(np.sum(cones_to_gcs_weights, axis=0) == 0):
@@ -3894,7 +3896,6 @@ class SimulateRetina(RetinaMath):
         if cone_noise_filename_full is not None:
             cone_noise_npz = self.data_io.get_data(full_path=cone_noise_filename_full)
             vs.cone_noise = cone_noise_npz["cone_noise"]
-            vs.cone_noise_u = cone_noise_npz["cone_noise_u"]
 
         gc_type = self.config.retina_parameters["gc_type"]
         response_type = self.config.retina_parameters["response_type"]
@@ -4013,6 +4014,19 @@ class SimulateRetina(RetinaMath):
             )
             self.config.retina_parameters.retina_parameters_hash = hash_part
 
+    def _update_noise_gain(self) -> None:
+        """
+        Update noise gain based on retina parameters.
+        """
+
+        self.config.retina_parameters.noise_gain = getattr(
+            getattr(
+                self.config.noise_gain_default,
+                self.config.retina_parameters.response_type,
+            ),
+            self.config.retina_parameters.gc_type,
+        )
+
     def client(
         self,
         stimulus: np.ndarray | None = None,
@@ -4046,6 +4060,8 @@ class SimulateRetina(RetinaMath):
             self.stimulate,
         )
 
+        self._update_noise_gain()
+
         director = SimulationDirector(builder)
         if impulse:
             contrasts = self.config.run_parameters["contrasts_for_impulse"]
@@ -4056,7 +4072,15 @@ class SimulateRetina(RetinaMath):
             if filename is not None:
                 filenames = [filename]
             else:
-                filenames = self.config.run_parameters["gc_response_filenames"]
+                gc_type = self.config.retina_parameters["gc_type"]
+                response_type = self.config.retina_parameters["response_type"]
+                hashstr = self.config.retina_parameters["retina_parameters_hash"]
+                # Generate multiple filenames if n_files > 1
+                filenames = [
+                    f"{gc_type}_{response_type}_{hashstr}_response_{x:02}"
+                    for x in range(self.config.n_files)
+                ]
+
             for filename in filenames:
                 director.run_simulation()
                 vs, gcs = director.get_simulation_result()
