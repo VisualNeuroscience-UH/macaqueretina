@@ -647,6 +647,9 @@ def validate_params(
     global git_repo_path
     git_repo_path = git_repo_root_path
 
+    # Store retina_parameter.yaml keys as core parameters for downstream hashing
+    config.retina_core_parameter_keys = config.retina_parameters.keys()
+
     validated_config: ConfigParams = ConfigParams(**config.as_dict())
     validated_config: dict = validated_config.model_dump()
 
