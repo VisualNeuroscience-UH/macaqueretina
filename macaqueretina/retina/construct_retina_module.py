@@ -5270,10 +5270,29 @@ class ConstructRetina(PrintableMixin):
 
         return experimental_archive
 
+    def _get_retina_hash_from_core_parameters(self) -> str:
+        """
+        Calculate the retina hash from core parameters.
+        """
+
+        core_parameters = {
+            key: self.config.retina_parameters[key]
+            for key in self.config.retina_core_parameter_keys
+        }
+
+        # Get hash from core parameters which may be updated after import
+        self.config.core_parameters = core_parameters
+        hashstr = self.config.core_parameters.hash()
+
+        # delete the core_parameters attribute to avoid confusion
+        del self.config.core_parameters
+
+        return hashstr
+
     def _set_retina_parameters(self):
         """Sets some retina parameters, specific to the current build."""
 
-        hashstr = self.config.hash()
+        hashstr = self._get_retina_hash_from_core_parameters()
         self.config.retina_parameters["retina_parameters_hash"] = hashstr
 
         gc_type = self.config.retina_parameters["gc_type"]
