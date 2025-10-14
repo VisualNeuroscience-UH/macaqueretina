@@ -30,9 +30,6 @@ class ParamReorganizer:
     def reorganize(self, config: Configuration) -> dict[str, Any]:
 
         self.config = config.as_dict().copy()
-
-        # TODO: check if gc_response_filenames must be left as an iterator
-
         self._update_retina_parameters_append()
         self._create_literature_data_files()
         self.config["retina_parameters"].update(self.config["retina_parameters_append"])
@@ -113,8 +110,6 @@ class ParamReorganizer:
 
     def _pop_extra_keys(self) -> None:
         self.config.pop("dd_regr_model")
-        self.config.pop("n_files")
-        self.config.pop("noise_gain_default")
         self.config.pop("n_iterations")
         self.config.pop("dendr_diam1_datafile_parasol")
         self.config.pop("dendr_diam2_datafile_parasol")
