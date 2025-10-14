@@ -886,9 +886,7 @@ class DataIO:
         if filename is None:
             save_path = self.config.output_folder.joinpath("most_recent_structure")
         else:
-            save_path = self.config.output_folder.joinpath(
-                str(filename) + "_structure"
-            )
+            save_path = self.config.output_folder.joinpath(str(filename) + "_structure")
         filename_full = save_path.with_suffix(".csv")
 
         rgc_coords["z_deg"] = 0.0
@@ -966,7 +964,7 @@ class DataIO:
                     self._save_additional_variables(
                         vs,
                         f"cone_noise_{cone_noise_hash}",
-                        ["cone_noise", "cone_noise_u"],
+                        ["cone_noise"],
                         overwrite=False,
                     )
 
