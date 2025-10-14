@@ -252,9 +252,6 @@ class DdRegrModel(BaseConfigModel):
 
 class RetinaParametersAppend(BaseConfigModel):
     noise_type: Literal["shared", "independent"] = Field(default="shared")
-    noise_gain: float | None = Field(
-        description="Gain for noise, 0 for no noise, None will choose from the NoiseGainDefault table."
-    )
     fixed_mask_threshold: float = Field(
         default=0.1,
         description="Applies to rf volume normalization. This value is also the only surround mask threshold.",
@@ -558,20 +555,12 @@ class ConfigParams(BaseConfigModel):
             self.visual_stimulus_parameters.stimulus_video_name = (
                 f"{self.stimulus_folder}.mp4"
             )
-        if self.retina_parameters_append.noise_gain is None:
-            self.retina_parameters_append.noise_gain = getattr(
-                getattr(self.noise_gain_default, self.retina_parameters.response_type),
-                self.retina_parameters.gc_type,
-            )
         self.retina_parameters_append.dd_regr_model = getattr(
             self.dd_regr_model, self.retina_parameters.gc_type
         )
         self.receptive_field_repulsion_parameters.n_iterations = getattr(
             self.n_iterations, self.retina_parameters.gc_type
         )
-        self.run_parameters.gc_response_filenames = [
-            f"gc_response_{x:02}" for x in range(self.n_files)
-        ]
 
         # Set signal gain from a separate yaml file
         self.retina_parameters.signal_gain = (
