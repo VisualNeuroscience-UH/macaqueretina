@@ -3757,9 +3757,7 @@ class SimulateRetina(RetinaMath):
         # Create w_coord, z_coord for cortical and visual coordinates, respectively
         z_coord = gcs.df["x_deg"].values + 1j * gcs.df["y_deg"].values
 
-        visual2cortical_params = self.config.retina_parameters[
-            "visual2cortical_params"
-        ]
+        visual2cortical_params = self.config.retina_parameters["visual2cortical_params"]
         a = visual2cortical_params["a"]
         k = visual2cortical_params["k"]
         w_coord = k * np.log(z_coord + a)
@@ -3977,6 +3975,44 @@ class SimulateRetina(RetinaMath):
 
         return vs, gcs, cones, bipolars
 
+    def _get_construct_metadata_if_missing(self) -> None:
+        """
+        When running without constructing first, get retina parameters from output folder.
+        This populates a subset of config.retina_parameters attributes with values from files
+        in the output folder."""
+
+        if not hasattr(self.config.retina_parameters, "retina_parameters_hash"):
+            print(
+                """
+            No retina_parameters_hash found, assuming running without construct.
+            Getting parameters from output folder...
+            """
+            )
+
+            files_in_output_folder = self.data_io.listdir_loop(
+                self.config.output_folder
+            )
+            for file in files_in_output_folder:
+                if "mosaic.csv" in str(file):
+                    self.config.retina_parameters.mosaic_file = file
+                if "spatial_rfs.npz" in str(file):
+                    self.config.retina_parameters.spatial_rfs_file = file
+                if "ret.npz" in str(file):
+                    self.config.retina_parameters.ret_file = file
+                if "metadata.yaml" in str(file):
+                    self.config.retina_parameters.retina_metadata_file = file
+                if "cone_noise_" in str(file):
+                    # Extract the hash from the filename
+                    hash_part = str(file).split("cone_noise_")[-1].split(".npz")[0]
+                    self.config.retina_parameters.cone_noise_hash = hash_part
+
+            hash_part = (
+                str(self.config.retina_parameters.retina_metadata_file)
+                .split("parasol_on_")[-1]
+                .split("_metadata.yaml")[0]
+            )
+            self.config.retina_parameters.retina_parameters_hash = hash_part
+
     def client(
         self,
         stimulus: np.ndarray | None = None,
@@ -3996,6 +4032,7 @@ class SimulateRetina(RetinaMath):
         unity : bool, optional
             If True, runs uniformity index simulation.
         """
+        self._get_construct_metadata_if_missing()
         vs, gcs, cones, bipolars = self._get_products(stimulus)
         n_sweeps = self.config.run_parameters["n_sweeps"]
         builder = ConcreteSimulationBuilder(
