@@ -2642,19 +2642,46 @@ class Viz:
         photodiode_response = photodiode_to_show["photodiode_response"]
 
         # Prepare data for manual visualization
-        for_eventplot = spiketrains.copy()  # list of different leght arrays
+        for_eventplot = spiketrains.copy()  # list of different length arrays
 
         for_histogram = np.concatenate(spiketrains)
         firing_rate_mean = np.nanmean(firing_rates, axis=0)
         sample_name = "unit #"
 
+        # Calculate and print mean firing rate across all units
+        spike_count = 0
+        for this_unit in range(n_units):
+            spike_count += len(spiketrains[this_unit])
+        mean_fr_across_units = spike_count / (n_units * (duration / b2u.second))
+        print(
+            f"Mean firing rate across all units and duration incl. baselines: {mean_fr_across_units:.2f} Hz"
+        )
+        gc_type = self.config.retina_parameters.gc_type
+        response_type = self.config.retina_parameters.response_type
+        sample_name = f" ({gc_type}, {response_type})"
+        # breakpoint()
+
         # Create subplots
         fig, ax = plt.subplots(3, 1, sharex=True)
+
+        # Set figure title
+        fig.suptitle(
+            f"Sweep {sweep_idx} responses for {n_units} {gc_type} {response_type} GCs"
+        )
 
         # Event plot on first subplot
         ax[0].eventplot(for_eventplot)
         ax[0].set_xlim([0, duration / b2u.second])
         ax[0].set_ylabel(sample_name)
+        ax[0].annotate(
+            f"Mean fr {mean_fr_across_units:.2f} Hz",
+            xy=(0.95, 0.95),
+            xycoords="axes fraction",
+            fontsize=10,
+            ha="right",
+            va="top",
+            bbox=dict(boxstyle="round,pad=0.5", fc="white", alpha=1.0),
+        )
 
         # Generator potential and average firing rate on second subplot
         tvec = np.arange(0, firing_rates.shape[-1], 1) * video_dt
