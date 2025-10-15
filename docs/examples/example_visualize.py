@@ -19,12 +19,12 @@ mr.viz.show_all_gc_responses(savefigname=None)
 
 # mr.viz.show_stimulus_with_gcs(
 #     example_gc=None,  # [int,], None for all
-#     frame_number=180,  # 31 depends on fps, and video and baseline lengths
+#     frame_number=180,  # depends on fps and baseline lengths
 #     show_rf_id=False,
 #     savefigname=None,
 # )
 
-# mr.viz.show_single_gc_view(unit_index=2, frame_number=31, savefigname=None)
+# mr.viz.show_single_gc_view(unit_index=2, frame_number=160, savefigname=None)
 # mr.viz.show_gc_noise_hist_cov_mtx(savefigname=None)
 
 # # # for fixed temporal model only ##
