@@ -27,7 +27,7 @@ for all temporal models
 mr.viz.show_all_gc_responses(savefigname=None)
 plt.show()
 ```
-Try optional argument `savefigname="Visualize_fig1.png"`. This image willbe saved into your model_root_path/project/experiment -directory. see  
+Try optional argument `savefigname="Visualize_fig1.png"`. This image will be saved into your model_root_path/project/experiment -directory. For available image formats, see [matplotlib.pyplot.savefig](https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.savefig.html)
 
 
 You should get ![this](images/Visualize_fig1.png)
