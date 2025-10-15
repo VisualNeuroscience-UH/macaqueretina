@@ -14,7 +14,12 @@ nav:
   - Home: index.md
   - Installation: installation.md
   - Quick Start: quickstart.md
-  - Introduction:
+  - Tutorials: 
+      - Visualize: example_visualize.md
+      - Experiment: example_experiment.md
+      - GC Types: example_gc_types.md
+      - Utility functions: example_utility_functions.md
+  - Explanation:
       - Overview: introduction.md
       - Building: building.md
       - Stimuli: stimuli.md
@@ -31,27 +36,16 @@ plugins:
   - mkdocstrings:
       handlers:
         python:
-          paths: [..]
+          paths: [.]
           options:
-            show_root_heading: true
-            show_root_full_path: false
-            show_root_members_full_path: false
-            show_object_full_path: false
-            show_category_heading: true
-            show_if_no_docstring: false
-            show_signature_annotations: false
-            show_source: false
-            members_order: source
             filters: ["!^_"]  # Exclude private members
-            inherited_members: false
-            merge_init_into_class: false
             docstring_style: numpy
 
 watch:
-  - src/
-  - ../macaqueretina/
+  - docs/src/
+  - macaqueretina/
 
-docs_dir: src/
-site_dir: html/
+docs_dir: docs/src/
+site_dir: docs/html/
 repo_url: https://version.helsinki.fi/sivanni/macaqueretina
 repo_name: GitLab@University of Helsinki
