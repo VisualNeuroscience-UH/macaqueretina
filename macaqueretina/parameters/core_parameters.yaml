@@ -1,7 +1,3 @@
-# """
-# TODO explain top level param logic here
-# """
-
 model_root_path: "/opt3/projects"
 project: "macaqueretina"
 experiment: "test"

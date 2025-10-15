@@ -96,7 +96,7 @@ class Viz:
             is saved with that name. If it's a relative path, the figure is saved to that path.
             If not provided, the figure is saved as 'MyFigure.png'. Defaults to "".
         myformat : str, optional
-            The format of the figure (e.g., 'png', 'jpg', 'svg', etc.).
+            The format of the figure (e.g., 'png', 'jpg', 'eps', etc.).
             If provided with a leading ".", the "." is removed. Defaults to 'png'.
         subfolderpath : str, optional
             The subfolder within the working directory to which the figure is saved.
@@ -108,7 +108,6 @@ class Viz:
 
         Notes
         -----
-        - The fonts in the figure are configured to be saved as fonts, not as paths.
         - If the specified subfolder doesn't exist, it is created.
         - If both `figurename` and `subfolderpath` are paths, `figurename` takes precedence,
         and `subfolderpath` is overridden.
@@ -2653,9 +2652,7 @@ class Viz:
         for this_unit in range(n_units):
             spike_count += len(spiketrains[this_unit])
         mean_fr_across_units = spike_count / (n_units * (duration / b2u.second))
-        print(
-            f"Mean firing rate across all units and duration incl. baselines: {mean_fr_across_units:.2f} Hz"
-        )
+
         gc_type = self.config.retina_parameters.gc_type
         response_type = self.config.retina_parameters.response_type
         sample_name = f" ({gc_type}, {response_type})"
@@ -2672,7 +2669,7 @@ class Viz:
         # Event plot on first subplot
         ax[0].eventplot(for_eventplot)
         ax[0].set_xlim([0, duration / b2u.second])
-        ax[0].set_ylabel(sample_name)
+        ax[0].set_ylabel("Unit #")
         ax[0].annotate(
             f"Mean fr {mean_fr_across_units:.2f} Hz",
             xy=(0.95, 0.95),
