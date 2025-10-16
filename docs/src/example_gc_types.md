@@ -1,13 +1,27 @@
-# Third-party
+## Run multiple GC types
+This example shows how to run the four ganglion cell types using the same cone noise.
+
+
+```
 import matplotlib.pyplot as plt
-
-# Local
 import macaqueretina as mr
+```
 
+You need to make one simulus first
+```python
 mr.make_stimulus()
+```
 
+
+
+#### Define types
+```python
 gc_types = ["parasol", "midget"]
 response_types = ["on", "off"]
+```
+
+#### Construct, simulate and show spikes
+```python
 
 for gc_type in gc_types:
     for response_type in response_types:
@@ -18,6 +32,7 @@ for gc_type in gc_types:
         mr.viz.show_all_gc_responses(savefigname=None)
 
 print(f"Output folder: {mr.config.output_folder}")
-###############################################
 
 plt.show()
+```
+
