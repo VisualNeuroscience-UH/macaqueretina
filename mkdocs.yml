@@ -18,7 +18,7 @@ nav:
       - Visualize: example_visualize.md
       - Experiment: example_experiment.md
       - GC Types: example_gc_types.md
-      - Utility functions: example_utility_functions.md
+      - Utility methods: example_utility_methods.md
   - Explanation:
       - Overview: introduction.md
       - Building: building.md
