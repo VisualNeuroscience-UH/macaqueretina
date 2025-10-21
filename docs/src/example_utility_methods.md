@@ -1,5 +1,5 @@
 ## Utility methods
-This example shows how to run utility methods.
+This example shows some additional methods useful for examining the model and results.
 
 
 ```
@@ -9,6 +9,18 @@ import numpy as np
 import macaqueretina as mr
 ```
 
+
+#### Print parameters
+```python
+print("\nRetina parameters:")
+print(mr.config.retina_parameters)
+
+print("\nVisual stimulus parameters:")
+print(mr.config.visual_stimulus_parameters)
+
+print("\nRun parameters:")
+print(mr.config.run_parameters)
+```
 
 #### Count lines in codebase, relative to working directory 
 ```python
@@ -111,12 +123,15 @@ plt.show()
 ```
 
 #### Show unity data
+First, let's make a bigger retina.
 ```python
-
 mr.config.retina_parameters.ecc_limits_deg = [3.5, 6.5]  
 mr.config.retina_parameters.pol_limits_deg = [-15, 15]  
 mr.construct_retina()
+```
+Then, get and show Unity region, i.e. where exactly one unit centre overlaps with the retina region. The uniformity index is the proportion of total unity region divided by total retina region.
 
+```python
 mr.simulate_retina(unity=True)
 mr.viz.show_unity(savefigname=None)
 

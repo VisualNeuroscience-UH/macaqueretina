@@ -2140,6 +2140,7 @@ class ConcreteSimulationBuilder(SimulationBuildInterface):
                 delaunay_mask[min_y : max_y + 1, min_x : max_x + 1], indicator
             )
 
+        # Unity region is where exactly one unit centre overlaps with the retina region
         unity_region = (unit_region * delaunay_mask) == 1
 
         uniformify_index = np.sum(unity_region) / np.sum(delaunay_mask)
