@@ -55,6 +55,20 @@ class BaseConfigModel(BaseModel):
     model_config = ConfigDict(extra="allow")
 
 
+class BaseInternalConfigModel(BaseModel):
+    """
+    Base class for configuration models.
+    All models inherit from this class to ensure extra parameters are allowed
+    and retained from everywhere in the YAML files.
+    """
+
+    def __init__(self, **data: dict):
+        provided_fields = set(data.keys())
+        super().__init__(**data)
+
+    model_config = ConfigDict(extra="allow")
+
+
 ## From retina_parameters.yaml
 class RetinaParameters(BaseConfigModel):
     gc_type: Literal["parasol", "midget"]
@@ -79,9 +93,6 @@ class RetinaParameters(BaseConfigModel):
     )
     force_retina_build: bool = Field(
         default=True, description="If True, rebuilds retina even if the hash matches"
-    )
-    vae_run_mode: Literal["load_model", "train_model"] = Field(
-        default="load_model", description="train_model requires experimental data"
     )
     model_file_name: Path | None = Field(
         default=None,
@@ -162,8 +173,10 @@ class RunParameters(BaseConfigModel):
     save_variables: list[str]
 
 
-## From constants.yaml
-class VaeTrainParameters(BaseConfigModel):
+class VaeTrainParameters(BaseInternalConfigModel):
+    vae_run_mode: Literal["load_model", "train_model"] = Field(
+        default="load_model", description="train_model requires experimental data"
+    )
     epochs: int = Field(default=500, description="Number of training epochs")
     lr_step_size: int = Field(
         default=20, description="Learning rate decay step size (in epochs)"
@@ -185,10 +198,10 @@ class VaeTrainParameters(BaseConfigModel):
         default=0.2,
         description="Split data for validation and testing (both will take this fraction of data)",
     )
-    kernel_stride: Literal["k3s1", "k3s2", "k5s2", "k5s1", "k7s1"]
+    kernel_stride: Literal["k3s1", "k3s2", "k5s2", "k5s1", "k7s1"] = "k7s1"
     conv_layers: int = Field(default=2, description="Number of convolutional layers")
     batch_norm: bool = Field(default=True, description="Use batch normalization")
-    latent_distribution: Literal["normal", "uniform"]
+    latent_distribution: Literal["normal", "uniform"] = "uniform"
 
     @field_validator("latent_dim", mode="after")
     @classmethod
@@ -205,7 +218,7 @@ class VaeTrainParameters(BaseConfigModel):
 
         return latent_dim
 
-    class AugmentationDict(BaseConfigModel):
+    class AugmentationDict(BaseInternalConfigModel):
         rotation: int = Field(default=0, description="Rotation in degrees")
         translation: tuple[int, int] = Field(
             default=(0, 0), description="Fraction of image, in (x, y) -directions"
@@ -222,9 +235,10 @@ class VaeTrainParameters(BaseConfigModel):
             default=4, description="How many times to get the data w/ augmentation"
         )
 
-    augmentation_dict: AugmentationDict
+    augmentation_dict: AugmentationDict | None = AugmentationDict()
 
 
+## From constants.yaml
 class NoiseGainDefault(BaseConfigModel):
     class On(BaseConfigModel):
         parasol: float
@@ -282,7 +296,7 @@ class SignalGain(BaseConfigModel):
     midget: dict[str, float] = Field(default_factory=dict)
 
 
-class ExperimentalMetadata(BaseConfigModel):
+class ExperimentalMetadata(BaseInternalConfigModel):
     data_microm_per_pix: int | None = 60
     data_spatialfilter_height: int | None = 13
     data_spatialfilter_width: int | None = 13
@@ -443,6 +457,7 @@ class DendrDiamUnits(BaseConfigModel):
 
 ## Main validation class TODO : explain with few sentences what this does.
 class ConfigParams(BaseConfigModel):
+
     # Experiment parameters
     model_root_path: Path = Field(description="Update this to your model root path")
     project: str = Field(description="Project name")
@@ -459,17 +474,20 @@ class ConfigParams(BaseConfigModel):
     )
     device: Literal["cpu", "cuda"]
     run: dict[str, Any]
+
     # Retina parameters
     retina_parameters: RetinaParameters
+
     # Visual stimulus parameters
     visual_stimulus_parameters: VisualStimulusParameters
-    stimulus_metadata_parameters: StimulusMetadataParameters
+    external_stimulus_parameters: StimulusMetadataParameters
     n_files: int = Field(
         description="Each gc response file contains n_sweeps with independent cone noise and spike generator."
     )
     run_parameters: RunParameters
+    vae_train_parameters: VaeTrainParameters | None = VaeTrainParameters()
+
     # Constants
-    vae_train_parameters: VaeTrainParameters
     noise_gain_default: NoiseGainDefault
     dd_regr_model: DdRegrModel
     retina_parameters_append: RetinaParametersAppend

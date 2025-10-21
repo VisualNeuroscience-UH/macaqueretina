@@ -2874,7 +2874,7 @@ class ConeProduct(ReceptiveFieldsBase):
         self.cone_response = cone_response
 
         # Save the cone response to output folder
-        filename = self.config.stimulus_metadata_parameters["stimulus_file"]
+        filename = self.config.external_stimulus_parameters["stimulus_file"]
         self.data_io.save_cone_response_to_hdf5(filename, cone_response)
 
     # Public functions

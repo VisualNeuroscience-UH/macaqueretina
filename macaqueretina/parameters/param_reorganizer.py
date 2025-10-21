@@ -59,7 +59,6 @@ class ParamReorganizer:
             "receptive_field_repulsion_parameters",
             "visual2cortical_params",
             "bipolar2gc_dict",
-            "vae_train_parameters",
         ]
         for key in key_list:
             self._move_and_remove_key(key, target)

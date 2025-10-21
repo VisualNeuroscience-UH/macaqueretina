@@ -1,30 +1,3 @@
-vae_train_parameters:
-  epochs: 5 # Number of training epochs
-  lr_step_size: 20 # Learning rate decay step size (in epochs)
-  lr_gamma: 0.9 # Learning rate decay (multiplier for learning rate)
-  # how many times to get the data, applied only if augmentation_dict is not None
-  resolution_hw: 13 # Both x and y. Images will be sampled to this space.
-  # Set common VAE model parameters
-  latent_dim: 32  # 32  # 2**1 - 2**6, use powers of 2 btw 2 and 128
-  channels: 16
-  # lr will be reduced by scheduler down to lr * gamma ** (epochs/step_size)
-  lr: 0.0005
-  # self._show_lr_decay(self.lr, self.lr_gamma, self.lr_step_size, self.epochs)
-  batch_size: 256  # None will take the batch size from test_split size.
-  test_split: 0.2  # Split data for validation and testing (both will take this fraction of data)
-  kernel_stride: "k7s1"  # "k3s1", "k3s2" # "k5s2" # "k5s1"
-  conv_layers: 2  # 1 - 5 for s1, 1 - 3 for k3s2 and k5s2
-  batch_norm: True
-  latent_distribution: "uniform"  # "normal" or "uniform"
-  # Augment training and validation data.
-  augmentation_dict: 
-    rotation: 0  # rotation in degrees
-    translation: [0, 0]  # fraction of image, in (x, y) -directions
-    noise: 0  # noise float in [0, 1] (noise is added to the image)
-    flip: 0.5  # flip probability, both horizontal and vertical
-    data_multiplier: 4  # how many times to get the data w/ augmentation
-
-
 # Cone noise gain induces ~25Hz spontaneous firing rates for the ON parasol and
 # midget gc units, and ~5Hz for the OFF parasol and midget units. (Raunak Sinha,
 # personal communication).
@@ -44,7 +17,7 @@ dd_regr_model:
   midget: "quadratic"
 
 retina_parameters_append:
-  noise_type: "shared"  # "shared" or "independent"
+  noise_type: "shared"  # "shared" or "independent" GC noise
   fixed_mask_threshold: 0.1  # 0.1,  # Applies to rf volume normalization. This value is also the only surround mask threshold.
   center_mask_threshold: 0.1  # 0.1,  Limits rf center extent to values above this proportion of the peak values after volume normalization.
   data_noise_threshold: 0.1  # 0.1,  # 0.1 for +-10% from abs max removed, 0 for no noise removal. Applies external RF data.

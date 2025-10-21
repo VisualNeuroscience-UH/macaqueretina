@@ -10,6 +10,19 @@ import numpy as np
 # Local
 import macaqueretina as mr
 
+# ##########################
+# ###  Print parameters  ###
+# ##########################
+
+print("\nRetina parameters:")
+print(mr.config.retina_parameters)
+
+print("\nVisual stimulus parameters:")
+print(mr.config.visual_stimulus_parameters)
+
+print("\nRun parameters:")
+print(mr.config.run_parameters)
+
 # ################################################################
 # ###  Count lines in codebase, relative to working directory  ###
 # ################################################################
@@ -78,9 +91,10 @@ import macaqueretina as mr
 # print(data.shape)
 
 
-# ###################################
-# ###  Show spikes from gz files  ###
-# ###################################
+# ##################################
+# ### Show spikes from gz files  ###
+# ##################################
+
 # filename_parents = mr.config.output_folder
 # # Build response filename from scratch
 # gc_type = mr.config.retina_parameters["gc_type"]
@@ -114,12 +128,12 @@ import macaqueretina as mr
 # # ######################################
 # # ###        Show unity data         ###
 # # ######################################
-mr.config.retina_parameters.ecc_limits_deg = [3.5, 6.5]  # eccentricity in degrees
-mr.config.retina_parameters.pol_limits_deg = [-15, 15]  # polar angle in degrees
-mr.construct_retina()
+# mr.config.retina_parameters.ecc_limits_deg = [3.5, 6.5]  # eccentricity in degrees
+# mr.config.retina_parameters.pol_limits_deg = [-15, 15]  # polar angle in degrees
+# mr.construct_retina()
 
-mr.simulate_retina(unity=True)
-mr.viz.show_unity(savefigname=None)
+# mr.simulate_retina(unity=True)
+# mr.viz.show_unity(savefigname=None)
 
 
 plt.show()

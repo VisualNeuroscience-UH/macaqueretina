@@ -4845,7 +4845,7 @@ class ConstructRetina(PrintableMixin):
         if "spatial_model_type" in retina_parameters and retina_parameters[
             "spatial_model_type"
         ] in ["VAE"]:
-            self.vae_run_mode = retina_parameters["vae_run_mode"]
+            self.vae_run_mode = self.config.vae_train_parameters["vae_run_mode"]
 
         self.spatial_rfs_file_filename = []
         self.ret_filename = []
@@ -5196,8 +5196,9 @@ class ConstructRetina(PrintableMixin):
             print("Loaded VAE statistics from disk.")
 
         except FileNotFoundError:
-            vae_train_parameters = self.config.retina_parameters["vae_train_parameters"]
-            augmentation_dict = vae_train_parameters.get("augmentation_dict", {})
+            augmentation_dict = self.config.vae_train_parameters.get(
+                "augmentation_dict", {}
+            )
 
             retina_vae.get_and_split_experimental_data()
             retina_vae.train_loader = retina_vae.augment_and_get_dataloader(
@@ -5275,17 +5276,17 @@ class ConstructRetina(PrintableMixin):
         Calculate the retina hash from core parameters.
         """
 
-        retina_construct_core_parameters = {
+        retina_core_parameters = {
             key: self.config.retina_parameters[key]
             for key in self.config.retina_core_parameter_keys
         }
 
         # Get hash from core parameters which may be updated after import
-        self.config.retina_construct_core_parameters = retina_construct_core_parameters
-        hashstr = self.config.retina_construct_core_parameters.hash()
+        self.config.retina_core_parameters = retina_core_parameters
+        hashstr = self.config.retina_core_parameters.hash()
 
-        # delete the retina_construct_core_parameters attribute to avoid confusion
-        del self.config.retina_construct_core_parameters
+        # # delete the retina_core_parameters attribute to avoid confusion
+        # del self.config.retina_core_parameters
 
         return hashstr
 
@@ -5334,9 +5335,6 @@ class ConstructRetina(PrintableMixin):
             "model_density",
             "retina_center",
             "force_retina_build",
-            "vae_run_mode",
-            "model_file_name",
-            "ray_tune_trial_id",
             "signal_gain",
         ]
 

@@ -660,7 +660,7 @@ class StimulusPattern:
 
         After this integration, the method updates the raw intensity values based on the new data.
         """
-        image_file_name = self.config.stimulus_metadata_parameters["stimulus_file"]
+        image_file_name = self.config.external_stimulus_parameters["stimulus_file"]
         self.image = self.data_io.get_data(image_file_name)
 
         # resize image by specifying custom width and height
@@ -685,7 +685,7 @@ class StimulusPattern:
         After processing, it updates the raw intensity values based on the new data.
         """
 
-        video_file_name = self.config.stimulus_metadata_parameters["stimulus_file"]
+        video_file_name = self.config.external_stimulus_parameters["stimulus_file"]
         video_cap = self.data_io.get_data(video_file_name)
 
         self.fps = self.options["fps"]

@@ -26,7 +26,7 @@ visual_stimulus_parameters:
   ND_filter: 0.0  # 0.0, log10 neutral density filter factor, can be negative
 
 # For external video and image input. See visual_stimulus_module.VideoBaseClass for more options.
-stimulus_metadata_parameters:
+external_stimulus_parameters:
   stimulus_file: "testi.jpg"  # nature1.avi, testi.jpg
   pix_per_deg: 30  # VanHateren_1998_ProcRSocLondB 2 arcmin per pixel
   fps: 25

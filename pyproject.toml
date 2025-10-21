@@ -73,9 +73,10 @@ known_third_party = [
     "brian2cuda", "ipython", "jupyterlab", 
     "notebook", "pyshortcuts"
 ]
-known_localfolder = ["macaqueretina"]
+known_localfolder = ["macaqueretina", "docs"]
 sections = "FUTURE,STDLIB,THIRDPARTY,FIRSTPARTY,LOCALFOLDER"
 default_section = "THIRDPARTY"
 import_heading_stdlib = "Built-in"
 import_heading_thirdparty = "Third-party"
 import_heading_localfolder = "Local"
+force_single_line = false

@@ -20,6 +20,7 @@ Examples
 # Built-in
 import datetime
 import hashlib
+import pprint
 from collections.abc import MutableMapping
 from pathlib import Path
 from typing import Any, Iterable, Iterator, Mapping
@@ -252,7 +253,7 @@ class Configuration(MutableMapping):
         return f"{self._data!r}"
 
     def __str__(self):
-        return str(self.as_dict())
+        return pprint.pformat(self.as_dict())
 
     def __eq__(self, other: object) -> bool:
         """Compare to Configuration or plain dict by value."""
@@ -273,6 +274,7 @@ class Configuration(MutableMapping):
         return type(self)(self.to_dict())
 
     def __deepcopy__(self, memo):
+        # Built-in
         import copy as _copy
 
         return type(self)(_copy.deepcopy(self.to_dict(), memo))
