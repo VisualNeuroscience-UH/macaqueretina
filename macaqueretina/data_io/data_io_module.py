@@ -192,8 +192,7 @@ class DataIO:
 
         return data_fullpath_filename
 
-    # @lru_cache(maxsize=128)
-    def get_data(
+    def load_data(
         self,
         filename=None,
         substring=None,

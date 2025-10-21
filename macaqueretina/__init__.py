@@ -11,21 +11,21 @@ import tomli
 
 # Local
 from .analysis.analysis_module import Analysis
-from .project.project_conf_module import load_parameters as _lp
-from .project.project_manager_module import ProjectManager as _PM
+from .project.project_conf_module import load_parameters as _load_parameters
+from .project.project_manager_module import ProjectManager as _ProjectManager
 from .retina.retina_math_module import RetinaMath
 from .stimuli.experiment_module import Experiment
 from .viz.viz_module import Viz, VizResponse
 
-config = _lp()
-PM: _PM = _PM(config)
+config = _load_parameters()
+PM: _ProjectManager = _ProjectManager(config)
 
 analysis: Analysis = PM.ana
 construct_retina: Callable = PM.construct_retina.build_retina_client
 countlines = PM.countlines
 DataSampler = PM.data_sampler
 experiment: Experiment = PM.experiment
-get_data = PM.data_io.get_data
+load_data = PM.data_io.load_data
 make_stimulus: Callable = PM.stimulate.make_stimulus_video
 retina_math: RetinaMath = PM.retina_math
 simulate_retina: Callable = PM.simulate_retina.client
@@ -40,7 +40,7 @@ __all__ = [
     "countlines",
     "DataSampler",
     "experiment",
-    "get_data",
+    "load_data",
     "make_stimulus",
     "retina_math",
     "simulate_retina",
@@ -48,7 +48,7 @@ __all__ = [
     "viz_spikes_with_stimulus",
 ]
 
-del (_lp, _PM)
+del (_load_parameters, _ProjectManager)
 
 
 def get_version():

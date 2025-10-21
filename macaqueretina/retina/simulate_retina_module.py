@@ -3857,7 +3857,7 @@ class SimulateRetina(RetinaMath):
             Initialized cone photoreceptor object.
         """
         ret_npz_file = self.config.retina_parameters["ret_file"]
-        ret_npz = self.data_io.get_data(filename=ret_npz_file)
+        ret_npz = self.data_io.load_data(filename=ret_npz_file)
         target_gc_for_multiple_trials = None  # Option to use only one gc unit
 
         cones = ConeProduct(
@@ -3895,7 +3895,7 @@ class SimulateRetina(RetinaMath):
         )
 
         if cone_noise_filename_full is not None:
-            cone_noise_npz = self.data_io.get_data(full_path=cone_noise_filename_full)
+            cone_noise_npz = self.data_io.load_data(full_path=cone_noise_filename_full)
             vs.cone_noise = cone_noise_npz["cone_noise"]
 
         gc_type = self.config.retina_parameters["gc_type"]
@@ -3907,7 +3907,7 @@ class SimulateRetina(RetinaMath):
         )
 
         if gc_noise_filename_full is not None:
-            gc_noise_npz = self.data_io.get_data(full_path=gc_noise_filename_full)
+            gc_noise_npz = self.data_io.load_data(full_path=gc_noise_filename_full)
 
             vs.gc_synaptic_noise = gc_noise_npz["gc_synaptic_noise"]
 
@@ -3932,9 +3932,9 @@ class SimulateRetina(RetinaMath):
 
         # Abstraction for clarity
         rfs_npz_file = self.config.retina_parameters["spatial_rfs_file"]
-        rfs_npz = self.data_io.get_data(filename=rfs_npz_file)
+        rfs_npz = self.data_io.load_data(filename=rfs_npz_file)
         mosaic_file = self.config.retina_parameters["mosaic_file"]
-        gc_dataframe = self.data_io.get_data(filename=mosaic_file)
+        gc_dataframe = self.data_io.load_data(filename=mosaic_file)
         spike_generator_model = self.config.run_parameters["spike_generator_model"]
         simulation_dt = self.config.run_parameters["simulation_dt"]
 
@@ -3948,7 +3948,7 @@ class SimulateRetina(RetinaMath):
         )
 
         ret_npz_file = self.config.retina_parameters["ret_file"]
-        ret_npz = self.data_io.get_data(filename=ret_npz_file)
+        ret_npz = self.data_io.load_data(filename=ret_npz_file)
 
         if gcs.temporal_model_type == "subunit":
             bipolars = BipolarProduct(

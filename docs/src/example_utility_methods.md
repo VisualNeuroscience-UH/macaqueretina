@@ -79,7 +79,7 @@ filename_parents = mr.config.output_folder
 filename_offspring = mr.config.retina_parameters.mosaic_file
 filename = Path(filename_parents).joinpath(filename_offspring)
 
-data = mr.get_data(filename)
+data = mr.load_data(filename)
 print(type(data))
 print(data.shape)
 ```

@@ -86,7 +86,7 @@ import macaqueretina as mr
 # filename_parents = mr.config.output_folder
 # filename = Path(filename_parents).joinpath(mr.config.retina_parameters.mosaic_file)
 
-# data = mr.get_data(filename)
+# data = mr.load_data(filename)
 # print(type(data))
 # print(data.shape)
 

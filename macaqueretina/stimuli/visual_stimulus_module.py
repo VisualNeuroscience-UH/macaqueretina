@@ -518,7 +518,7 @@ class StimulusPattern:
 
         """
         filepath = self.config.literature_data_files["temporal_pattern_path"]
-        data_npz = self.data_io.get_data(filepath)
+        data_npz = self.data_io.load_data(filepath)
         tp, amp = self.get_xy_from_npz(data_npz)
         duration = self.options["duration_seconds"]
 
@@ -661,7 +661,7 @@ class StimulusPattern:
         After this integration, the method updates the raw intensity values based on the new data.
         """
         image_file_name = self.config.external_stimulus_parameters["stimulus_file"]
-        self.image = self.data_io.get_data(image_file_name)
+        self.image = self.data_io.load_data(image_file_name)
 
         # resize image by specifying custom width and height
         resized_image = cv2.resize(self.image, self.frames.shape[1:])
@@ -686,7 +686,7 @@ class StimulusPattern:
         """
 
         video_file_name = self.config.external_stimulus_parameters["stimulus_file"]
-        video_cap = self.data_io.get_data(video_file_name)
+        video_cap = self.data_io.load_data(video_file_name)
 
         self.fps = self.options["fps"]
         self.pix_per_deg = self.options["pix_per_deg"]
@@ -988,7 +988,7 @@ class AnalogInput:
             rf = self.ReceptiveFields(
                 self.config.retina_parameters,
                 self.config.experimental_metadata,
-                self.data_io.get_data,
+                self.data_io.load_data,
                 self.pol2cart_df,
             )
 

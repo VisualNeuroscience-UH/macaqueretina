@@ -83,7 +83,7 @@ class ProjectUtilitiesMixin:
             )
 
         if Path(meta_fname).is_file() and "metadata" in str(meta_fname):
-            meta_df = self.data_io.get_data(meta_fname)
+            meta_df = self.data_io.load_data(meta_fname)
         else:
             raise FileNotFoundError(
                 "The first argument must be valid metadata file name in current folder, or full path to metadata file"
@@ -91,7 +91,7 @@ class ProjectUtilitiesMixin:
 
         def format(filename, dict_key_list):
             # This will destroy the selected data
-            data_dict = self.data_io.get_data(filename)
+            data_dict = self.data_io.load_data(filename)
             for key in dict_key_list.keys():
                 for key2 in dict_key_list[key]:
                     try:
