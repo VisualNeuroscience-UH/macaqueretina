@@ -11,11 +11,11 @@ duration_seconds: stimulus duration
 baseline_start_seconds: midgray at the beginning  
 baseline_end_seconds: midgray at the end  
 pattern:  
-    `sine_grating`; `square_grating`; `colored_temporal_noise`; `white_gaussian_noise`;
-    `natural_images`; `natural_video`; `temporal_sine_pattern`; `temporal_square_pattern`;
-    `temporal_chirp_pattern`; `contrast_chirp_pattern`; `spatially_uniform_binary_noise`
+    `sine_grating` `square_grating` `colored_temporal_noise` `white_gaussian_noise`
+    `natural_images` `natural_video` `temporal_sine_pattern` `temporal_square_pattern`
+    `temporal_chirp_pattern` `contrast_chirp_pattern` `spatially_uniform_binary_noise`
 
-stimulus_form: `circular`; `rectangular`; `annulus`
+stimulus_form: `circular` `rectangular` `annulus`
 
 For stimulus_form annulus, additional arguments are:
 size_inner: in degrees

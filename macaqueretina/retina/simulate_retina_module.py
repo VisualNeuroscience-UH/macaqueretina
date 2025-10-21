@@ -3030,10 +3030,7 @@ class ConeProduct(ReceptiveFieldsBase):
         # if model is dynamic or fixed, connect cone noise directly to ganglion cells
         cones_to_gcs_weights = self.cones_to_gcs_weights
         magn = self.retina_parameters["noise_gain"]
-        print(f"Noise gain (magn): {magn}")
-        # breakpoint()
         cone_noise_norm_T = vs.cone_noise * magn
-        # cone_noise_norm_T = vs.cone_noise / magn
         cone_noise_norm = np.moveaxis(cone_noise_norm_T, 0, 1)
 
         if np.any(np.sum(cones_to_gcs_weights, axis=0) == 0):
