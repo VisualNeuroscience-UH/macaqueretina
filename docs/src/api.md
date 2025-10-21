@@ -1,4 +1,0 @@
-
-
-::: macaqueretina
-<!-- ::: macaqueretina.retina -->

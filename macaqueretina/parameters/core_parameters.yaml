@@ -1,7 +1,7 @@
 model_root_path: "/opt3/projects"
 project: "macaqueretina"
 experiment: "test"
-input_folder: "../in"  # input VAE models, other data
+input_folder: "../in"  # input VAE models, images, videos, other data
 output_folder: "test" # spikes, retinas, experiment metadata
 numpy_seed: 42  # random.randint(0, 1000000)  # 42
 device: "cuda"  # "cpu" or "cuda"

@@ -28,7 +28,6 @@ nav:
   - Parameters:
       - Overview: parameters_introduction.md
   - Developer: developer.md
-  - API: api.md
   - Contributors: contributors.md
 
 plugins:
