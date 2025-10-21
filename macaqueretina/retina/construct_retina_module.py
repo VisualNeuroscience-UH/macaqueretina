@@ -5275,17 +5275,17 @@ class ConstructRetina(PrintableMixin):
         Calculate the retina hash from core parameters.
         """
 
-        core_parameters = {
+        retina_construct_core_parameters = {
             key: self.config.retina_parameters[key]
             for key in self.config.retina_core_parameter_keys
         }
 
         # Get hash from core parameters which may be updated after import
-        self.config.core_parameters = core_parameters
-        hashstr = self.config.core_parameters.hash()
+        self.config.retina_construct_core_parameters = retina_construct_core_parameters
+        hashstr = self.config.retina_construct_core_parameters.hash()
 
-        # delete the core_parameters attribute to avoid confusion
-        del self.config.core_parameters
+        # delete the retina_construct_core_parameters attribute to avoid confusion
+        del self.config.retina_construct_core_parameters
 
         return hashstr
 
