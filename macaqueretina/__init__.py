@@ -36,6 +36,8 @@ get_data = PM.data_io.get_data
 
 DataSampler = PM.data_sampler
 
+# Define what is imported when doing: from macaqueretina import *. Only the objects in
+# __all__ can be imported this way.
 __all__ = [
     "config",
     "construct_retina",
