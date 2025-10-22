@@ -3,9 +3,11 @@ Parameter validation with Pydantic.
 
 Project and data specific.
 
-Each parameter in the project configuration, after being loaded, is validated
-against the required type. Any parameters that need to be derived from
-other parameters are computed here.
+Each parameter in the project configuration, after being loaded, is validated against
+the required type. Any parameters that need to be derived from other parameters are
+computed here.
+
+For more information on the validation process, visit https://docs.pydantic.dev.
 """
 
 from __future__ import annotations
