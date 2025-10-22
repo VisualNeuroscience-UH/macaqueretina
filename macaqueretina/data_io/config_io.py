@@ -1,6 +1,6 @@
 """
-Load and merge YAML configuration files into a Configuration object that supports
-accessing the parameters within with dict-like and attribute-like access.
+Load and merge YAML configuration files into a mutable Configuration object that
+supports nested read/write dict-like and attribute-like access to the parameters.
 
 Notes
 -----
@@ -55,9 +55,9 @@ class _YamlLoader:
         Raises
         -------
         FileNotFoundError
-            If (any of the) YAML file(s) are not found
+            If (any of) the YAML file(s) are not found
         ValueError
-            If the YAML file is empty, if its structure is non-standard, or if the
+            If any YAML file is empty, if its structure is non-standard, or if the
             file is invalid
         """
 
@@ -138,10 +138,19 @@ class _YamlLoader:
 class Configuration(MutableMapping):
     """
     Configuration object.
-    It provides attribute-like and dict-like read/write access to all parameters.
+
+    Notes
+    -----
+
+    - Nested dictionaries are converted into Configuration objects recursively.
+    - Most mutating operations modify the internal state in-place; no copying is
+      performed unless explicitly requested.
+    - Keys that start with "_" are reserved for internal use and cannot be set via
+      attribute assignment.
     """
 
     def __init__(self, initial: Mapping[str, Any] | None = None) -> None:
+        """Initialize the configuration, optionally with a mapping to populate config."""
         super().__setattr__("_data", {})
         if initial:
             for k, v in dict(initial).items():
@@ -149,48 +158,62 @@ class Configuration(MutableMapping):
 
     # MutableMapping core methods
     def __getitem__(self, key: str) -> Any:
+        """Supports dict-like access (config["param"])."""
         return self._data[key]
 
     def __setitem__(self, key: str, value: Any) -> None:
+        """Supports dict-like assignment (config["param"] = my_value)."""
         self._data[key] = Configuration(value) if isinstance(value, dict) else value
 
     def __delitem__(self, key: str) -> None:
+        """Supports dict-like deletion: del config["param"]."""
         del self._data[key]
 
     def __iter__(self) -> Iterator[str]:
+        """Iterate over top-level keys in config (for k in config)."""
         return iter(self._data)
 
     def __len__(self) -> int:
+        """Return the number of top-level parameters in the config."""
         return len(self._data)
 
     # Dict-like access
     def __contains__(self, item):
+        """Return True if item is a top-level key in the config."""
         return item in self._data
 
     def get(self, key: str, default=None) -> Any:
+        """Allows dict-like access with get: config.get(my_param)."""
         return self._data.get(key, default)
 
     def keys(self):
+        """Returns the top-level params as a dict-like view (supports config.keys())."""
         return self._data.keys()
 
     def items(self):
+        """Supports config.items() (behaves like built-in dict)."""
         return self._data.items()
 
     def values(self):
+        """Supports config.values() (behaves like built-in dict)."""
         return self._data.values()
 
     def pop(self, key: str, default=_SENTINEL):
+        """Supports config.pop("param") (behaves like built-in dict)."""
         if default is _SENTINEL:
             return self._data.pop(key)
         return self._data.pop(key, default)
 
     def popitem(self):
+        """Supports config.popitem() (behaves like built-in dict)."""
         return self._data.popitem()
 
     def clear(self):
+        """Supports config.clear() to remove all params (behaves like built-in dict)."""
         self._data.clear()
 
     def update(self, other: Mapping[str, Any] | None = None, **kwargs):
+        """Supports config.update() (behaves like built-in dict)."""
         if other:
             for k, v in dict(other).items():
                 self._data[k] = type(self)(v) if isinstance(v, dict) else v
@@ -198,6 +221,7 @@ class Configuration(MutableMapping):
             self._data[k] = type(self)(v) if isinstance(v, dict) else v
 
     def setdefault(self, key: str, default=None):
+        """Supports config.setdefault() (behaves like built-in dict)."""
         if key in self._data:
             return self._data[key]
         value = type(self)(default) if isinstance(default, dict) else default
@@ -206,6 +230,8 @@ class Configuration(MutableMapping):
 
     # Convert Configuration object to dict
     def to_dict(self) -> dict[str, Any]:
+        """Return a plain dict representation of the configuration."""
+
         def _unwrap(v):
             if isinstance(v, Configuration):
                 return v.to_dict()
@@ -216,15 +242,18 @@ class Configuration(MutableMapping):
         return {k: _unwrap(v) for k, v in self._data.items()}
 
     def as_dict(self) -> dict[str, Any]:
+        """Alias for to_dict()."""
         return self.to_dict()
 
     # Attribute-like access and assignment
     def __getattr__(self, name: str) -> Any:
+        """Supports attribute-like access (config.param)"""
         if name in self._data:
             return self._data[name]
         raise AttributeError(f"No attribute '{name}' found.")
 
     def __setattr__(self, name: str, value: Any) -> None:
+        """Supports attribute-like assignment (config.param = my_value)"""
         if name.startswith("_") or name in type(self).__dict__:
             raise AttributeError(
                 f"Cannot set attribute '{name}' because it conflicts with a built-in member. "
@@ -233,7 +262,7 @@ class Configuration(MutableMapping):
             self.__setitem__(name, value)
 
     def __delattr__(self, name: str) -> None:
-        """Support: del Configuration.foo"""
+        """Supports: del config.param"""
         if name.startswith("_") or name in type(self).__dict__:
             raise AttributeError(
                 f"Cannot delete attribute '{name}'. '{name}' is a built-in member, not a configuration parameter. "
@@ -246,16 +275,19 @@ class Configuration(MutableMapping):
 
     # Representation and comparison
     def __dir__(self) -> list[str]:
+        """Returns attributes and top-level keys (for tab-completion and dir())."""
         return list(super().__dir__()) + list(self._data.keys())
 
     def __repr__(self):
+        """Supports repr(config), repr of the internal mapping."""
         return f"{self._data!r}"
 
     def __str__(self):
+        """Supports user-friendly view: called by print(config)"""
         return str(self.as_dict())
 
     def __eq__(self, other: object) -> bool:
-        """Compare to Configuration or plain dict by value."""
+        """Equality comparison by value."""
         if isinstance(other, type(self)):
             return self.to_dict() == other.to_dict()
         if isinstance(other, dict):
@@ -263,35 +295,42 @@ class Configuration(MutableMapping):
         return False
 
     def __ne__(self, other: object) -> bool:
+        """Negated equality."""
         return not self.__eq__(other)
 
     def __bool__(self) -> bool:
+        """Truthiness: True when config has at least one param."""
         return bool(self._data)
 
     # Copying
     def __copy__(self):
+        """Supports shallow copy with the copy built-in library."""
         return type(self)(self.to_dict())
 
     def __deepcopy__(self, memo):
+        """Supports deep copy with the copy built-in library."""
         import copy as _copy
 
         return type(self)(_copy.deepcopy(self.to_dict(), memo))
 
     # Pickling
     def __getstate__(self):
+        """Return a picklable state (plain dict) for pickling support."""
         return self.to_dict()
 
     def __setstate__(self, state):
+        """Restore state from pickled representation (expects a plain dict)."""
         super().__setattr__("_data", {})
         for k, v in dict(state).items():
             self._data[k] = type(self)(v) if isinstance(v, dict) else v
 
     def __reduce__(self):
+        """Helper for pickle to reconstruct the object from its dict form."""
         return (type(self), (self.to_dict(),))
 
     @classmethod
     def from_yaml(cls, *paths: Path | str) -> "Configuration":
-        """Get parameters from the YAML files in paths"""
+        """Get parameters from the YAML files. Delegates to _YamlLoader."""
         loader = _YamlLoader(paths)
         raw_config = loader.load_config()
         return cls(raw_config)
@@ -300,7 +339,9 @@ class Configuration(MutableMapping):
     def hash(self, length: int = 10) -> str:
         """
         Generate a hash based on a frozen snapshot of the configuration.
-        It returns the first length characters of the sha256 hash.
+        It returns the first (length) characters of the sha256 hash digest.
+        Intended for reproducible identification of a configuration snapshot;
+        not a general-purpose cryptographic MAC.
         """
 
         def _immutable(obj: Any) -> Any:
@@ -328,18 +369,19 @@ class Configuration(MutableMapping):
         # Make Configuration hashable
         frozen = _immutable(self.to_dict())
 
-        # Calculate SHA256 hash
+        # Calculate SHA256 hash digest
         frozen_bytes = str(frozen).encode("utf-8")
         hash_digest = hashlib.sha256(frozen_bytes).hexdigest()
 
-        # Return truncated or full hash
+        # Return truncated or full hash digest
         if length < 0:
             return hash_digest
         return hash_digest[:length]
 
     def __hash__(self) -> int:
         """
-        Configuration is mutable and therefore unhashable.
+        Configuration is mutable and therefore unhashable with hash(config).
+        It prevents use of built-in hash() on mutable Configuration objects.
 
         Raises
         ------
@@ -361,7 +403,8 @@ def load_yaml(paths: Iterable[Path | str] | Path | str) -> Configuration:
     ----------
 
     paths: Iterable[Path | str] | Path | str
-        Iterable of paths to YAML configuration files to load and merge.
+        Iterable of paths (ora a single Path / str) to YAML configuration files to load
+        and merge.
 
     Returns
     -------
