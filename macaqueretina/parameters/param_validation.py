@@ -446,8 +446,18 @@ class DendrDiamUnits(BaseConfigModel):
     data3: list[str, str] = ["deg", "um"]
 
 
-## Main validation class TODO : explain with few sentences what this does.
+## Main validation class
 class ConfigParams(BaseConfigModel):
+    """
+    This class handles top-level parameters (i.e. defined at the top level in any YAML
+    file).
+    Top-level parameters can be:
+     - flat (e.g model_root_path, project, experiment)
+     - nested (e.g. retina_parameters, stimulus_metadata_parameters): in this case, the
+       corresponding class within this file is provided, allowing for type checking of
+       nested parameters.
+    """
+
     # Experiment parameters
     model_root_path: Path = Field(description="Update this to your model root path")
     project: str = Field(description="Project name")
