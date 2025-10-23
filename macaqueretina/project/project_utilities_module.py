@@ -23,77 +23,6 @@ class ProjectUtilitiesMixin:
     Utilities for ProjectManager class. This class is not instantiated. It serves as a container for project independent helper functions.
     """
 
-    def destroy_from_folders(self, path=None, dict_key_list=None):
-        """
-        Run _destroy_data from root folder, deleting selected variables from data files one level towards leafs.
-        """
-
-        if path is None:
-            p = Path(".")
-        elif isinstance(path, Path):
-            p = path
-        elif isinstance(path, str):
-            p = Path(path)
-            if not p.is_dir():
-                raise ArgumentError(f"path argument is not valid path, aborting...")
-
-        folders = [x for x in p.iterdir() if x.is_dir()]
-        metadata_full = []
-        for this_folder in folders:
-            for this_file in list(this_folder.iterdir()):
-                if "metadata" in str(this_file):
-                    metadata_full.append(this_file.resolve())
-
-        for this_metadata in metadata_full:
-            try:
-                print(f"Updating {this_metadata}")
-                updated_meta_full, foo_df = self.update_metadata(this_metadata)
-                self._destroy_data(updated_meta_full, dict_key_list=dict_key_list)
-            except FileNotFoundError:
-                print(f"No files for {this_metadata}, nothing changed...")
-
-    def _destroy_data(self, meta_fname, dict_key_list=None):
-        """
-        Sometimes you have recorded too much and you want to reduce the filesize by removing some data.
-
-        For not manipulating accidentally data in other folders (from path config), this method works only either at the metadata folder or with full path.
-
-        :param meta_fname: str or pathlib object, metadata file name or full path
-        :param dict_key_list: list, list of dict keys to remove from the file.
-        example dict_key_list={'vm_all' : ['NG1_L4_CI_SS_L4', 'NG2_L4_CI_BC_L4']}
-
-        Currently specific to destroying the second level of keys, as in above example.
-        """
-        if dict_key_list is None:
-            raise ArgumentError(
-                dict_key_list, "dict_key_list is None - nothing to do, aborting..."
-            )
-
-        if Path(meta_fname).is_file() and "metadata" in str(meta_fname):
-            meta_df = self.data_io.load_data(meta_fname)
-        else:
-            raise FileNotFoundError(
-                "The first argument must be valid metadata file name in current folder, or full path to metadata file"
-            )
-
-        def format(filename, dict_key_list):
-            # This will destroy the selected data
-            data_dict = self.data_io.load_data(filename)
-            for key in dict_key_list.keys():
-                for key2 in dict_key_list[key]:
-                    try:
-                        del data_dict[key][key2]
-                    except KeyError:
-                        print(
-                            f"Key {key2} not found, assuming removed, nothing changed..."
-                        )
-                        return
-            self.data_io.write_to_file(filename, data_dict)
-
-        for filename in meta_df["Full path"]:
-            if Path(filename).is_file():
-                format(filename, dict_key_list)
-
     def pp_df_full(self, df):
         with pd.option_context(
             "display.max_rows",
@@ -104,13 +33,6 @@ class ProjectUtilitiesMixin:
             -1,
         ):
             print(df)
-
-    def end2idx(self, t_idx_end, n_samples):
-        if t_idx_end is None:
-            t_idx_end = n_samples
-        elif t_idx_end < 0:
-            t_idx_end = n_samples + t_idx_end
-        return t_idx_end
 
     # Debugging
     def countlines(self, startpath, lines=0, header=True, begin_start=None):
