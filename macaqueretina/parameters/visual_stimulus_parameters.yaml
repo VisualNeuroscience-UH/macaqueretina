@@ -1,20 +1,17 @@
 visual_stimulus_parameters:
-  pattern: "sine_grating"  # One of the StimulusPatterns
-  image_width: 240  # 752 for nature1.avi
-  image_height: 240  # 432 for nature1.avi
+  image_width: 240  
+  image_height: 240  
   pix_per_deg: 60
   dtype_name: "float16"  # low contrast needs "float16", for performance, use "uint8",
   fps: 300  # >=200 for good dynamic model integration
   duration_seconds: 1.0  # actual frames = floor(duration_seconds * fps)
   baseline_start_seconds: 0.5  # Total duration is duration + both baselines
   baseline_end_seconds: 0.5
+  pattern: "sine_grating"  # One of the StimulusPatterns
   stimulus_form: "circular"
-  size_inner: 0.1  # deg, applies to annulus only
-  size_outer: 1  # deg, applies to annulus only
-  stimulus_position: [0.0, 0.0]  # relative to stimuls center in retina
+  stimulus_position: [0.0, 0.0]  # relative to stimulus center in retina
   stimulus_size: 1.5  # 2.2,  # deg, radius for circle, sidelen/2 for rectangle.
   temporal_frequency: 5  # 0.01,  # 4.0,  # 40,  # Hz
-  temporal_frequency_range: [0.5, 50]  # Hz, applies to temporal chirp only
   spatial_frequency: 5  # cpd
   orientation: 90  # degrees
   phase_shift: 0  # math.pi + 0.1,  # radians
@@ -30,14 +27,3 @@ external_stimulus_parameters:
   stimulus_file: "testi.jpg"  # nature1.avi, testi.jpg
   pix_per_deg: 30  # VanHateren_1998_ProcRSocLondB 2 arcmin per pixel
   fps: 25
-
-# Each gc response file contain n_sweeps with independent cone noise and spike generator.
-n_files: 1
-
-# Running multiple trials on multiple units is not supported
-run_parameters:
-  n_sweeps: 1 # For each of the response files
-  spike_generator_model: "refractory"  # poisson or refractory
-  save_data: True
-  simulation_dt: 0.0001  # in sec 0.001 = 1 ms
-  save_variables: ["spikes", "cone_noise"] #"spikes", "cone_noise", "cone_bipo_gen_fir"

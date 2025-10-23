@@ -14,6 +14,7 @@ nav:
   - Home: index.md
   - Installation: installation.md
   - Quick Start: quickstart.md
+  - Parameters: parameters.md
   - Tutorials: 
       - Visualize: example_visualize.md
       - Experiment: example_experiment.md
@@ -25,8 +26,6 @@ nav:
       - Stimuli: stimuli.md
       - Simulations: simulations.md
       - Visualization: visualization.md    
-  - Parameters:
-      - Overview: parameters_introduction.md
   - Developer: developer.md
   - Contributors: contributors.md
 
