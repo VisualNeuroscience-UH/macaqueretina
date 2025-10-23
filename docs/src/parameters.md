@@ -2,7 +2,7 @@
 Most parameters are available for modification in yaml files at [your_repo_root]/macaqueretina/parameters. They will be converted into Configuration type, and will be available under the macaqueretina.config object either with dot notation or as a dict keys. See [Tutorials, Utility methods, Print parameters](example_utility_methods.md#print-parameters) for examples on the mr.config use.
 
 ## core_parameters.yaml
-These parameters include major path settings, seed number, cpu/cuda device selection, profiler flag. In addition, it contains a runtime pipeline to create retina, make stimulus, simulate and show basic visualization.
+These parameters include major path settings, seed number, cpu/cuda device selection, profiler flag. In addition, it contains a run pipeline to create retina, make stimulus, simulate and show basic visualization. The run pipeline is executed if you run with `python macaqueretina/project/project_conf_module.py`
 
 Project paths:
 ```text
