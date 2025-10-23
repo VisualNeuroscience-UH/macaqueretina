@@ -23,22 +23,9 @@ class ProjectUtilitiesMixin:
     Utilities for ProjectManager class. This class is not instantiated. It serves as a container for project independent helper functions.
     """
 
-    def round_to_n_significant(self, value_in, significant_digits=3):
-        boolean_test = value_in != 0
-
-        if boolean_test and not np.isnan(value_in):
-            int_to_subtract = significant_digits - 1
-            value_out = round(
-                value_in, -int(np.floor(np.log10(np.abs(value_in))) - int_to_subtract)
-            )
-        else:
-            value_out = value_in
-
-        return value_out
-
     def destroy_from_folders(self, path=None, dict_key_list=None):
         """
-        Run destroy_data from root folder, deleting selected variables from data files one level towards leafs.
+        Run _destroy_data from root folder, deleting selected variables from data files one level towards leafs.
         """
 
         if path is None:
@@ -61,11 +48,11 @@ class ProjectUtilitiesMixin:
             try:
                 print(f"Updating {this_metadata}")
                 updated_meta_full, foo_df = self.update_metadata(this_metadata)
-                self.destroy_data(updated_meta_full, dict_key_list=dict_key_list)
+                self._destroy_data(updated_meta_full, dict_key_list=dict_key_list)
             except FileNotFoundError:
                 print(f"No files for {this_metadata}, nothing changed...")
 
-    def destroy_data(self, meta_fname, dict_key_list=None):
+    def _destroy_data(self, meta_fname, dict_key_list=None):
         """
         Sometimes you have recorded too much and you want to reduce the filesize by removing some data.
 
@@ -125,75 +112,7 @@ class ProjectUtilitiesMixin:
             t_idx_end = n_samples + t_idx_end
         return t_idx_end
 
-    def metadata_manipulator(
-        self, meta_full=None, filename=None, multiply_rows=1, replace_dict={}
-    ):
-        """
-        Replace strings in a metadata file.
-        :param path: str or pathlib object
-        :param filename: str, metadata filename, if empty, search most recent in path
-        :param replace_dict: dict,
-            keys: 'columns', 'find' and 'replace'
-            values: lists of same length
-            key: 'rows'
-            values: list of row index values (as in df.loc) for the changes to apply
-        """
-
-        if meta_full is None:
-            raise ArgumentError("Need full path to metadatafile, aborting...")
-
-        if not replace_dict:
-            raise ArgumentError("Missing replace dict, aborting...")
-
-        data_df = self.data_io.load_from_file(meta_full)
-
-        # multiply rows by factor multiply_rows
-        multiply_rows = 2
-        new_df = pd.DataFrame(
-            np.repeat(data_df.values, multiply_rows, axis=0), columns=data_df.columns
-        )
-
-        for this_row in replace_dict["rows"]:
-            for col_idx, this_column in enumerate(replace_dict["columns"]):
-                f = replace_dict["find"][col_idx]
-                r = replace_dict["replace"][col_idx]
-                print(f"Replacing {f=} for {r=}, for {this_row=}, {this_column=}")
-                new_df.loc[this_row][this_column] = str(
-                    new_df.loc[this_row][this_column]
-                ).replace(
-                    f, r
-                )  # str method
-
-        self.pp_df_full(new_df)
-        new_meta_full = self._write_updated_metadata_to_file(meta_full, new_df)
-        print(f"Created {new_meta_full}")
-
     # Debugging
-    def pp_df_memory(self, df):
-        BYTES_TO_MB_DIV = 0.000001
-        mem = round(df.memory_usage().sum() * BYTES_TO_MB_DIV, 3)
-        print("Memory usage is " + str(mem) + " MB")
-
-    def pp_obj_size(self, obj):
-        # Third-party
-        from IPython.lib.pretty import pprint
-
-        pprint(obj)
-        print(f"\nObject size is {sys.getsizeof(obj)} bytes")
-
-    def get_added_attributes(self, obj1, obj2):
-        XOR_attributes = set(dir(obj1)).symmetric_difference(dir(obj2))
-        unique_attributes_list = [n for n in XOR_attributes if not n.startswith("_")]
-        return unique_attributes_list
-
-    def pp_attribute_types(self, obj, attribute_list=[]):
-        if not attribute_list:
-            attribute_list = dir(obj)
-
-        for this_attribute in attribute_list:
-            attribute_type = eval(f"type(obj.{this_attribute})")
-            print(f"{this_attribute}: {attribute_type}")
-
     def countlines(self, startpath, lines=0, header=True, begin_start=None):
         """
         Counts lines in folder .py files.
@@ -241,75 +160,6 @@ class ProjectUtilitiesMixin:
                 )
 
         return lines
-
-    def timing_decorator(func):
-        def wrapper(*args, **kwargs):
-            start = time.time()
-            result = func(*args, **kwargs)
-            end = time.time()
-            print(f"\nDECORATOR: {func.__name__} took {end - start} seconds to run.\n")
-            return result
-
-        return wrapper
-
-    def print_decorator(func):
-        def wrapper(*args, **kwargs):
-            result = func(*args, **kwargs)
-            # Iterate over result variables
-            for i, this_result in enumerate(result):
-                print(f"\nDECORATOR: {func.__name__} returned {this_result}")
-            print("\n")
-            return result
-
-        return wrapper
-
-    def print_shape_decorator(func):
-        def wrapper(*args, **kwargs):
-            result = func(*args, **kwargs)
-
-            # Check if the result is a single NumPy array
-            if isinstance(result, np.ndarray):
-                print(f"\nDECORATOR: {func.__name__} returned shape {result.shape}")
-            else:
-                # If not, iterate over result variables
-                for i, this_result in enumerate(result):
-                    if isinstance(this_result, np.ndarray):
-                        print(
-                            f"\nDECORATOR: {func.__name__} returned {this_result.shape}"
-                        )
-
-            print("\n")
-            return result
-
-        return wrapper
-
-    def cache_decorator(func):
-        # Note that this can work only with non-OOP style methods (no self use/update)
-        cache = {}
-
-        def wrapper(*args):
-            if args in cache:
-                return cache[args]
-            result = func(*args)
-            cache[args] = result
-            print(f"\nDECORATOR: {func.__name__} cached args {args}")
-
-            return result
-
-        return wrapper
-
-    def get_xy_from_npz(self, npz_data):
-        """
-        Return sorted and squeezed data from an npz data file.
-        """
-        data_set_x = np.squeeze(npz_data["Xdata"])
-        data_set_y = np.squeeze(npz_data["Ydata"])
-
-        data_set_x_index = np.argsort(data_set_x)
-        x_data = data_set_x[data_set_x_index]
-        y_data = data_set_y[data_set_x_index]
-
-        return x_data, y_data
 
 
 class DataSampler:
