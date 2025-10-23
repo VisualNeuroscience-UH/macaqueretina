@@ -2689,7 +2689,7 @@ class Viz:
         bin_width = 10 * b2u.ms
 
         # Find the nearest integer number of simulation_dt units for hist_dt
-        simulation_dt = self.config.run_parameters["simulation_dt"] * b2u.second
+        simulation_dt = self.config.simulation_parameters["simulation_dt"] * b2u.second
         hist_dt = np.round(bin_width / simulation_dt) * simulation_dt
 
         # Update bin_edges based on the new hist_dt
@@ -5035,7 +5035,7 @@ class VizResponse:
             self.config.visual_stimulus_parameters,
             self.config.retina_parameters["retina_center"],
             self.data_io.load_stimulus_from_videofile,
-            self.config.run_parameters["simulation_dt"],
+            self.config.simulation_parameters["simulation_dt"],
             self.config.retina_parameters["deg_per_mm"],
             self.config.retina_parameters["optical_aberration"],
             self.config.visual_stimulus_parameters["pix_per_deg"],

@@ -1881,7 +1881,7 @@ class ConcreteSimulationBuilder(SimulationBuildInterface):
             net = b2.Network(poisson_group, spike_monitor)
         else:
             raise ValueError(
-                "Missing valid spike_generator_model, check run_parameters parameters, aborting..."
+                "Missing valid spike_generator_model, check simulation_parameters parameters, aborting..."
             )
 
         # Save brian state
@@ -3932,8 +3932,10 @@ class SimulateRetina(RetinaMath):
         rfs_npz = self.data_io.load_data(filename=rfs_npz_file)
         mosaic_file = self.config.retina_parameters["mosaic_file"]
         gc_dataframe = self.data_io.load_data(filename=mosaic_file)
-        spike_generator_model = self.config.run_parameters["spike_generator_model"]
-        simulation_dt = self.config.run_parameters["simulation_dt"]
+        spike_generator_model = self.config.simulation_parameters[
+            "spike_generator_model"
+        ]
+        simulation_dt = self.config.simulation_parameters["simulation_dt"]
 
         gcs = GanglionCellProduct(
             self.config.retina_parameters,
@@ -4012,19 +4014,6 @@ class SimulateRetina(RetinaMath):
             )
             self.config.retina_parameters.retina_parameters_hash = hash_part
 
-    def _update_noise_gain(self) -> None:
-        """
-        Update noise gain based on retina parameters.
-        """
-
-        self.config.retina_parameters.noise_gain = getattr(
-            getattr(
-                self.config.noise_gain_default,
-                self.config.retina_parameters.response_type,
-            ),
-            self.config.retina_parameters.gc_type,
-        )
-
     def client(
         self,
         stimulus: np.ndarray | None = None,
@@ -4046,7 +4035,7 @@ class SimulateRetina(RetinaMath):
         """
         self._get_construct_metadata_if_missing()
         vs, gcs, cones, bipolars = self._get_products(stimulus)
-        n_sweeps = self.config.run_parameters["n_sweeps"]
+        n_sweeps = self.config.simulation_parameters["n_sweeps"]
         builder = ConcreteSimulationBuilder(
             vs,
             gcs,
@@ -4058,11 +4047,9 @@ class SimulateRetina(RetinaMath):
             self.stimulate,
         )
 
-        self._update_noise_gain()
-
         director = SimulationDirector(builder)
         if impulse:
-            contrasts = self.config.run_parameters["contrasts_for_impulse"]
+            contrasts = self.config.simulation_parameters["contrasts_for_impulse"]
             director.run_impulse_response(contrasts)
         elif unity:
             director.run_uniformity_index()
@@ -4076,14 +4063,14 @@ class SimulateRetina(RetinaMath):
                 # Generate multiple filenames if n_files > 1
                 filenames = [
                     f"{gc_type}_{response_type}_{hashstr}_response_{x:02}"
-                    for x in range(self.config.n_files)
+                    for x in range(self.config.simulation_parameters.n_files)
                 ]
 
             for filename in filenames:
                 director.run_simulation()
                 vs, gcs = director.get_simulation_result()
-                if self.config.run_parameters["save_data"]:
-                    save_variables = self.config.run_parameters["save_variables"]
+                if self.config.simulation_parameters["save_data"]:
+                    save_variables = self.config.simulation_parameters["save_variables"]
                     self.data_io.save_retina_output(vs, gcs, filename, save_variables)
 
             self._get_project_data_for_viz(vs, gcs, n_sweeps)

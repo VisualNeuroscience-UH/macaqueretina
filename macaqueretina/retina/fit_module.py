@@ -31,7 +31,7 @@ class FitDoGTemplate(ABC, RetinaMath, PrintableMixin):
         cen_rot_rad_all,
         bad_spatial_idx,
         mark_outliers_bad=False,
-        mask_noise=0,
+        data_noise_threshold=0,
     ):
         """
         Fit difference of Gaussians (DoG) model spatial filters using receptive field image data.
@@ -72,7 +72,7 @@ class FitDoGTemplate(ABC, RetinaMath, PrintableMixin):
             If the shape of spat_data_array is not `(n_cells, num_pix_y, num_pix_x)`.
         """
         self.bad_spatial_idx = bad_spatial_idx
-        self.mask_noise = mask_noise
+        self.data_noise_threshold = data_noise_threshold
 
         self.base_spatial_fitting(spat_data_array, cen_rot_rad_all)
         self.base_get_viable_units()
@@ -146,7 +146,7 @@ class FitDoGTemplate(ABC, RetinaMath, PrintableMixin):
     def base_flip_negative_spatial_rf(self):
         # RetinaMath method
         self.spat_data_array = self.flip_negative_spatial_rf(
-            self.spat_data_array, self.mask_noise
+            self.spat_data_array, self.data_noise_threshold
         )
 
     @abstractmethod
@@ -1071,7 +1071,7 @@ class FitExperimental(FitDataTypeTemplate):
             cen_rot_rad_all,
             self.bad_data_idx,
             mark_outliers_bad=False,
-            mask_noise=self.metadata["mask_noise"],
+            data_noise_threshold=self.metadata["data_noise_threshold"],
         )
 
     def hook_temporal_fit(self):

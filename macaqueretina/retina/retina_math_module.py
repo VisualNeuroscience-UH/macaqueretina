@@ -710,7 +710,7 @@ class RetinaMath:
 
     # Fit & RetinaVAE method
 
-    def flip_negative_spatial_rf(self, spatial_rf_unflipped, mask_noise=0):
+    def flip_negative_spatial_rf(self, spatial_rf_unflipped, data_noise_threshold=0):
         """
         Flips negative values of a spatial RF to positive values.
 
@@ -745,8 +745,8 @@ class RetinaMath:
             if mean_max_pixels_values < 0:
                 spatial_rf[i] = spatial_rf[i] * -1
 
-            if mask_noise > 0:
-                threshold = mask_noise
+            if data_noise_threshold > 0:
+                threshold = data_noise_threshold
                 if mean_max_pixels_values < 0:
                     threshold *= -1  # invert multiplier, too
 
