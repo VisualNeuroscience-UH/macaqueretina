@@ -13,7 +13,10 @@ import numpy as np
 # Local
 from macaqueretina.analysis.analysis_module import Analysis
 from macaqueretina.data_io.data_io_module import DataIO
-from macaqueretina.project.project_utilities_module import ProjectUtilitiesMixin, DataSampler
+from macaqueretina.project.project_utilities_module import (
+    DataSampler,
+    ProjectUtilitiesMixin,
+)
 from macaqueretina.retina.construct_retina_module import ConstructRetina
 from macaqueretina.retina.fit_module import Fit
 from macaqueretina.retina.retina_math_module import RetinaMath
@@ -74,7 +77,6 @@ class ProjectManager(ProjectUtilitiesMixin):
             self.project_data,
             ana,
             # Methods which are needed also elsewhere
-            round_to_n_significant=self.round_to_n_significant,
             DoG2D_fixed_surround=self.retina_math.DoG2D_fixed_surround,
             DoG2D_independent_surround=self.retina_math.DoG2D_independent_surround,
             DoG2D_circular=self.retina_math.DoG2D_circular,
@@ -194,6 +196,9 @@ class ProjectManager(ProjectUtilitiesMixin):
         if isinstance(value, AnalogInput):
             self._analog_input = value
         else:
+            raise AttributeError(
+                "Trying to set improper analog_input. analog_input must be a AnalogInput instance."
+            )
             raise AttributeError(
                 "Trying to set improper analog_input. analog_input must be a AnalogInput instance."
             )
