@@ -11,6 +11,7 @@ other parameters are computed here.
 from __future__ import annotations
 
 # Built-in
+import random
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal, Self
 
@@ -115,9 +116,7 @@ class VisualStimulusParameters(BaseConfigModel):
     image_width: int = Field(default=240, description="image (canvas) width in pixels")
     image_height: int = 240
     pix_per_deg: int = 60
-    dtype_name: str = (
-        "float16"  # low contrast needs "float16", for performance, use "uint8"
-    )
+    dtype_name: Literal["uint8", "float16"] = "float16"
     fps: int = 300
     duration_seconds: float = Field(
         default=0.5, description="actual frames will be floor(duration_seconds * fps)"
@@ -504,12 +503,7 @@ class ConfigParams(BaseConfigModel):
     )
     input_folder: str
     output_folder: str
-    numpy_seed: int = Field(
-        ge=0,
-        le=1000000,
-        default=42,
-        description="Remove random variations by setting the numpy random seed",
-    )
+    numpy_seed: int | None
     device: Literal["cpu", "cuda"]
     run: dict[str, Any]
 
@@ -576,6 +570,13 @@ class ConfigParams(BaseConfigModel):
     def stimulus_folder(self) -> str:
         """Stimulus images and videos"""
         return Path(f"stim_{self.output_folder}")
+
+    @field_validator("numpy_seed", mode="after")
+    @classmethod
+    def return_np_seed(cls, n):
+        if n is None:
+            n = random.randint(0, 1000000)
+        return n
 
     @model_validator(mode="after")
     def set_derived_values(self) -> Self:

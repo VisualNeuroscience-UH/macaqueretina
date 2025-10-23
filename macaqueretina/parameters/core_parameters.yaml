@@ -3,9 +3,9 @@ project: "macaqueretina"
 experiment: "test"
 input_folder: "../in"  # input VAE models, images, videos, other data
 output_folder: "test" # spikes, retinas, experiment metadata
-numpy_seed: 42  # random.randint(0, 1000000)  # 42
+numpy_seed: 42  # null for random or int for fixed seed
 device: "cuda"  # "cpu" or "cuda"
-profile: False
+profile: false
 
 run:
   build_retina: True
