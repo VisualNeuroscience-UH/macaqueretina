@@ -1,7 +1,7 @@
 # Overview
-Most parameters are available for modification in yaml files at macaqueretina/parameters. They will be converted into Configuration type, and will be available under the macaqueretina.config object either with dot notation or as a dict key. 
+Most parameters are available for modification in yaml files at macaqueretina/parameters. They will be converted into Configuration type, and will be available under the macaqueretina.config object either with dot notation or as a dict keys. 
 
-## Core parameters
+## core_parameters.yaml
 These parameters include major path settings, seed number, cpu/cuda device selection, profiler flag. In addition, it contains a runtime pipeline to create retina, make stimulus, simulate and show basic visualization.
 
 Project paths:
@@ -12,22 +12,27 @@ model_root_path/
     └── output_folder/
 ```
 
-## Retina parameters
+## Parameters for constructing retina
+### retina_parameters.yaml
 These are the core retina parameters. These become the hash in retina related filenames so that you can avoid rebuilding when you rerunning the pipeline. Available options are documented besides the keys.
 
 The core parameters include the ganglion cell and response types, spatial and temporal model types, dog model type (used both DOG model build and VAE model quantification). The retina segment is defined as `ecc_limits_deg: [start, stop]` and the polar segment size as `pol_limits_deg: [start, stop]`. At the moment polar rotation is not fully applied, so you need to keep your retina centered at the horizontal meridian eg by `pol_limits_deg: [-1.5, 1.5]`.
 
-The `model_density: 1.0` builds the retina patch with 100% density of ganglion cells according to literature.
+- ***model_density: 1.0*** : builds the retina patch with 100% density of ganglion cells according to literature.
 
-The `retina_center: "5.0+0j"`  complex number in degrees. This corresponds to stimulus_position (0, 0).
+- ***retina_center: "5.0+0j"*** : complex number in degrees. This corresponds to stimulus_position (0, 0).
 
-The `force_retina_build` flag enables retina rebuild even if the hash matches. This is handy if you need multiple instantiations of the retina or change a parameter in constants.yaml file which affect the retina construction.
+- ***force_retina_build*** : flag enables retina rebuild even if the hash matches. This is handy if you experiment with code changes or change any parameter in the retina_parameters_extend.yaml file which affects the retina construction.
 
+### retina_parameters_extend.yaml
+These are additional retina parameters which are not changing so often and are not included into hash generation. Changing these will not be detected by the hash id. Instead, you need to set retina_parameters force_retina_build to true (overwrites retina files with the same hash) or change output or experiment directories. 
 
-## Visual stimulus parameters
-This file contains the following dictionaries:
+For documentation of these parameters, see the yaml file.
 
-### Visual stimulus parameters
+## visual_stimulus_parameters.yaml
+This file contains the data for following dictionaries:
+
+### visual_stimulus_parameters
 This comprise complete definition of artificial stimuli and affect also external image and video stimuli. 
 Valid parameters include (overriding visual_stimulus_module.VideoBaseClass):
 
@@ -89,13 +94,13 @@ would mean ~ 905 Trolands. Td = lum * pi * (diam/2)^2, resulting in 128 cd/m2 = 
 ***NOTE***: GC receptive fields outside the stimulus causes error. In other words, stimulus must be bigger than retina.  
 ***NOTE***: if you ask for too high spatial or temporal frequency in relation to pixels per degree or fps, respectively, will result in aliasing without warning
 
-### External stimulus parameters
+### external_stimulus_parameters
 - ***stimulus_file***: filename for an image or video file  
 - ***pix_per_deg***: resolution for external stimuli  
 - ***fps***. frames per second for external videos  
 Put stimlus image and video files e.g. to the input_folder.
 
-### Run parameters
+## simulation_parameters.yaml
 These parameters guide simulation at runtime.  
 
 - ***n_files*** make distinct files with same stimulus and **same cone noise** but changing randomization seed, thus creating distinct spike patterns.
@@ -107,3 +112,8 @@ These parameters guide simulation at runtime.
 - ***simulation_dt***: in seconds, `0.0001` is 0.1 ms
 - ***save_variables***: `["spikes", "cone_noise"]` as default, you can add "cone_bipo_gen_fir" to save the middle steps for subunit model and generator potentials for all temporal model types.
 
+## gain_calibration.yaml
+Here you find the gain calibration values for various model combinations for visual signals and for background noise.
+
+## literature.yaml
+Filenames and additional metadata for redigitized literature data. The files and corresponding jpg images are in the main repo at macaqueretina/retina/literature_data. To visualize the datafiles, see example_utility_methods.py subsection "Sample and view figure data from literature"

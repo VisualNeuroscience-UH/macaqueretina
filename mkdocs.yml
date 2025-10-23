@@ -21,13 +21,13 @@ nav:
       - GC Types: example_gc_types.md
       - Utility methods: example_utility_methods.md
   - Explanation:
-      - Overview: introduction.md
-      - Building: building.md
-      - Stimuli: stimuli.md
-      - Simulations: simulations.md
-      - Visualization: visualization.md    
+      - Overview: explanation_overview.md
+      - Building: explanation_building.md
+      - Stimuli: explanation_stimuli.md
+      - Simulations: explanation_simulations.md
+      - Visualization: explanation_visualization.md    
   - Developer: developer.md
-  - Contributors: contributors.md
+  - Contribution: contribution.md
 
 plugins:
   - search

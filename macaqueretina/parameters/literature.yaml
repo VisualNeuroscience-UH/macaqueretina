@@ -1,15 +1,5 @@
-# Define digitized literature data files for gc density and dendritic diameters.
-# Dendritic diameter is the diameter of the circle that has the
-# same area as the dendritic field polygon, as defined in Watanabe 1989.
-# Data from Watanabe_1989_JCompNeurol and Perry_1984_Neurosci
-# Define literature data files for linear temporal models.
-# Data from Benardete_1999_VisNeurosci and Benardete_1997_VisNeurosci
-# Define literature data files for cone density.
-# Data from Packer_1989_JCompNeurol
-
 gc_density_1_datafile: "Wässle_1989_Nature_Fig2a_c.npz"
-# foveal gc density within 3 deg is estimated from cone density, with a decaying exponential multiplier.
-# See Wässle_1989_Nature Fig2a for details.
+
 gc_density_1_scaling_data_and_function: [[0, 0.75, 3],[3.34, 2, 1],"single_exponential_func",]
 
 gc_density_2_datafile: "Wässle_1989_Nature_Fig3_gcData_c.npz"
