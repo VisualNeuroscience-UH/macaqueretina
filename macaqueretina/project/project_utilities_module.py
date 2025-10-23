@@ -30,11 +30,23 @@ class ProjectUtilitiesMixin:
             "display.max_columns",
             None,
             "display.max_colwidth",
-            -1,
+            None,
         ):
             print(df)
 
-    # Debugging
+    def get_xy_from_npz(self, npz_data):
+        """
+        Return sorted and squeezed data from an npz data file.
+        """
+        data_set_x = np.squeeze(npz_data["Xdata"])
+        data_set_y = np.squeeze(npz_data["Ydata"])
+
+        data_set_x_index = np.argsort(data_set_x)
+        x_data = data_set_x[data_set_x_index]
+        y_data = data_set_y[data_set_x_index]
+
+        return x_data, y_data
+
     def countlines(self, startpath, lines=0, header=True, begin_start=None):
         """
         Counts lines in folder .py files.
@@ -296,6 +308,10 @@ class DataSampler:
 
 
 class PrintableMixin:
+    """
+    Mixin class to add pretty-printing capabilities to classes.
+    """
+
     def __str__(self):
         class_info = f"Instance of {self.__class__.__name__}, ID: {id(self)}\n"
 
