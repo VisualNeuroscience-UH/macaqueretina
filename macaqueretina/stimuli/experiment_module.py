@@ -501,9 +501,11 @@ class Experiment(VideoBaseClass):
 
         # Replace filename with None. If don't want to save the stimulus, None is valid,
         # but if want to save, then filename will be generated in the loop below
-        run_parameters = self.config.run_parameters
+        simulation_parameters = self.config.simulation_parameters
         self.options["n_sweeps"] = self.config.experiment_parameters["n_sweeps"]
-        run_parameters["n_sweeps"] = self.config.experiment_parameters["n_sweeps"]
+        simulation_parameters["n_sweeps"] = self.config.experiment_parameters[
+            "n_sweeps"
+        ]
 
         # Replace with input options
         for idx, input_options in enumerate(cond_options):
@@ -537,7 +539,9 @@ class Experiment(VideoBaseClass):
 
         if not save_exp_metadata_path.is_file():
 
-            self.options["logarithmic"] = tuple(self.config.experiment_parameters["logarithmic"])
+            self.options["logarithmic"] = tuple(
+                self.config.experiment_parameters["logarithmic"]
+            )
             self.options["retina_center"] = self.config.retina_parameters[
                 "retina_center"
             ]
