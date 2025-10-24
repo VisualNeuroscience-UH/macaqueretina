@@ -1,4 +1,3 @@
-# Builtin
 # Built-in
 import copy
 import inspect
@@ -9,11 +8,8 @@ from argparse import ArgumentError
 from pathlib import Path
 
 # Third-party
-# Viz
 import matplotlib.pyplot as plt
 import matplotlib.widgets as widgets
-
-# Analysis
 import numpy as np
 import pandas as pd
 
