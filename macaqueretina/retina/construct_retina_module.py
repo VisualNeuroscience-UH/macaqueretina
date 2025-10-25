@@ -242,7 +242,6 @@ class DistributionSampler:
 
         match distribution:
             # Continuous probability distribution on the positive real line
-
             case "gamma":
                 random_samples = stats.gamma.rvs(
                     a=shape, loc=loc, scale=scale, size=n_cells, random_state=None
@@ -2150,8 +2149,6 @@ class SpatialModelVAE(SpatialModelBase):
 
         # 1) Get variational autoencoder to generate receptive fields
         print("\nGetting VAE model...")
-        # self.vae_latent_stats = ret.experimental_archive["vae_statistics"]
-
         self.retina_vae.client()
 
         # 2) "Bad fit loop", provides eccentricity-scaled vae rfs with good DoG fits (error < 3SD from mean).
@@ -3102,7 +3099,7 @@ class TemporalModelSubunit(TemporalModelBase):
         return ret
 
 
-class RetinaBuildInterface(ABC):
+class RetinaBuilder(ABC):
     """
     Abstract base class for building the retina.
 
@@ -3184,7 +3181,7 @@ class RetinaBuildInterface(ABC):
         pass
 
 
-class ConcreteRetinaBuilder(RetinaBuildInterface):
+class ConcreteRetinaBuilder(RetinaBuilder):
     """
     Compilation of the retina components into one concrete builder instance.
     """
@@ -3234,7 +3231,6 @@ class ConcreteRetinaBuilder(RetinaBuildInterface):
     def device(self):
         return self._device
 
-    # For testing where device is set to cpu
     @device.setter
     def device(self, value):
         self._device = value
@@ -4707,37 +4703,22 @@ class RetinaBuildDirector:
     """
     A class that directs the construction of the retina by coordinating the builder instance.
 
-    The director follows the RetinaBuildInterface and coordinates the execution of the steps
+    The director follows the RetinaBuilder and coordinates the execution of the steps
     to build the retina, such as fitting cell density data, placing units, and generating
     receptive fields.
 
     Attributes
     ----------
-    builder : RetinaBuildInterface
-        An instance of a class implementing RetinaBuildInterface to construct the retina.
+    builder : RetinaBuilder
+        An instance of a class implementing RetinaBuilder to construct the retina.
     """
 
-    def __init__(self, builder: RetinaBuildInterface) -> None:
-        """
-        Initialize the RetinaBuildDirector with a builder.
-
-        Parameters
-        ----------
-        builder : RetinaBuildInterface
-            The builder instance used to construct the retina.
-        """
+    def __init__(self, builder: RetinaBuilder) -> None:
         self.builder = builder
 
     def construct_retina(self) -> None:
         """
-        Direct the builder to construct the retina by performing the following steps:
-        1) Retrieve the concrete components of the retina.
-        2) Fit the ganglion cell and cone density data.
-        3) Place the units (ganglion cells, cones, bipolars).
-        4) Create spatial receptive fields.
-        5) Connect the units based on the model.
-        6) Create temporal receptive fields.
-        7) Create tonic drive for the ganglion cells.
+        Direct the builder to construct the retina.
         """
         self.builder.get_concrete_components()
         self.builder.fit_cell_density_data()
@@ -5180,58 +5161,6 @@ class ConstructRetina(PrintableMixin):
         filename_stem = self.vae_config["filename_stem"]
         return str(path / f"{filename_stem}_vae_latent_stats.npy")
 
-    def _get_vae_statistics(self, retina_vae: Any) -> np.ndarray:
-        """
-        Loads the VAE statistics from disk. If not found, recalculates the statistics
-        by augmenting the original data and getting the encoded samples from the VAE model.
-        Saves the statistics on disk.
-        """
-
-        filepath = self._get_vae_statistics_filepath()
-        retina_vae.client()
-
-        try:
-            raise FileNotFoundError("Bypassing VAE statistics loading for testing.")
-            vae_latent_stats = np.load(filepath)
-            print("Loaded VAE statistics from disk.")
-
-        except FileNotFoundError:
-            augmentation_dict = self.config.vae_train_parameters.get(
-                "augmentation_dict", {}
-            )
-
-            retina_vae.get_and_split_experimental_data()
-            retina_vae.train_loader = retina_vae.augment_and_get_dataloader(
-                data_type="train", augmentation_dict=augmentation_dict
-            )
-            retina_vae.val_loader = retina_vae.augment_and_get_dataloader(
-                data_type="val", augmentation_dict=augmentation_dict
-            )
-            retina_vae.test_loader = retina_vae.augment_and_get_dataloader(
-                data_type="test", shuffle=False
-            )
-
-            # Get the latent space data
-            train_df = retina_vae.get_encoded_samples(
-                dataset=retina_vae.train_loader.dataset
-            )
-            valid_df = retina_vae.get_encoded_samples(
-                dataset=retina_vae.val_loader.dataset
-            )
-            test_df = retina_vae.get_encoded_samples(
-                dataset=retina_vae.test_loader.dataset
-            )
-            latent_df = pd.concat(
-                [train_df, valid_df, test_df], axis=0, ignore_index=True
-            )
-
-            # Extract data from latent_df into a numpy array from columns whose title include "EncVariable"
-            vae_latent_stats = latent_df.filter(regex="EncVariable").to_numpy()
-
-            self._update_latent_stats(vae_latent_stats)
-
-        return vae_latent_stats
-
     def _get_all_experimental_statistics(
         self, experimental_archive: dict, retina_parameters: dict
     ) -> dict:
@@ -5259,15 +5188,6 @@ class ConstructRetina(PrintableMixin):
             raise
 
         experimental_archive["dog_statistics"] = dog_statistics
-
-        # # VAE statistics
-        # try:
-        #     vae_latent_stats = self._get_vae_statistics(self.retina_vae)
-        # except FileNotFoundError:
-        #     print("No VAE statistics found on disk.")
-        #     raise
-
-        # experimental_archive["vae_statistics"] = vae_latent_stats
 
         return experimental_archive
 
