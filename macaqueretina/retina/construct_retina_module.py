@@ -5148,19 +5148,6 @@ class ConstructRetina(PrintableMixin):
 
         return dog_statistics
 
-    def _update_latent_stats(self, vae_latent_stats: np.ndarray) -> None:
-
-        filepath = self._get_vae_statistics_filepath()
-        np.save(filepath, vae_latent_stats)
-
-    def _get_vae_statistics_filepath(self) -> str:
-        """
-        Returns the file path for the VAE statistics based on the config.
-        """
-        path = self.vae_config["path"]
-        filename_stem = self.vae_config["filename_stem"]
-        return str(path / f"{filename_stem}_vae_latent_stats.npy")
-
     def _get_all_experimental_statistics(
         self, experimental_archive: dict, retina_parameters: dict
     ) -> dict:
