@@ -199,6 +199,3 @@ class ProjectManager(ProjectUtilitiesMixin):
             raise AttributeError(
                 "Trying to set improper analog_input. analog_input must be a AnalogInput instance."
             )
-            raise AttributeError(
-                "Trying to set improper analog_input. analog_input must be a AnalogInput instance."
-            )
