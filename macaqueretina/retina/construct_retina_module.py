@@ -5293,7 +5293,7 @@ class ConstructRetina(PrintableMixin):
         cone_noise_dict.update(stim_duration)
         self.config.retina_parameters["cone_noise_hash"] = cone_noise_dict.hash()
 
-    def build_retina_client(self) -> None:
+    def build_retina_client(self, return_objects_do_not_save=False) -> None:
         """
         Build the retina using the builder pattern.
 
@@ -5336,8 +5336,11 @@ class ConstructRetina(PrintableMixin):
         director.construct_retina()
         retina, ganglion_cell = director.get_retina()
 
-        self.save_retina(retina, ganglion_cell)
-        self.project_data.construct_retina.update(builder.project_data)
+        if return_objects_do_not_save:
+            return retina, ganglion_cell
+        else:
+            self.save_retina(retina, ganglion_cell)
+            self.project_data.construct_retina.update(builder.project_data)
 
     def save_retina(self, ret: "Retina", gc: Any) -> None:
         """
