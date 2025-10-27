@@ -142,20 +142,16 @@ def test_retina_construction(
         "X_grid_sur_mm",
         "Y_grid_cen_mm",
         "Y_grid_sur_mm",
-        # "cones_to_gcs_weights",
         "df",
         "exp_pix_per_side",
         "img",
         "img_lu_pix",
         "img_mask",
         "img_mask_sur",
-        # "mm_scaling_params",
         "n_units",
-        # "parameter_names",
         "pix_per_side",
         "um_per_pix",
         "um_per_side",
-        # "zoom_scaling_params",
     ]
 
     # Test for existence and non-None
