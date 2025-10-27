@@ -20,6 +20,7 @@ from .viz.viz_module import Viz, VizResponse
 config = _load_parameters()
 PM: _ProjectManager = _ProjectManager(config)
 
+# This connects the top-level macaqueretina namespace to the various modules. Look here if you are lost.
 analysis: Analysis = PM.ana
 construct_retina: Callable = PM.construct_retina.build_retina_client
 countlines = PM.countlines
