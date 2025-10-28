@@ -2,12 +2,7 @@
 from pathlib import Path
 
 # Third-party
-import colorednoise as cn
-
-# Data IO
 import cv2
-
-# Viz
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy import ndimage
@@ -550,48 +545,6 @@ class StimulusPattern:
 
         self.frames = np.zeros(self.frames.shape) + intensity_array[:, None, None]
 
-    def colored_temporal_noise(self, beta=1):
-        """
-        Generate a colored temporal noise pattern.
-
-        This method creates temporal noise with a specified power-law exponent,
-        generating different types of noise (e.g., pink, brown, or white noise)
-        based on the beta value. The method generates a frame time series with
-        unit variance, clips it to a predefined variance range, and then scales
-        it to fit within [0, 1].
-
-        The raw intensity is set to the range [0, 1]. The method ensures that
-        the time series length is compatible with the frame dimensions and
-        applies the time series to all frames.
-
-        Parameters
-        ----------
-        beta : int, optional
-            the exponent. 1 = pink noise, 2 = brown noise, 0 = white noise.
-        """
-        variance_limits = np.array([-3, 3])
-        samples = self.frames.shape[0]  # number of time samples to generate
-        frame_time_series_unit_variance = cn.powerlaw_psd_gaussian(beta, samples)
-
-        # Cut variance to [-3,3]
-        frame_time_series_unit_variance_clipped = np.clip(
-            frame_time_series_unit_variance,
-            variance_limits.min(),
-            variance_limits.max(),
-        )
-        # Scale to [0 1]
-        frame_time_series = (
-            frame_time_series_unit_variance_clipped - variance_limits.min()
-        ) / variance_limits.ptp()
-
-        self.options["raw_intensity"] = (0, 1)
-
-        # Cast time series to frames
-        assert (
-            len(frame_time_series) not in self.frames.shape[1:]
-        ), "Oops. Two different dimensions match the time series length."
-        self.frames = np.zeros(self.frames.shape) + frame_time_series
-
     def spatially_uniform_binary_noise(self):
         """
         Generate a spatially uniform binary noise pattern.
@@ -799,7 +752,7 @@ class VisualStimulus(VideoBaseClass):
         baseline_start_seconds: midgray at the beginning
         baseline_end_seconds: midgray at the end
         pattern:
-            'sine_grating'; 'square_grating'; 'colored_temporal_noise'; 'white_gaussian_noise';
+            'sine_grating'; 'square_grating'; 'white_gaussian_noise';
             'natural_images'; 'natural_video'; 'temporal_sine_pattern'; 'temporal_square_pattern';
             'spatially_uniform_binary_noise'
         stimulus_form: 'circular'; 'rectangular'; 'annulus'
@@ -1214,4 +1167,5 @@ class AnalogInput:
         idx = np.random.choice(Nmosaic_units, size=Nx, replace=False)
         w_coord, z_coord = w_coord[idx], z_coord[idx]
 
+        return w_coord, z_coord
         return w_coord, z_coord

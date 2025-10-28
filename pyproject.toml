@@ -20,7 +20,6 @@ classifiers = [
 [tool.poetry.dependencies]
 brian2 = "2.7.1"
 brian2cuda = "^1.0a6"
-colorednoise = "*"
 cython = "^3.0.11"
 h5py = "*"
 imageio = "*"
