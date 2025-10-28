@@ -2263,8 +2263,6 @@ class TemporalModelBase(ABC):
         device: str = "cpu",
     ):
         """
-        Initialize the TemporalModelBase instance.
-
         Parameters
         ----------
         ganglion_cell : GanglionCell
@@ -2552,10 +2550,6 @@ class TemporalModelFixed(TemporalModelBase):
     This class implements methods to create fixed temporal models, sample temporal receptive fields using statistical data,
     and connect units according to the fixed temporal model type. It uses both univariate and multivariate statistics
     to sample parameters, depending on the configuration.
-
-    Attributes
-    ----------
-    (Inherited from TemporalModelBase)
     """
 
     def __init__(
@@ -2669,10 +2663,6 @@ class TemporalModelDynamic(TemporalModelBase):
     This class implements methods to create dynamic temporal models by sampling temporal receptive fields
     using Benardete & Kaplan (BK) statistics. It also connects units according to the dynamic temporal model type,
     focusing on noise units.
-
-    Attributes
-    ----------
-    (Inherited from TemporalModelBase)
     """
 
     def __init__(
@@ -2749,11 +2739,7 @@ class TemporalModelSubunit(TemporalModelBase):
     A class to build subunit temporal models for retinal ganglion cells.
 
     This class implements methods to create subunit temporal models, fit the bipolar rectification index,
-    link cones to bipolar cells, and link bipolar units to ganglion cells. It extends the `TemporalModelBase` class.
-
-    Attributes
-    ----------
-    (Inherited from TemporalModelBase)
+    link cones to bipolar cells, and link bipolar units to ganglion cells.
     """
 
     def __init__(
