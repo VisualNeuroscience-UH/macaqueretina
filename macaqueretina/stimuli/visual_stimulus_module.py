@@ -830,12 +830,24 @@ class VisualStimulus(VideoBaseClass):
         """
 
         # Set input arguments to video-object, updates the defaults from VideoBaseClass
-        print("Making a stimulus with the following properties:")
+        if options is not None:
+            self.config.visual_stimulus_parameters = options
 
-        if options is None:
-            visual_stimulus_parameters = self.config.visual_stimulus_parameters
+        visual_stimulus_parameters = self.config.visual_stimulus_parameters
+
+        video_hash = self.config.visual_stimulus_parameters.hash()
+        video_file_full = self.data_io.parse_path("", substring=f"{video_hash}.hdf5")
+        if video_file_full:
+            print("Video stimulus hash exists, loading stimulus from file:", video_hash)
+            stimulus_video = self.data_io.load_stimulus_from_videofile(video_file_full)
+            return stimulus_video
         else:
-            visual_stimulus_parameters = options
+            print(
+                "Did not find existing stimulus video hash, making a stimulus with the following properties:"
+            )
+            video_name_stem = Path(visual_stimulus_parameters.stimulus_video_name).stem
+            video_file_name = video_name_stem + "_" + video_hash + ".mp4"
+            visual_stimulus_parameters.stimulus_video_name = str(video_file_name)
 
         for this_option in visual_stimulus_parameters:
             print(this_option, ":", visual_stimulus_parameters[this_option])
@@ -912,6 +924,7 @@ class VisualStimulus(VideoBaseClass):
         stimulus_video = self
 
         # Save video
+        # breakpoint()
         stimulus_video_name = Path(self.options["stimulus_video_name"])
         self.data_io.save_stimulus_to_videofile(stimulus_video_name, stimulus_video)
 
