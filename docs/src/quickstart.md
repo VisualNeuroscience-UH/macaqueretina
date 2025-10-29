@@ -1,42 +1,59 @@
 
-## Getting started with MacaqueRetina simulator
+## Getting started with the MacaqueRetina simulator
 
-The simulator can be run either directly or imported as package. When run directly, all parameters are read from macaqueretina/parameters folder. When imported you have the option of changing parameters at runtime.
+The simulator can be run either directly or imported as package. When run directly, the parameters are read from all the yaml files in macaqueretina/parameters folder. When imported as a package, you have the option of changing parameters at runtime.
 
 
-### First, update the model root path to match your system
+### First, set the folder for your output data 
 
 Navigate to your local MacaqueRetina git repository root.
 
-Open file macaqueretina/parameters/core_parameters.yaml and change the  `model_root_path` to point into an existing directory in your system. This is where all data will be written out.
+Open macaqueretina/parameters/core_parameters.yaml and change the `model_root_path` to point to an existing directory in your system. This is where all output data will be written.
 
 
 ### Run using parameters from the yaml files
 
+Add the 'shell' plugin to your Poetry environment:
+
+```bash
+poetry self add poetry-plugin-shell
+```
+
 Activate your Poetry-managed environment:
 
-```
+```bash
 poetry shell
 ```
 
 Run the project:
 
-```
-python macaqueretina/project/project_conf_module.py
+```bash
+python macaqueretina
 ```
 
-This will run the simulator with the parameters from the yaml files. 
+This will run the simulator with the parameters read from the yaml files. 
 
-### Import as package and run
+### Import as a package and run
+
+Add the 'shell' plugin to your Poetry environment:
+
+```bash
+poetry self add poetry-plugin-shell
+```
 
 Activate your Poetry-managed environment:
 
-```
+```bash
 poetry shell
 ```
 
-Run the following: 
+Import into your Python environment:
+```python
+import macaqueretina as mr
 ```
+
+Run the following for a quick example: 
+```python
 import macaqueretina as mr
 import matplotlib.pyplot as plt
 
@@ -47,5 +64,9 @@ mr.viz.show_all_gc_responses(savefigname=None)
 plt.show()
 ```
 
-Variables saved to disk can be accessed after `import macaqueretina as mr` and using `my_data = mr.load_data("filename")`
-
+Variables saved to disk can be accessed with:
+```python
+ import macaqueretina as mr 
+ 
+ my_data = mr.load_data("filename")
+```
