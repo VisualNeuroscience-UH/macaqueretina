@@ -192,8 +192,7 @@ class DataIO:
 
         return data_fullpath_filename
 
-    # @lru_cache(maxsize=128)
-    def get_data(
+    def load_data(
         self,
         filename=None,
         substring=None,
@@ -271,9 +270,6 @@ class DataIO:
             raise TypeError("U r trying to input unknown filetype, aborting...")
 
         print(f"Loaded file {data_fullpath_filename}")
-        # Check for existing loggers (python builtin, called from other modules, such as the run_script.py)
-        if logging.getLogger().hasHandlers():
-            logging.info(f"Loaded file {data_fullpath_filename}")
 
         if return_filename is True:
             return data, data_fullpath_filename
@@ -570,8 +566,15 @@ class DataIO:
         Then check if video name has correct extension.
         If not, add correct extension.
 
-        :param filename: video name
-        :return: full path to video name
+        Parameters
+        ----------
+        filename : str
+            The name of the video file.
+
+        Returns
+        -------
+        fullpath_filename : Path
+            The full path to the video file.
         """
 
         parent_path = self._check_stimulus_folder()
@@ -608,23 +611,25 @@ class DataIO:
             The stimulus object to be saved.
         """
 
+        # Get filename stem. Check for mp4 and hdf5 files. If either does not exists, create them.
         fullpath_filename = self.get_video_full_name(filename)
 
-        if fullpath_filename.is_file():
-            return  # If file already exists, do not overwrite
+        filename_mp4 = Path(f"{fullpath_filename.stem}.mp4")
+        fullpath_filename_mp4 = Path.joinpath(fullpath_filename.parent, filename_mp4)
+        if not fullpath_filename_mp4.is_file():
+            self._write_frames_to_mp4_videofile(fullpath_filename_mp4, stimulus)
 
-        # To display to user
-        self._write_frames_to_mp4_videofile(fullpath_filename, stimulus)
+        filename_hdf5 = Path(f"{fullpath_filename.stem}.hdf5")
+        fullpath_filename_hdf5 = Path.joinpath(fullpath_filename.parent, filename_hdf5)
 
-        # save all stimulus object attributes in the same format
-        stimulus_dict = {
-            key: value
-            for key, value in stimulus.__dict__.items()
-            if key not in ["_config", "_data_io", "_cones"]
-        }
+        if not fullpath_filename_hdf5.is_file():
+            stimulus_dict = {
+                key: value
+                for key, value in stimulus.__dict__.items()
+                if key not in ["_config", "_data_io", "_cones"]
+            }
 
-        full_path_out = f"{fullpath_filename}.hdf5"
-        self.save_dict_to_hdf5(full_path_out, stimulus_dict)
+            self.save_dict_to_hdf5(fullpath_filename_hdf5, stimulus_dict)
 
     def load_stimulus_from_videofile(self, filename):
         """
@@ -646,22 +651,16 @@ class DataIO:
         stimulus : DummyVideoClass instance
             An instance of the dummy VideoBaseClass that represents the loaded
             stimulus. Its attributes are populated from the hdf5 file contents.
-
-        Notes
-        -----
-        - If logging handlers are set, an informational log is produced indicating
-        the file that has been loaded.
-        - The function assumes that the file extension is `.hdf5` and appends it to the filename.
         """
 
         fullpath_filename = self.get_video_full_name(filename)
+        filename_hdf5 = Path(f"{fullpath_filename.stem}.hdf5")
+        fullpath_filename_hdf5 = Path.joinpath(fullpath_filename.parent, filename_hdf5)
 
-        # load video from hdf5 file
-        full_path_in = f"{fullpath_filename}.hdf5"
-        try:
-            data_dict = self.load_dict_from_hdf5(full_path_in)
-        except Exception as e:
-            raise FileNotFoundError(f"Stimulus not available at {full_path_in}")
+        if not fullpath_filename_hdf5.is_file():
+            raise FileNotFoundError(f"No stimulus video at {fullpath_filename_hdf5}")
+        else:
+            data_dict = self.load_dict_from_hdf5(fullpath_filename_hdf5)
 
         # Create a dummy VideoBaseCLass object to create a stimulus object
         class DummyVideoClass:
@@ -677,10 +676,7 @@ class DataIO:
             if isinstance(value, np.ndarray):
                 stimulus.options[key] = tuple(value)
 
-        print(f"Loaded file {full_path_in}")
-        # Check for existing loggers (python builtin, called from other modules, such as the run_script.py)
-        if logging.getLogger().hasHandlers():
-            logging.info(f"Loaded file {full_path_in}")
+        print(f"Loaded file {fullpath_filename_hdf5}")
 
         return stimulus
 
@@ -886,9 +882,7 @@ class DataIO:
         if filename is None:
             save_path = self.config.output_folder.joinpath("most_recent_structure")
         else:
-            save_path = self.config.output_folder.joinpath(
-                str(filename) + "_structure"
-            )
+            save_path = self.config.output_folder.joinpath(str(filename) + "_structure")
         filename_full = save_path.with_suffix(".csv")
 
         rgc_coords["z_deg"] = 0.0
@@ -966,7 +960,7 @@ class DataIO:
                     self._save_additional_variables(
                         vs,
                         f"cone_noise_{cone_noise_hash}",
-                        ["cone_noise", "cone_noise_u"],
+                        ["cone_noise"],
                         overwrite=False,
                     )
 

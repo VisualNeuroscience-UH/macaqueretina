@@ -30,53 +30,85 @@ from macaqueretina.retina.retina_math_module import RetinaMath
 
 class Retina(PrintableMixin):
     """
-    A class housing the retina-level parameters and collecting the retina product.
-    Most values are defined in the project configuration file.
+    A class representing the biological and computational model of the macaque retina.
+
+    This class houses retina-level parameters, manages the placement and properties of retinal cells,
+    and collects the computational products of the retina simulation. Most parameters are loaded from
+    the yaml files, but some are computed during initialization or simulation.
 
     Parameters
     ----------
     retina_parameters : dict
-        A dictionary containing various parameters and settings for the retina.
-        Defined in the project configuration file.
+        A dictionary containing all parameters and settings for the retina model.
+        This includes placement, spatial, temporal, and response properties for all cell types.
+        Expected keys include:
+        - "gc_type", "response_type", "spatial_model_type", "dog_model_type", "temporal_model_type"
+        - "gc_placement_parameters", "cone_placement_parameters", "bipolar_placement_parameters"
+        - "cone_general_parameters", "bipolar_general_parameters"
+        - "dd_regr_model", "deg_per_mm", "ecc_limits_deg", "ecc_limit_for_dd_fit", "pol_limits_deg"
+        - "fit_statistics", "center_mask_threshold", "bipolar2gc_dict", "receptive_field_repulsion_parameters"
+        - "model_density", "proportion_of_parasol_gc_type", "proportion_of_midget_gc_type"
+        - "proportion_of_ON_response_type", "proportion_of_OFF_response_type"
+        - "experimental_archive"
 
     Attributes
     ----------
-    whole_ret_img : np.ndarray, optional
-        An image representing the whole retina (computed later).
-    whole_ret_lu_mm : np.ndarray, optional
-        Coordinates of the left upper corner of the whole retina image in millimeters (computed later).
-    cones_to_gcs_weights : np.ndarray, optional
-        Weights mapping cones to ganglion cells (computed later).
+    whole_ret_img : np.ndarray or None
+        A 2D array representing the whole retina image. Computed during simulation.
+    whole_ret_lu_mm : np.ndarray or None
+        Coordinates of the left upper corner of the whole retina image, in millimeters. Computed during simulation.
+    cones_to_gcs_weights : np.ndarray or None
+        Weights mapping cones to ganglion cells. Computed during simulation.
+    experimental_archive : str
+        Identifier for the experimental dataset or archive used for parameter fitting.
+    gc_type : str
+        Type of ganglion cell (e.g., "parasol", "midget").
+    response_type : str
+        Response type of the ganglion cell (e.g., "ON", "OFF").
+    spatial_model_type : str
+        Type of spatial model used for cell placement.
+    dog_model_type : str
+        Type of difference-of-Gaussians model used for receptive fields.
+    temporal_model_type : str
+        Type of temporal model used for cell responses.
+    fit_statistics : dict
+        Statistics related to the fitting of model parameters.
+    mask_threshold : float
+        Threshold for the center mask of the receptive field.
     gc_placement_parameters : dict
-        Parameters for placing ganglion cells.
+        Parameters for placing ganglion cells on the retina.
     cone_placement_parameters : dict
-        Parameters for placing cones.
+        Parameters for placing cone cells on the retina.
     bipolar_placement_parameters : dict
-        Parameters for placing bipolar cells.
+        Parameters for placing bipolar cells on the retina.
     cone_general_parameters : dict
-        Natural stimulus filtering parameters and cone-to-GC connection parameters.
+        Parameters for natural stimulus filtering and cone-to-GC connections.
+    bipolar_general_parameters : dict
+        General parameters for bipolar cells.
     dd_regr_model : Any
-        Regression model for dendritic diameter.
+        Regression model for dendritic diameter as a function of eccentricity.
     deg_per_mm : float
-        Degrees visual field per millimeter of the retina.
+        Conversion factor: degrees of visual field per millimeter of retina.
+    bipolar2gc_dict : dict
+        Mapping of bipolar cell types to ganglion cell types.
+    receptive_field_repulsion_parameters : dict
+        Parameters controlling the repulsion between receptive fields.
     ecc_lim_mm : np.ndarray
-        Eccentricity limits in millimeters.
+        Eccentricity limits of the retina, in millimeters (converted from degrees).
     ecc_limit_for_dd_fit_mm : float
-        Eccentricity limit for dendritic density fit in millimeters.
+        Eccentricity limit for dendritic density fit, in millimeters (converted from degrees).
     polar_lim_deg : np.ndarray
-        Polar limits in degrees.
-    gc_proportion : float
-        Proportion of a specific type of ganglion cell based on type and response.
-
-    Methods
-    -------
-    __init__(self, retina_parameters: dict) -> None
-        Initializes the Retina instance with the given parameters.
-
-    Raises
-    ------
-    ValueError
-        If an unknown ganglion cell type is specified in `retina_parameters`.
+        Polar angle limits of the retina, in degrees.
+    model_density : float
+        Density of the model cells on the retina (must be <= 1.0).
+    proportion_of_parasol_gc_type : float
+        Proportion of parasol ganglion cells in the model.
+    proportion_of_midget_gc_type : float
+        Proportion of midget ganglion cells in the model.
+    proportion_of_ON_response_type : float
+        Proportion of ON-response ganglion cells in the model.
+    proportion_of_OFF_response_type : float
+        Proportion of OFF-response ganglion cells in the model.
     """
 
     def __init__(self, retina_parameters: Dict[str, Any]) -> None:
@@ -125,16 +157,7 @@ class Retina(PrintableMixin):
         ecc_limit_for_dd_fit: float = retina_parameters["ecc_limit_for_dd_fit"]
         pol_limits_deg: list[float] = retina_parameters["pol_limits_deg"]
 
-        # Assertions
-        assert (
-            isinstance(ecc_limits_deg, list) and len(ecc_limits_deg) == 2
-        ), "Wrong type or length of eccentricity, aborting"
-        assert (
-            isinstance(pol_limits_deg, list) and len(pol_limits_deg) == 2
-        ), "Wrong type or length of pol_limits_deg, aborting"
-
         self.model_density: float = retina_parameters["model_density"]
-        assert self.model_density <= 1.0, "Density should be <=1.0, aborting"
 
         # Turn list to numpy array and deg to mm
         self.ecc_lim_mm: np.ndarray = (
@@ -219,7 +242,6 @@ class DistributionSampler:
 
         match distribution:
             # Continuous probability distribution on the positive real line
-
             case "gamma":
                 random_samples = stats.gamma.rvs(
                     a=shape, loc=loc, scale=scale, size=n_cells, random_state=None
@@ -2127,8 +2149,6 @@ class SpatialModelVAE(SpatialModelBase):
 
         # 1) Get variational autoencoder to generate receptive fields
         print("\nGetting VAE model...")
-        # self.vae_latent_stats = ret.experimental_archive["vae_statistics"]
-
         self.retina_vae.client()
 
         # 2) "Bad fit loop", provides eccentricity-scaled vae rfs with good DoG fits (error < 3SD from mean).
@@ -2243,8 +2263,6 @@ class TemporalModelBase(ABC):
         device: str = "cpu",
     ):
         """
-        Initialize the TemporalModelBase instance.
-
         Parameters
         ----------
         ganglion_cell : GanglionCell
@@ -2532,10 +2550,6 @@ class TemporalModelFixed(TemporalModelBase):
     This class implements methods to create fixed temporal models, sample temporal receptive fields using statistical data,
     and connect units according to the fixed temporal model type. It uses both univariate and multivariate statistics
     to sample parameters, depending on the configuration.
-
-    Attributes
-    ----------
-    (Inherited from TemporalModelBase)
     """
 
     def __init__(
@@ -2649,10 +2663,6 @@ class TemporalModelDynamic(TemporalModelBase):
     This class implements methods to create dynamic temporal models by sampling temporal receptive fields
     using Benardete & Kaplan (BK) statistics. It also connects units according to the dynamic temporal model type,
     focusing on noise units.
-
-    Attributes
-    ----------
-    (Inherited from TemporalModelBase)
     """
 
     def __init__(
@@ -2729,11 +2739,7 @@ class TemporalModelSubunit(TemporalModelBase):
     A class to build subunit temporal models for retinal ganglion cells.
 
     This class implements methods to create subunit temporal models, fit the bipolar rectification index,
-    link cones to bipolar cells, and link bipolar units to ganglion cells. It extends the `TemporalModelBase` class.
-
-    Attributes
-    ----------
-    (Inherited from TemporalModelBase)
+    link cones to bipolar cells, and link bipolar units to ganglion cells.
     """
 
     def __init__(
@@ -3079,7 +3085,7 @@ class TemporalModelSubunit(TemporalModelBase):
         return ret
 
 
-class RetinaBuildInterface(ABC):
+class RetinaBuilder(ABC):
     """
     Abstract base class for building the retina.
 
@@ -3161,7 +3167,7 @@ class RetinaBuildInterface(ABC):
         pass
 
 
-class ConcreteRetinaBuilder(RetinaBuildInterface):
+class ConcreteRetinaBuilder(RetinaBuilder):
     """
     Compilation of the retina components into one concrete builder instance.
     """
@@ -3211,7 +3217,6 @@ class ConcreteRetinaBuilder(RetinaBuildInterface):
     def device(self):
         return self._device
 
-    # For testing where device is set to cpu
     @device.setter
     def device(self, value):
         self._device = value
@@ -4684,37 +4689,22 @@ class RetinaBuildDirector:
     """
     A class that directs the construction of the retina by coordinating the builder instance.
 
-    The director follows the RetinaBuildInterface and coordinates the execution of the steps
+    The director follows the RetinaBuilder and coordinates the execution of the steps
     to build the retina, such as fitting cell density data, placing units, and generating
     receptive fields.
 
     Attributes
     ----------
-    builder : RetinaBuildInterface
-        An instance of a class implementing RetinaBuildInterface to construct the retina.
+    builder : RetinaBuilder
+        An instance of a class implementing RetinaBuilder to construct the retina.
     """
 
-    def __init__(self, builder: RetinaBuildInterface) -> None:
-        """
-        Initialize the RetinaBuildDirector with a builder.
-
-        Parameters
-        ----------
-        builder : RetinaBuildInterface
-            The builder instance used to construct the retina.
-        """
+    def __init__(self, builder: RetinaBuilder) -> None:
         self.builder = builder
 
     def construct_retina(self) -> None:
         """
-        Direct the builder to construct the retina by performing the following steps:
-        1) Retrieve the concrete components of the retina.
-        2) Fit the ganglion cell and cone density data.
-        3) Place the units (ganglion cells, cones, bipolars).
-        4) Create spatial receptive fields.
-        5) Connect the units based on the model.
-        6) Create temporal receptive fields.
-        7) Create tonic drive for the ganglion cells.
+        Direct the builder to construct the retina.
         """
         self.builder.get_concrete_components()
         self.builder.fit_cell_density_data()
@@ -4822,7 +4812,7 @@ class ConstructRetina(PrintableMixin):
         if "spatial_model_type" in retina_parameters and retina_parameters[
             "spatial_model_type"
         ] in ["VAE"]:
-            self.vae_run_mode = retina_parameters["vae_run_mode"]
+            self.vae_run_mode = self.config.vae_train_parameters["vae_run_mode"]
 
         self.spatial_rfs_file_filename = []
         self.ret_filename = []
@@ -4932,7 +4922,7 @@ class ConstructRetina(PrintableMixin):
         cell_eccentricity = np.array([])
         cell_density = np.array([])
         for filepath in filepaths:
-            density = self.data_io.get_data(filepath)
+            density = self.data_io.load_data(filepath)
             _eccentricity = np.squeeze(density["Xdata"])
             _density = np.squeeze(density["Ydata"])
             cell_eccentricity = np.concatenate((cell_eccentricity, _eccentricity))
@@ -4986,27 +4976,27 @@ class ConstructRetina(PrintableMixin):
         literature["cone_eccentricity"] = cone_eccentricity
         literature["cone_density"] = cone_density
 
-        bipolar_df = self.data_io.get_data(files["bipolar_table_path"])
+        bipolar_df = self.data_io.load_data(files["bipolar_table_path"])
         literature["bipolar_df"] = bipolar_df
 
         # Get dendritic diameter data
-        dendr_diam1 = self.data_io.get_data(files["dendr_diam1_path"])
+        dendr_diam1 = self.data_io.load_data(files["dendr_diam1_path"])
         literature["dendr_diam1"] = dendr_diam1
 
-        dendr_diam2 = self.data_io.get_data(files["dendr_diam2_path"])
+        dendr_diam2 = self.data_io.load_data(files["dendr_diam2_path"])
         literature["dendr_diam2"] = dendr_diam2
 
-        dendr_diam3 = self.data_io.get_data(files["dendr_diam3_path"])
+        dendr_diam3 = self.data_io.load_data(files["dendr_diam3_path"])
         literature["dendr_diam3"] = dendr_diam3
 
         literature["dendr_diam_units"] = files["dendr_diam_units"]
 
         # Get Benardete & Kaplan model parameters
-        temporal_params_BK = self.data_io.get_data(files["temporal_BK_model_path"])
+        temporal_params_BK = self.data_io.load_data(files["temporal_BK_model_path"])
         literature["temporal_parameters_BK"] = temporal_params_BK
 
         # Get cone response and noise data
-        cone_response = self.data_io.get_data(
+        cone_response = self.data_io.load_data(
             self.config.literature_data_files["cone_response_path"]
         )
         cone_frequency_data, cone_power_data = self.get_xy_from_npz(cone_response)
@@ -5018,7 +5008,7 @@ class ConstructRetina(PrintableMixin):
         ]
         literature["cone_noise_wc"] = cone_noise_wc
 
-        cone_noise = self.data_io.get_data(
+        cone_noise = self.data_io.load_data(
             self.config.literature_data_files["cone_noise_path"]
         )
         noise_frequency_data, noise_power_data = self.get_xy_from_npz(cone_noise)
@@ -5027,10 +5017,8 @@ class ConstructRetina(PrintableMixin):
 
         # Get bipolar rectification index data
         response_type = self.config.retina_parameters["response_type"]
-        RI_values_npz = self.data_io.get_data(
-            self.config.literature_data_files[
-                f"parasol_{response_type}_RI_values_path"
-            ]
+        RI_values_npz = self.data_io.load_data(
+            self.config.literature_data_files[f"parasol_{response_type}_RI_values_path"]
         )
         g_sur_values, target_RI_values = self.get_xy_from_npz(RI_values_npz)
         literature["g_sur_values"] = g_sur_values
@@ -5119,10 +5107,10 @@ class ConstructRetina(PrintableMixin):
                 filename = f"{filename_stem}_{filetype}"
                 filepath = path / filename
                 if filetype.endswith(".csv"):
-                    df = self.data_io.get_data(full_path=filepath)
+                    df = self.data_io.load_data(full_path=filepath)
                     dog_statistics[filetype[:-4]] = df
                 elif filetype.endswith(".npy"):
-                    exp_cen_radius_mm = self.data_io.get_data(full_path=filepath)
+                    exp_cen_radius_mm = self.data_io.load_data(full_path=filepath)
                     exp_cen_radius_mm = np.float64(exp_cen_radius_mm.item())
                     dog_statistics[filetype[:-4]] = exp_cen_radius_mm
                 print(f"Loaded {filetype} statistics from disk.")
@@ -5145,73 +5133,6 @@ class ConstructRetina(PrintableMixin):
             self._update_dog_statistics_on_disc(dog_statistics)
 
         return dog_statistics
-
-    def _update_latent_stats(self, vae_latent_stats: np.ndarray) -> None:
-
-        filepath = self._get_vae_statistics_filepath()
-        np.save(filepath, vae_latent_stats)
-
-    def _get_vae_statistics_filepath(self) -> str:
-        """
-        Returns the file path for the VAE statistics based on the config.
-        """
-        # breakpoint()
-        path = self.vae_config["path"]
-        filename_stem = self.vae_config["filename_stem"]
-        return str(path / f"{filename_stem}_vae_latent_stats.npy")
-
-    def _get_vae_statistics(self, retina_vae: Any) -> np.ndarray:
-        """
-        Loads the VAE statistics from disk. If not found, recalculates the statistics
-        by augmenting the original data and getting the encoded samples from the VAE model.
-        Saves the statistics on disk.
-        """
-
-        filepath = self._get_vae_statistics_filepath()
-        retina_vae.client()
-
-        try:
-            raise FileNotFoundError("Bypassing VAE statistics loading for testing.")
-            vae_latent_stats = np.load(filepath)
-            print("Loaded VAE statistics from disk.")
-
-        except FileNotFoundError:
-            vae_train_parameters = self.config.retina_parameters[
-                "vae_train_parameters"
-            ]
-            augmentation_dict = vae_train_parameters.get("augmentation_dict", {})
-
-            retina_vae.get_and_split_experimental_data()
-            retina_vae.train_loader = retina_vae.augment_and_get_dataloader(
-                data_type="train", augmentation_dict=augmentation_dict
-            )
-            retina_vae.val_loader = retina_vae.augment_and_get_dataloader(
-                data_type="val", augmentation_dict=augmentation_dict
-            )
-            retina_vae.test_loader = retina_vae.augment_and_get_dataloader(
-                data_type="test", shuffle=False
-            )
-
-            # Get the latent space data
-            train_df = retina_vae.get_encoded_samples(
-                dataset=retina_vae.train_loader.dataset
-            )
-            valid_df = retina_vae.get_encoded_samples(
-                dataset=retina_vae.val_loader.dataset
-            )
-            test_df = retina_vae.get_encoded_samples(
-                dataset=retina_vae.test_loader.dataset
-            )
-            latent_df = pd.concat(
-                [train_df, valid_df, test_df], axis=0, ignore_index=True
-            )
-
-            # Extract data from latent_df into a numpy array from columns whose title include "EncVariable"
-            vae_latent_stats = latent_df.filter(regex="EncVariable").to_numpy()
-
-            self._update_latent_stats(vae_latent_stats)
-
-        return vae_latent_stats
 
     def _get_all_experimental_statistics(
         self, experimental_archive: dict, retina_parameters: dict
@@ -5241,21 +5162,31 @@ class ConstructRetina(PrintableMixin):
 
         experimental_archive["dog_statistics"] = dog_statistics
 
-        # # VAE statistics
-        # try:
-        #     vae_latent_stats = self._get_vae_statistics(self.retina_vae)
-        # except FileNotFoundError:
-        #     print("No VAE statistics found on disk.")
-        #     raise
-
-        # experimental_archive["vae_statistics"] = vae_latent_stats
-
         return experimental_archive
+
+    def _get_retina_hash_from_core_parameters(self) -> str:
+        """
+        Calculate the retina hash from core parameters.
+        """
+
+        retina_core_parameters = {
+            key: self.config.retina_parameters[key]
+            for key in self.config.retina_core_parameter_keys
+        }
+
+        # Get hash from core parameters which may be updated after import
+        self.config.retina_core_parameters = retina_core_parameters
+        hashstr = self.config.retina_core_parameters.hash()
+
+        # # delete the retina_core_parameters attribute to avoid confusion
+        # del self.config.retina_core_parameters
+
+        return hashstr
 
     def _set_retina_parameters(self):
         """Sets some retina parameters, specific to the current build."""
-        
-        hashstr = self.config.hash()
+
+        hashstr = self._get_retina_hash_from_core_parameters()
         self.config.retina_parameters["retina_parameters_hash"] = hashstr
 
         gc_type = self.config.retina_parameters["gc_type"]
@@ -5283,7 +5214,6 @@ class ConstructRetina(PrintableMixin):
         ]
         self.ret_filename = self.config.retina_parameters["ret_file"]
 
-
     def _save_minimal_config_yaml(self):
         """Saves a minimal configuration in a YAML file."""
 
@@ -5298,12 +5228,9 @@ class ConstructRetina(PrintableMixin):
             "model_density",
             "retina_center",
             "force_retina_build",
-            "vae_run_mode",
-            "model_file_name",
-            "ray_tune_trial_id",
             "signal_gain",
         ]
-        
+
         main_retina_parameters = {
             key: value
             for key, value in self.config.retina_parameters.items()
@@ -5352,7 +5279,7 @@ class ConstructRetina(PrintableMixin):
         cone_noise_dict.update(stim_duration)
         self.config.retina_parameters["cone_noise_hash"] = cone_noise_dict.hash()
 
-    def build_retina_client(self) -> None:
+    def build_retina_client(self, return_objects_do_not_save=False) -> None:
         """
         Build the retina using the builder pattern.
 
@@ -5395,8 +5322,11 @@ class ConstructRetina(PrintableMixin):
         director.construct_retina()
         retina, ganglion_cell = director.get_retina()
 
-        self.save_retina(retina, ganglion_cell)
-        self.project_data.construct_retina.update(builder.project_data)
+        if return_objects_do_not_save:
+            return retina, ganglion_cell
+        else:
+            self.save_retina(retina, ganglion_cell)
+            self.project_data.construct_retina.update(builder.project_data)
 
     def save_retina(self, ret: "Retina", gc: Any) -> None:
         """

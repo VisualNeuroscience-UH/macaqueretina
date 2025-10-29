@@ -658,7 +658,7 @@ class RetinaVAE(RetinaMath):
     def __init__(self, config) -> None:
 
         self._config = config
-        self.vae_run_mode = config.retina_parameters["vae_run_mode"]
+        self.vae_run_mode = config.vae_train_parameters["vae_run_mode"]
         self.gc_type = config.retina_parameters["gc_type"]
         self.response_type = config.retina_parameters["response_type"]
         self.gc_response_types = [[self.gc_type], [self.response_type]]
@@ -676,7 +676,7 @@ class RetinaVAE(RetinaMath):
     ):
 
         self.experimental_metadata = self.config.experimental_metadata
-        vae_train_parameters = self.config.retina_parameters["vae_train_parameters"]
+        vae_train_parameters = self.config.vae_train_parameters
         self.epochs = vae_train_parameters["epochs"]
         self.lr_step_size = vae_train_parameters["lr_step_size"]
         self.lr_gamma = vae_train_parameters["lr_gamma"]

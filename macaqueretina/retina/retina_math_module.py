@@ -339,6 +339,10 @@ class RetinaMath:
         # Calculate the luminance (L) in cd/m²
         L = L_td / A_pupil
 
+        # Strip seconds if I_cone has been given without units
+        if type(L) == b2u.Quantity:
+            L = L / L.get_best_unit()
+
         return L
 
     def get_photoisomerizations_from_luminance(
@@ -706,7 +710,7 @@ class RetinaMath:
 
     # Fit & RetinaVAE method
 
-    def flip_negative_spatial_rf(self, spatial_rf_unflipped, mask_noise=0):
+    def flip_negative_spatial_rf(self, spatial_rf_unflipped, data_noise_threshold=0):
         """
         Flips negative values of a spatial RF to positive values.
 
@@ -741,8 +745,8 @@ class RetinaMath:
             if mean_max_pixels_values < 0:
                 spatial_rf[i] = spatial_rf[i] * -1
 
-            if mask_noise > 0:
-                threshold = mask_noise
+            if data_noise_threshold > 0:
+                threshold = data_noise_threshold
                 if mean_max_pixels_values < 0:
                     threshold *= -1  # invert multiplier, too
 

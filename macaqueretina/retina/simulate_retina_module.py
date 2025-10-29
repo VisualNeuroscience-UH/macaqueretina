@@ -1881,7 +1881,7 @@ class ConcreteSimulationBuilder(SimulationBuildInterface):
             net = b2.Network(poisson_group, spike_monitor)
         else:
             raise ValueError(
-                "Missing valid spike_generator_model, check run_parameters parameters, aborting..."
+                "Missing valid spike_generator_model, check simulation_parameters parameters, aborting..."
             )
 
         # Save brian state
@@ -2140,6 +2140,7 @@ class ConcreteSimulationBuilder(SimulationBuildInterface):
                 delaunay_mask[min_y : max_y + 1, min_x : max_x + 1], indicator
             )
 
+        # Unity region is where exactly one unit centre overlaps with the retina region
         unity_region = (unit_region * delaunay_mask) == 1
 
         uniformify_index = np.sum(unity_region) / np.sum(delaunay_mask)
@@ -2874,7 +2875,7 @@ class ConeProduct(ReceptiveFieldsBase):
         self.cone_response = cone_response
 
         # Save the cone response to output folder
-        filename = self.config.stimulus_metadata_parameters["stimulus_file"]
+        filename = self.config.external_stimulus_parameters["stimulus_file"]
         self.data_io.save_cone_response_to_hdf5(filename, cone_response)
 
     # Public functions
@@ -3015,8 +3016,7 @@ class ConeProduct(ReceptiveFieldsBase):
         max_response = params_dict["max_response"]
 
         cone_noise_norm_T = np.moveaxis(cone_noise_norm, 0, 1)
-        vs.cone_noise = cone_noise_norm_T * magn
-        vs.cone_noise_u = cone_noise_norm_T * magn * max_response
+        vs.cone_noise = cone_noise_norm_T
 
         return vs
 
@@ -3030,7 +3030,7 @@ class ConeProduct(ReceptiveFieldsBase):
         # if model is dynamic or fixed, connect cone noise directly to ganglion cells
         cones_to_gcs_weights = self.cones_to_gcs_weights
         magn = self.retina_parameters["noise_gain"]
-        cone_noise_norm_T = vs.cone_noise / magn
+        cone_noise_norm_T = vs.cone_noise * magn
         cone_noise_norm = np.moveaxis(cone_noise_norm_T, 0, 1)
 
         if np.any(np.sum(cones_to_gcs_weights, axis=0) == 0):
@@ -3757,9 +3757,7 @@ class SimulateRetina(RetinaMath):
         # Create w_coord, z_coord for cortical and visual coordinates, respectively
         z_coord = gcs.df["x_deg"].values + 1j * gcs.df["y_deg"].values
 
-        visual2cortical_params = self.config.retina_parameters[
-            "visual2cortical_params"
-        ]
+        visual2cortical_params = self.config.retina_parameters["visual2cortical_params"]
         a = visual2cortical_params["a"]
         k = visual2cortical_params["k"]
         w_coord = k * np.log(z_coord + a)
@@ -3856,7 +3854,7 @@ class SimulateRetina(RetinaMath):
             Initialized cone photoreceptor object.
         """
         ret_npz_file = self.config.retina_parameters["ret_file"]
-        ret_npz = self.data_io.get_data(filename=ret_npz_file)
+        ret_npz = self.data_io.load_data(filename=ret_npz_file)
         target_gc_for_multiple_trials = None  # Option to use only one gc unit
 
         cones = ConeProduct(
@@ -3894,9 +3892,8 @@ class SimulateRetina(RetinaMath):
         )
 
         if cone_noise_filename_full is not None:
-            cone_noise_npz = self.data_io.get_data(full_path=cone_noise_filename_full)
+            cone_noise_npz = self.data_io.load_data(full_path=cone_noise_filename_full)
             vs.cone_noise = cone_noise_npz["cone_noise"]
-            vs.cone_noise_u = cone_noise_npz["cone_noise_u"]
 
         gc_type = self.config.retina_parameters["gc_type"]
         response_type = self.config.retina_parameters["response_type"]
@@ -3907,7 +3904,7 @@ class SimulateRetina(RetinaMath):
         )
 
         if gc_noise_filename_full is not None:
-            gc_noise_npz = self.data_io.get_data(full_path=gc_noise_filename_full)
+            gc_noise_npz = self.data_io.load_data(full_path=gc_noise_filename_full)
 
             vs.gc_synaptic_noise = gc_noise_npz["gc_synaptic_noise"]
 
@@ -3932,11 +3929,13 @@ class SimulateRetina(RetinaMath):
 
         # Abstraction for clarity
         rfs_npz_file = self.config.retina_parameters["spatial_rfs_file"]
-        rfs_npz = self.data_io.get_data(filename=rfs_npz_file)
+        rfs_npz = self.data_io.load_data(filename=rfs_npz_file)
         mosaic_file = self.config.retina_parameters["mosaic_file"]
-        gc_dataframe = self.data_io.get_data(filename=mosaic_file)
-        spike_generator_model = self.config.run_parameters["spike_generator_model"]
-        simulation_dt = self.config.run_parameters["simulation_dt"]
+        gc_dataframe = self.data_io.load_data(filename=mosaic_file)
+        spike_generator_model = self.config.simulation_parameters[
+            "spike_generator_model"
+        ]
+        simulation_dt = self.config.simulation_parameters["simulation_dt"]
 
         gcs = GanglionCellProduct(
             self.config.retina_parameters,
@@ -3948,7 +3947,7 @@ class SimulateRetina(RetinaMath):
         )
 
         ret_npz_file = self.config.retina_parameters["ret_file"]
-        ret_npz = self.data_io.get_data(filename=ret_npz_file)
+        ret_npz = self.data_io.load_data(filename=ret_npz_file)
 
         if gcs.temporal_model_type == "subunit":
             bipolars = BipolarProduct(
@@ -3977,6 +3976,44 @@ class SimulateRetina(RetinaMath):
 
         return vs, gcs, cones, bipolars
 
+    def _get_construct_metadata_if_missing(self) -> None:
+        """
+        When running without constructing first, get retina parameters from output folder.
+        This populates a subset of config.retina_parameters attributes with values from files
+        in the output folder."""
+
+        if not hasattr(self.config.retina_parameters, "retina_parameters_hash"):
+            print(
+                """
+            No retina_parameters_hash found, assuming running without construct.
+            Getting parameters from output folder...
+            """
+            )
+
+            files_in_output_folder = self.data_io.listdir_loop(
+                self.config.output_folder
+            )
+            for file in files_in_output_folder:
+                if "mosaic.csv" in str(file):
+                    self.config.retina_parameters.mosaic_file = file
+                if "spatial_rfs.npz" in str(file):
+                    self.config.retina_parameters.spatial_rfs_file = file
+                if "ret.npz" in str(file):
+                    self.config.retina_parameters.ret_file = file
+                if "metadata.yaml" in str(file):
+                    self.config.retina_parameters.retina_metadata_file = file
+                if "cone_noise_" in str(file):
+                    # Extract the hash from the filename
+                    hash_part = str(file).split("cone_noise_")[-1].split(".npz")[0]
+                    self.config.retina_parameters.cone_noise_hash = hash_part
+
+            hash_part = (
+                str(self.config.retina_parameters.retina_metadata_file)
+                .split("parasol_on_")[-1]
+                .split("_metadata.yaml")[0]
+            )
+            self.config.retina_parameters.retina_parameters_hash = hash_part
+
     def client(
         self,
         stimulus: np.ndarray | None = None,
@@ -3996,8 +4033,9 @@ class SimulateRetina(RetinaMath):
         unity : bool, optional
             If True, runs uniformity index simulation.
         """
+        self._get_construct_metadata_if_missing()
         vs, gcs, cones, bipolars = self._get_products(stimulus)
-        n_sweeps = self.config.run_parameters["n_sweeps"]
+        n_sweeps = self.config.simulation_parameters["n_sweeps"]
         builder = ConcreteSimulationBuilder(
             vs,
             gcs,
@@ -4011,7 +4049,7 @@ class SimulateRetina(RetinaMath):
 
         director = SimulationDirector(builder)
         if impulse:
-            contrasts = self.config.run_parameters["contrasts_for_impulse"]
+            contrasts = self.config.simulation_parameters["contrasts_for_impulse"]
             director.run_impulse_response(contrasts)
         elif unity:
             director.run_uniformity_index()
@@ -4019,12 +4057,20 @@ class SimulateRetina(RetinaMath):
             if filename is not None:
                 filenames = [filename]
             else:
-                filenames = self.config.run_parameters["gc_response_filenames"]
+                gc_type = self.config.retina_parameters["gc_type"]
+                response_type = self.config.retina_parameters["response_type"]
+                hashstr = self.config.retina_parameters["retina_parameters_hash"]
+                # Generate multiple filenames if n_files > 1
+                filenames = [
+                    f"{gc_type}_{response_type}_{hashstr}_response_{x:02}"
+                    for x in range(self.config.simulation_parameters.n_files)
+                ]
+
             for filename in filenames:
                 director.run_simulation()
                 vs, gcs = director.get_simulation_result()
-                if self.config.run_parameters["save_data"]:
-                    save_variables = self.config.run_parameters["save_variables"]
+                if self.config.simulation_parameters["save_data"]:
+                    save_variables = self.config.simulation_parameters["save_variables"]
                     self.data_io.save_retina_output(vs, gcs, filename, save_variables)
 
             self._get_project_data_for_viz(vs, gcs, n_sweeps)

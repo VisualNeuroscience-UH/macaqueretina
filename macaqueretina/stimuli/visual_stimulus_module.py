@@ -2,12 +2,7 @@
 from pathlib import Path
 
 # Third-party
-import colorednoise as cn
-
-# Data IO
 import cv2
-
-# Viz
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy import ndimage
@@ -394,8 +389,12 @@ class VideoBaseClass(object):
         """
         Extracts and resizes the frames from a cv2.VideoCapture object
 
-        :param cap:
-        :return:
+        Parameters
+        ----------
+        cap : cv2.VideoCapture
+            The video capture object from which frames are extracted.
+        n_frames : int
+            The number of frames to extract.
         """
         w = self.options["image_width"]
         h = self.options["image_height"]
@@ -514,7 +513,7 @@ class StimulusPattern:
 
         """
         filepath = self.config.literature_data_files["temporal_pattern_path"]
-        data_npz = self.data_io.get_data(filepath)
+        data_npz = self.data_io.load_data(filepath)
         tp, amp = self.get_xy_from_npz(data_npz)
         duration = self.options["duration_seconds"]
 
@@ -545,48 +544,6 @@ class StimulusPattern:
         intensity_array = intensity_array * 2 - 1
 
         self.frames = np.zeros(self.frames.shape) + intensity_array[:, None, None]
-
-    def colored_temporal_noise(self, beta=1):
-        """
-        Generate a colored temporal noise pattern.
-
-        This method creates temporal noise with a specified power-law exponent,
-        generating different types of noise (e.g., pink, brown, or white noise)
-        based on the beta value. The method generates a frame time series with
-        unit variance, clips it to a predefined variance range, and then scales
-        it to fit within [0, 1].
-
-        The raw intensity is set to the range [0, 1]. The method ensures that
-        the time series length is compatible with the frame dimensions and
-        applies the time series to all frames.
-
-        Parameters
-        ----------
-        beta : int, optional
-            the exponent. 1 = pink noise, 2 = brown noise, 0 = white noise.
-        """
-        variance_limits = np.array([-3, 3])
-        samples = self.frames.shape[0]  # number of time samples to generate
-        frame_time_series_unit_variance = cn.powerlaw_psd_gaussian(beta, samples)
-
-        # Cut variance to [-3,3]
-        frame_time_series_unit_variance_clipped = np.clip(
-            frame_time_series_unit_variance,
-            variance_limits.min(),
-            variance_limits.max(),
-        )
-        # Scale to [0 1]
-        frame_time_series = (
-            frame_time_series_unit_variance_clipped - variance_limits.min()
-        ) / variance_limits.ptp()
-
-        self.options["raw_intensity"] = (0, 1)
-
-        # Cast time series to frames
-        assert (
-            len(frame_time_series) not in self.frames.shape[1:]
-        ), "Oops. Two different dimensions match the time series length."
-        self.frames = np.zeros(self.frames.shape) + frame_time_series
 
     def spatially_uniform_binary_noise(self):
         """
@@ -649,17 +606,15 @@ class StimulusPattern:
         """
         Process natural images for use in stimulus patterns.
 
-        This method handles natural images by either applying a cone filter response
-        or loading an image file based on the provided stimulus metadata. The selected
-        image is then resized to match the frame dimensions. The resized image is
-        integrated with the frames by multiplying it, enabling the creation of a
-        stimulus pattern.
+        This method handles natural images loading an image file based on the provided
+        stimulus metadata. The selected image is then resized to match the frame dimensions.
+        The resized image is integrated with the frames by multiplying it, enabling the
+        creation of astimulus pattern.
 
-        After this integration, the method performs additional filtering and updates
-        the raw intensity values based on the new data.
+        After this integration, the method updates the raw intensity values based on the new data.
         """
-        image_file_name = self.config.stimulus_metadata_parameters["stimulus_file"]
-        self.image = self.data_io.get_data(image_file_name)
+        image_file_name = self.config.external_stimulus_parameters["stimulus_file"]
+        self.image = self.data_io.load_data(image_file_name)
 
         # resize image by specifying custom width and height
         resized_image = cv2.resize(self.image, self.frames.shape[1:])
@@ -669,13 +624,22 @@ class StimulusPattern:
 
         self.frames = self.frames * resized_image
 
-        # filtering: http://www.djmannion.net/psych_programming/vision/sf_filt/sf_filt.html
         self._raw_intensity_from_data()
 
     def natural_video(self):
+        """
+        Process natural video for use in stimulus patterns.
 
-        video_file_name = self.config.stimulus_metadata_parameters["stimulus_file"]
-        video_cap = self.data_io.get_data(video_file_name)
+        This method processes a natural video file specified in the stimulus metadata.
+        It extracts frames from the video, resizes them to match the desired dimensions,
+        and integrates them into the stimulus frames. The method also sets the frames
+        to a specified frames per second (fps) and pixels per degree (pix_per_deg).
+
+        After processing, it updates the raw intensity values based on the new data.
+        """
+
+        video_file_name = self.config.external_stimulus_parameters["stimulus_file"]
+        video_cap = self.data_io.load_data(video_file_name)
 
         self.fps = self.options["fps"]
         self.pix_per_deg = self.options["pix_per_deg"]
@@ -706,9 +670,6 @@ class StimulusPattern:
                 self.fps,
             )
         )
-
-        if self.config.stimulus_metadata_parameters["apply_cone_filter"] is True:
-            pass
 
         self._raw_intensity_from_data()
         video_cap.release()
@@ -791,7 +752,7 @@ class VisualStimulus(VideoBaseClass):
         baseline_start_seconds: midgray at the beginning
         baseline_end_seconds: midgray at the end
         pattern:
-            'sine_grating'; 'square_grating'; 'colored_temporal_noise'; 'white_gaussian_noise';
+            'sine_grating'; 'square_grating'; 'white_gaussian_noise';
             'natural_images'; 'natural_video'; 'temporal_sine_pattern'; 'temporal_square_pattern';
             'spatially_uniform_binary_noise'
         stimulus_form: 'circular'; 'rectangular'; 'annulus'
@@ -822,12 +783,29 @@ class VisualStimulus(VideoBaseClass):
         """
 
         # Set input arguments to video-object, updates the defaults from VideoBaseClass
-        print("Making a stimulus with the following properties:")
+        if options is not None:
+            self.config.visual_stimulus_parameters = options
 
-        if options is None:
-            visual_stimulus_parameters = self.config.visual_stimulus_parameters
+        visual_stimulus_parameters = self.config.visual_stimulus_parameters
+
+        # Load stimulus if it exists, identified by hash of parameters. Otherwise, make new stimulus and save.
+        video_hash = self.config.visual_stimulus_parameters.hash()
+        video_name_stem = Path(visual_stimulus_parameters.stimulus_video_name).stem
+        video_file_name = video_name_stem + "_" + video_hash + ".hdf5"
+        video_file_full = self.data_io.parse_path("", substring=video_file_name)
+        if video_file_full:
+            print(
+                "Video stimulus hash exists, loading stimulus from file:",
+                video_file_full,
+            )
+            stimulus_video = self.data_io.load_stimulus_from_videofile(video_file_full)
+            visual_stimulus_parameters.stimulus_video_name = video_file_name
+            return stimulus_video  # This does not return to simulation. Simulation reloads stimulus from file.
         else:
-            visual_stimulus_parameters = options
+            print(
+                "Did not find existing stimulus video hash, making a stimulus with the following properties:"
+            )
+            visual_stimulus_parameters.stimulus_video_name = video_file_name
 
         for this_option in visual_stimulus_parameters:
             print(this_option, ":", visual_stimulus_parameters[this_option])
@@ -876,14 +854,12 @@ class VisualStimulus(VideoBaseClass):
             f'StimulusForm.{self.options["stimulus_form"]}(self)'
         )  # Direct call to class.method() requires the self argument
 
-        # Natural images are filtered at the StimulusPattern method,
-        # because they are typically not evolving over time
+        # background for baseline before stimulus:
         frames_baseline_start = self._create_frames(
             self.options["baseline_start_seconds"]
-        )  # background for baseline before stimulus
-        frames_baseline_end = self._create_frames(
-            self.options["baseline_end_seconds"]
-        )  # background for baseline after stimulus
+        )
+        # background for baseline after stimulus:
+        frames_baseline_end = self._create_frames(self.options["baseline_end_seconds"])
         # Concatenate baselines and stimulus, recycle to self.frames
         self.frames = np.concatenate(
             (frames_baseline_start, self.frames, frames_baseline_end), axis=0
@@ -903,17 +879,9 @@ class VisualStimulus(VideoBaseClass):
 
         stimulus_video = self
 
-        # Save video
-        stimulus_video_name = Path(self.options["stimulus_video_name"])
-        self.data_io.save_stimulus_to_videofile(stimulus_video_name, stimulus_video)
+        self.data_io.save_stimulus_to_videofile(video_file_name, stimulus_video)
 
         return stimulus_video
-
-    def get_2d_video(self):
-        stim_video_2d = np.reshape(
-            self.video, (self.video_n_frames, self.video_height * self.video_width)
-        ).T  # pixels as rows, time as cols
-        return stim_video_2d
 
 
 class AnalogInput:
@@ -980,7 +948,7 @@ class AnalogInput:
             rf = self.ReceptiveFields(
                 self.config.retina_parameters,
                 self.config.experimental_metadata,
-                self.data_io.get_data,
+                self.data_io.load_data,
                 self.pol2cart_df,
             )
 
@@ -1193,4 +1161,5 @@ class AnalogInput:
         idx = np.random.choice(Nmosaic_units, size=Nx, replace=False)
         w_coord, z_coord = w_coord[idx], z_coord[idx]
 
+        return w_coord, z_coord
         return w_coord, z_coord

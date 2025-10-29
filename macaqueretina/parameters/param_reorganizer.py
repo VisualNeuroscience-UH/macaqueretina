@@ -13,9 +13,10 @@ temporarily addressed with this file. Solutions might be:
 from __future__ import annotations
 
 # Built-in
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
+    # Local
     from macaqueretina.data_io.config_io import Configuration
 
 
@@ -27,44 +28,16 @@ class ParamReorganizer:
         pass
 
     def reorganize(self, config: Configuration) -> dict[str, Any]:
-        
+
         self.config = config.as_dict().copy()
-
-        # TODO: check if gc_response_filenames must be left as an iterator
-
-        self._update_retina_parameters_append()
         self._create_literature_data_files()
-        self.config["retina_parameters"].update(self.config["retina_parameters_append"])
+        self.config["retina_parameters"].update(self.config["retina_parameters_extend"])
         self._pop_extra_keys()
 
         config.clear()
         config.update(self.config)
 
         return config
-
-    def _update_retina_parameters_append(self) -> None:
-        target = "retina_parameters_append"
-        key_list = [
-            "proportion_of_parasol_gc_type",
-            "proportion_of_midget_gc_type",
-            "proportion_of_ON_response_type",
-            "proportion_of_OFF_response_type",
-            "deg_per_mm",
-            "optical_aberration",
-            "cone_general_parameters",
-            "cone_signal_parameters",
-            "bipolar_general_parameters",
-            "refractory_parameters",
-            "gc_placement_parameters",
-            "cone_placement_parameters",
-            "bipolar_placement_parameters",
-            "receptive_field_repulsion_parameters",
-            "visual2cortical_params",
-            "bipolar2gc_dict",
-            "vae_train_parameters",
-        ]
-        for key in key_list:
-            self._move_and_remove_key(key, target)
 
     def _create_literature_data_files(self) -> None:
         target = "literature_data_files"
@@ -111,10 +84,6 @@ class ParamReorganizer:
         self.config.pop(key)
 
     def _pop_extra_keys(self) -> None:
-        self.config.pop("dd_regr_model")
-        self.config.pop("n_files")
-        self.config.pop("noise_gain_default")
-        self.config.pop("n_iterations")
         self.config.pop("dendr_diam1_datafile_parasol")
         self.config.pop("dendr_diam2_datafile_parasol")
         self.config.pop("dendr_diam3_datafile_parasol")
@@ -127,4 +96,4 @@ class ParamReorganizer:
         self.config.pop("spatial_DoG_datafile_midget")
         self.config.pop("literature_data_folder")
         self.config.pop("model_root_path")
-        self.config.pop("retina_parameters_append")
+        self.config.pop("retina_parameters_extend")

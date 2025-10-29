@@ -1,15 +1,11 @@
-# """
-# TODO explain top level param logic here
-# """
-
 model_root_path: "/opt3/projects"
 project: "macaqueretina"
-experiment: "test_config_integration"
-input_folder: "../in"  # input figs, videos, models
+experiment: "test"
+input_folder: "../in"  # input VAE models, images, videos, other data
 output_folder: "test" # spikes, retinas, experiment metadata
-numpy_seed: 42  # random.randint(0, 1000000)  # 42
-device: "cpu"  # "cpu" or "cuda"
-profile: False
+numpy_seed: 42  # null for random or int for fixed seed
+device: "cuda"  # "cpu" or "cuda"
+profile: false
 
 run:
   build_retina: True

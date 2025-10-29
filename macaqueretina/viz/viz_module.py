@@ -96,7 +96,7 @@ class Viz:
             is saved with that name. If it's a relative path, the figure is saved to that path.
             If not provided, the figure is saved as 'MyFigure.png'. Defaults to "".
         myformat : str, optional
-            The format of the figure (e.g., 'png', 'jpg', 'svg', etc.).
+            The format of the figure (e.g., 'png', 'jpg', 'eps', etc.).
             If provided with a leading ".", the "." is removed. Defaults to 'png'.
         subfolderpath : str, optional
             The subfolder within the working directory to which the figure is saved.
@@ -108,7 +108,6 @@ class Viz:
 
         Notes
         -----
-        - The fonts in the figure are configured to be saved as fonts, not as paths.
         - If the specified subfolder doesn't exist, it is created.
         - If both `figurename` and `subfolderpath` are paths, `figurename` takes precedence,
         and `subfolderpath` is overridden.
@@ -518,15 +517,13 @@ class Viz:
         """
 
         mosaic_file = self.config.retina_parameters["mosaic_file"]
-        gc_df = self.data_io.get_data(mosaic_file)
+        gc_df = self.data_io.load_data(mosaic_file)
 
         ecc_mm = gc_df["pos_ecc_mm"].to_numpy()
         pol_deg = gc_df["pos_polar_deg"].to_numpy()
 
         ecc_lim_deg = self.config.retina_parameters["ecc_limits_deg"]
-        ecc_lim_mm = (
-            np.array(ecc_lim_deg) / self.config.retina_parameters["deg_per_mm"]
-        )
+        ecc_lim_mm = np.array(ecc_lim_deg) / self.config.retina_parameters["deg_per_mm"]
         pol_lim_deg = self.config.retina_parameters["pol_limits_deg"]
         boundary_polygon = self.boundary_polygon(ecc_lim_mm, pol_lim_deg)
 
@@ -1018,7 +1015,7 @@ class Viz:
         Plot cone noise as a function of temporal frequency using the model by Victor 1987 JPhysiol.
         """
 
-        ret_file_npz = self.data_io.get_data(self.config.retina_parameters["ret_file"])
+        ret_file_npz = self.data_io.load_data(self.config.retina_parameters["ret_file"])
         noise_frequency_data = ret_file_npz["noise_frequency_data"]
         noise_power_data = ret_file_npz["noise_power_data"]
         cone_noise_parameters = ret_file_npz["cone_noise_parameters"]
@@ -1657,8 +1654,8 @@ class Viz:
         Visualize a ganglion cell and its connected cones.
         """
 
-        gc_df = self.data_io.get_data(self.config.retina_parameters["mosaic_file"])
-        gc_npz = self.data_io.get_data(
+        gc_df = self.data_io.load_data(self.config.retina_parameters["mosaic_file"])
+        gc_npz = self.data_io.load_data(
             self.config.retina_parameters["spatial_rfs_file"]
         )
 
@@ -1670,7 +1667,7 @@ class Viz:
         Y_grid_cen_mm = gc_npz["Y_grid_cen_mm"]
         gc_img_mask = gc_npz["gc_img_mask"]
 
-        ret_npz = self.data_io.get_data(self.config.retina_parameters["ret_file"])
+        ret_npz = self.data_io.load_data(self.config.retina_parameters["ret_file"])
         weights = ret_npz["cones_to_gcs_weights"]
         cone_positions = ret_npz["cone_optimized_pos_mm"]
 
@@ -1754,8 +1751,8 @@ class Viz:
         Visualize a ganglion cell and its connected bipolars.
         """
 
-        gc_df = self.data_io.get_data(self.config.retina_parameters["mosaic_file"])
-        gc_npz = self.data_io.get_data(
+        gc_df = self.data_io.load_data(self.config.retina_parameters["mosaic_file"])
+        gc_npz = self.data_io.load_data(
             self.config.retina_parameters["spatial_rfs_file"]
         )
 
@@ -1767,7 +1764,7 @@ class Viz:
         Y_grid_cen_mm = gc_npz["Y_grid_cen_mm"]
         gc_img_mask = gc_npz["gc_img_mask"]
 
-        ret_npz = self.data_io.get_data(self.config.retina_parameters["ret_file"])
+        ret_npz = self.data_io.load_data(self.config.retina_parameters["ret_file"])
 
         weights = ret_npz["bipolar_to_gcs_cen_weights"]
         bipolar_positions = ret_npz["bipolar_optimized_pos_mm"]
@@ -1853,7 +1850,7 @@ class Viz:
             If provided, the figure will be saved with this filename.
         """
 
-        ret_npz = self.data_io.get_data(self.config.retina_parameters["ret_file"])
+        ret_npz = self.data_io.load_data(self.config.retina_parameters["ret_file"])
 
         cones_to_bipolars_center_weights = ret_npz["cones_to_bipolars_center_weights"]
         cones_to_bipolars_surround_weights = ret_npz[
@@ -1922,7 +1919,7 @@ class Viz:
         savefigname : str, optional
             If provided, the figure will be saved with this filename.
         """
-        ret_data = self.data_io.get_data(self.config.retina_parameters["ret_file"])
+        ret_data = self.data_io.load_data(self.config.retina_parameters["ret_file"])
 
         weights = {
             "cones_to_bipolars_center": ret_data["cones_to_bipolars_center_weights"],
@@ -1971,7 +1968,7 @@ class Viz:
         savefigname : str, optional
             If provided, the figure will be saved with this filename.
         """
-        ret_data = self.data_io.get_data(self.config.retina_parameters["ret_file"])
+        ret_data = self.data_io.load_data(self.config.retina_parameters["ret_file"])
 
         weights = {
             "cones_to_bipolars_center": ret_data["cones_to_bipolars_center_weights"],
@@ -2032,8 +2029,8 @@ class Viz:
         Visualize a ganglion cell image, DoG fit and center grid points.
         """
 
-        gc_df = self.data_io.get_data(self.config.retina_parameters["mosaic_file"])
-        gc_npz = self.data_io.get_data(
+        gc_df = self.data_io.load_data(self.config.retina_parameters["mosaic_file"])
+        gc_npz = self.data_io.load_data(
             self.config.retina_parameters["spatial_rfs_file"]
         )
 
@@ -2046,7 +2043,7 @@ class Viz:
         gc_img_mask = gc_npz["gc_img_mask"]
         gc_img = gc_npz["gc_img"]
 
-        gc_df = self.data_io.get_data(self.config.retina_parameters["mosaic_file"])
+        gc_df = self.data_io.load_data(self.config.retina_parameters["mosaic_file"])
         half_pix_mm = (gc_npz["um_per_pix"] / 1000) / 2
 
         if isinstance(gc_list, list):
@@ -2188,7 +2185,7 @@ class Viz:
 
     def show_bipolar_nonlinearity(self, savefigname=None):
 
-        ret_file_npz = self.data_io.get_data(self.config.retina_parameters["ret_file"])
+        ret_file_npz = self.data_io.load_data(self.config.retina_parameters["ret_file"])
         popt = ret_file_npz["bipolar_nonlinearity_parameters"]
         bipolar_g_sur_scaled = ret_file_npz["bipolar_g_sur_scaled"]
         bipolar_RI_values = ret_file_npz["bipolar_RI_values"]
@@ -2484,7 +2481,6 @@ class Viz:
 
         # Ensure the gain column is numeric
         df["gain"] = pd.to_numeric(df["gain"])
-        # breakpoint()
         # Melt the DataFrame to long format for seaborn
         df_melted = df.melt(
             id_vars=["gain"],
@@ -2563,8 +2559,7 @@ class Viz:
         savefigname : str, optional
             The name of the file where the figure will be saved. If None, the figure is not saved.
         """
-        # breakpoint()
-        data_dict = self.data_io.get_data(filename)
+        data_dict = self.data_io.load_data(filename)
         spiketrains = data_dict[sweepname]
         n_units = data_dict["n_units"]
         spike_idx = spiketrains[0]
@@ -2646,19 +2641,44 @@ class Viz:
         photodiode_response = photodiode_to_show["photodiode_response"]
 
         # Prepare data for manual visualization
-        for_eventplot = spiketrains.copy()  # list of different leght arrays
+        for_eventplot = spiketrains.copy()  # list of different length arrays
 
         for_histogram = np.concatenate(spiketrains)
         firing_rate_mean = np.nanmean(firing_rates, axis=0)
         sample_name = "unit #"
 
+        # Calculate and print mean firing rate across all units
+        spike_count = 0
+        for this_unit in range(n_units):
+            spike_count += len(spiketrains[this_unit])
+        mean_fr_across_units = spike_count / (n_units * (duration / b2u.second))
+
+        gc_type = self.config.retina_parameters.gc_type
+        response_type = self.config.retina_parameters.response_type
+        sample_name = f" ({gc_type}, {response_type})"
+        # breakpoint()
+
         # Create subplots
         fig, ax = plt.subplots(3, 1, sharex=True)
+
+        # Set figure title
+        fig.suptitle(
+            f"Sweep {sweep_idx} responses for {n_units} {gc_type} {response_type} GCs"
+        )
 
         # Event plot on first subplot
         ax[0].eventplot(for_eventplot)
         ax[0].set_xlim([0, duration / b2u.second])
-        ax[0].set_ylabel(sample_name)
+        ax[0].set_ylabel("Unit #")
+        ax[0].annotate(
+            f"Mean fr {mean_fr_across_units:.2f} Hz",
+            xy=(0.95, 0.95),
+            xycoords="axes fraction",
+            fontsize=10,
+            ha="right",
+            va="top",
+            bbox=dict(boxstyle="round,pad=0.5", fc="white", alpha=1.0),
+        )
 
         # Generator potential and average firing rate on second subplot
         tvec = np.arange(0, firing_rates.shape[-1], 1) * video_dt
@@ -2669,7 +2689,7 @@ class Viz:
         bin_width = 10 * b2u.ms
 
         # Find the nearest integer number of simulation_dt units for hist_dt
-        simulation_dt = self.config.run_parameters["simulation_dt"] * b2u.second
+        simulation_dt = self.config.simulation_parameters["simulation_dt"] * b2u.second
         hist_dt = np.round(bin_width / simulation_dt) * simulation_dt
 
         # Update bin_edges based on the new hist_dt
@@ -2957,7 +2977,7 @@ class Viz:
             cov_matrix[..., trial] = np.cov(gc_synaptic_noise[..., trial])
 
         cov_matrix_mean = np.mean(cov_matrix, axis=2)
-        # breakpoint()
+
         fig, ax = plt.subplots(1, 2, figsize=(10, 5))
         ax[0].hist(gc_synaptic_noise.flatten(), 100)
         ax[1].imshow(cov_matrix_mean, cmap="viridis")
@@ -3670,7 +3690,7 @@ class Viz:
             If not empty, the figure is saved to this filename.
         """
 
-        experiment_df = self.data_io.get_data(filename=filename)
+        experiment_df = self.data_io.load_data(filename=filename)
         cond_names = experiment_df.index.values
         exp_variables = self._get_exp_variables(experiment_df)
 
@@ -3691,7 +3711,7 @@ class Viz:
             for idx, cond_name in enumerate(cond_names):
                 gz_filename = f"Response_{gc_type}_{response_type}_{cond_name}.gz"
 
-                data_dict = self.data_io.get_data(gz_filename)
+                data_dict = self.data_io.load_data(gz_filename)
 
                 cond_s = experiment_df.loc[cond_name, :]
                 duration_seconds = pd.to_numeric(cond_s.loc["duration_seconds"])
@@ -3772,7 +3792,7 @@ class Viz:
             Filename to save the figure. If None, the figure will not be saved.
         """
         cond_names_string = "_".join(exp_variables)
-        experiment_df = self.data_io.get_data(filename=filename)
+        experiment_df = self.data_io.load_data(filename=filename)
         cond_names = experiment_df.index.values
         gc_type = self.config.retina_parameters["gc_type"]
         response_type = self.config.retina_parameters["response_type"]
@@ -3780,7 +3800,7 @@ class Viz:
 
         pattern = f"exp_results_{gc_type}_{response_type}_{cond_names_string}_*.csv"
         data_fullpath = self.data_io.most_recent_pattern(data_folder, pattern)
-        df = self.data_io.get_data(data_fullpath)
+        df = self.data_io.load_data(data_fullpath)
         available_data = df.columns.to_list()[3:]
         n_data = len(available_data)
 
@@ -3823,7 +3843,7 @@ class Viz:
             return a * np.exp(-b * x) + c
 
         cond_names_string = "_".join(exp_variables)
-        experiment_df = self.data_io.get_data(filename=filename)
+        experiment_df = self.data_io.load_data(filename=filename)
         data_folder = self.config.output_folder
 
         # Load results
@@ -4020,7 +4040,7 @@ class Viz:
 
         # Load results
         filename = f"exp_results_{gc_type}_{response_type}_response_vs_background.csv"
-        df = self.data_io.get_data(filename=filename)
+        df = self.data_io.load_data(filename=filename)
 
         match unit:
             case "R*":
@@ -4223,7 +4243,7 @@ class Viz:
 
         # Read in corresponding data from literature
         spatial_DoG_path = self.config.literature_data_files["spatial_DoG_path"]
-        spatial_DoG_data = self.data_io.get_data(spatial_DoG_path)
+        spatial_DoG_data = self.data_io.load_data(spatial_DoG_path)
 
         lit_ecc_deg = spatial_DoG_data["Xdata"]  # ecc (deg)
         lit_cen_min_arc = spatial_DoG_data["Ydata"]  # rf center radius (min of arc)
@@ -5015,7 +5035,7 @@ class VizResponse:
             self.config.visual_stimulus_parameters,
             self.config.retina_parameters["retina_center"],
             self.data_io.load_stimulus_from_videofile,
-            self.config.run_parameters["simulation_dt"],
+            self.config.simulation_parameters["simulation_dt"],
             self.config.retina_parameters["deg_per_mm"],
             self.config.retina_parameters["optical_aberration"],
             self.config.visual_stimulus_parameters["pix_per_deg"],
@@ -5047,7 +5067,7 @@ class VizResponse:
         stim_stop_seconds = frame_seconds[stim_len_tp + baseline_len_tp - 1]
 
         # Get spike data
-        response_dict = self.data_io.get_data(filename=response_file_name)
+        response_dict = self.data_io.load_data(filename=response_file_name)
         spike_idx = response_dict["spikes_0"][0]
         spike_times = response_dict["spikes_0"][1] / b2u.second
         n_units = response_dict["n_units"]

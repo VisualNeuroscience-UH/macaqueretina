@@ -15,13 +15,14 @@ from macaqueretina.parameters.param_reorganizer import ParamReorganizer
 from macaqueretina.project.project_manager_module import ProjectManager
 
 if TYPE_CHECKING:
+    # Local
     from macaqueretina.data_io.config_io import Configuration
 
 start_time = time.time()
 warnings.simplefilter("ignore")
 
 
-def _get_validation_params_method(base: Path) -> Callable | None:
+def _get_validation_params_method(parameters_folder: Path) -> Callable | None:
     """
     Get parameter validation method if a .py file with 'validation' in its name
     is found in the parameters/ subfolder.
@@ -29,11 +30,11 @@ def _get_validation_params_method(base: Path) -> Callable | None:
     Returns:
         Callable or None: validation function () if found, None otherwise
     """
-    validation_files = list(base.glob("*validation*.py"))
+    validation_files = list(parameters_folder.glob("*validation*.py"))
     match len(validation_files):
         case 0:
             print(
-                f"No validation file provided in {base}. "
+                f"No validation file provided in {parameters_folder}. "
                 f"Proceeding without parameter validation."
             )
             return None
@@ -48,21 +49,20 @@ def _get_validation_params_method(base: Path) -> Callable | None:
                 return None
         case n:
             raise ValueError(
-                f"Expected at most 1 validation file in {base}, but found {n} files"
+                f"Expected at most 1 validation file in {parameters_folder}, but found {n} files"
                 f" with 'validation' in their name:"
                 f"{[file.name for file in validation_files]}"
             )
 
 
 def load_parameters() -> Configuration:
-    """Load configuration parameters. TODO from where?"""
+    """Load configuration parameters."""
     project_conf_module_file_path = Path(__file__).resolve()
     git_repo_root_path = project_conf_module_file_path.parent.parent
 
-    base: Path = git_repo_root_path.joinpath("parameters/")
-    yaml_files = list(base.glob("*.yaml"))
-
-    validate_params: Callable | None = _get_validation_params_method(base)
+    parameters_folder: Path = git_repo_root_path.joinpath("parameters/")
+    yaml_files = list(parameters_folder.glob("*.yaml"))
+    validate_params: Callable | None = _get_validation_params_method(parameters_folder)
 
     config: Configuration = load_yaml(yaml_files)
 

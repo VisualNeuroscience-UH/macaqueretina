@@ -20,6 +20,7 @@ Examples
 # Built-in
 import datetime
 import hashlib
+import pprint
 from collections.abc import MutableMapping
 from pathlib import Path
 from typing import Any, Iterable, Iterator, Mapping
@@ -284,7 +285,7 @@ class Configuration(MutableMapping):
 
     def __str__(self):
         """Supports user-friendly view: called by print(config)"""
-        return str(self.as_dict())
+        return pprint.pformat(self.as_dict())
 
     def __eq__(self, other: object) -> bool:
         """Equality comparison by value."""
