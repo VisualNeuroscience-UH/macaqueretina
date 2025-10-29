@@ -23,10 +23,6 @@ def stimulus_config():
     return mr.config
 
 
-# Define all categorical variables to test
-# PATTERNS = ["sine_grating"]
-# STIMULUS_FORMS = ["circular"]
-# DTYPES = ["uint8"]
 PATTERNS = [
     "sine_grating",
     "square_grating",

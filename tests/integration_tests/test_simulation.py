@@ -102,13 +102,12 @@ def test_simulation_client(
     # Construct retina
     mr.construct_retina()
 
+    # Run simulation
     gc_type = mr.config.retina_parameters["gc_type"]
     response_type = mr.config.retina_parameters["response_type"]
     hashstr = mr.config.retina_parameters["retina_parameters_hash"]
-
     filename = f"{gc_type}_{response_type}_{hashstr}_response_testing"
 
-    # Run simulation
     mr.simulate_retina(filename=filename)
 
     # Assertions
