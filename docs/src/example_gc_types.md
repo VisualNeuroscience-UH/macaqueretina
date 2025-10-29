@@ -2,7 +2,7 @@
 This example shows how to run the four ganglion cell types using the same cone noise.
 
 
-```
+```python
 import matplotlib.pyplot as plt
 import macaqueretina as mr
 ```
@@ -11,8 +11,6 @@ You need to make one simulus first
 ```python
 mr.make_stimulus()
 ```
-
-
 
 #### Define types
 ```python

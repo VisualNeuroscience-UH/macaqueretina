@@ -1,6 +1,6 @@
 ### Visual stimulus generation
 
-Stimulus video will be saved on output_folder in mp4 format (viewing) and hdf5 format (reloading). See the  [visual_stimulus_parameters](parameters.md#visual_stimulus_parameters) for details on the available parameters.
+Stimulus video will be saved in the output_folder in mp4 format (viewing) and hdf5 format (reloading). See the  [visual_stimulus_parameters](parameters.md#visual_stimulus_parameters) for details on the available parameters.
 
 ### Own video stimuli
 

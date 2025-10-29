@@ -3,8 +3,7 @@
 - Python 3.11 or higher is required.
 - Git must be installed.
 
-
-For GPU acceleration, you can install CUDA on systems with an NVIDIA GPU. This is available on both [WSL2](https://docs.nvidia.com/cuda/wsl-user-guide/index.html) and [Linux](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html). While GPU use is optional, it significantly speeds up training the VAE models and other compute intensive tasks.
+For GPU acceleration, you can install CUDA on systems with an NVIDIA GPU. This is available on both [WSL2](https://docs.nvidia.com/cuda/wsl-user-guide/index.html) and [Linux](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html). While GPU use is optional, it significantly speeds up training the VAE models and other compute-intensive tasks.
 
 ## Install with Windows
 
@@ -41,4 +40,3 @@ poetry install
 ### Optional: Install Pytorch Separately
 
 If you encounter issues with the Pytorch installation through Poetry and have an NVIDIA GPU with CUDA, [install Pytorch using a system-specific command](https://pytorch.org/) into your environment before proceeding. 
-

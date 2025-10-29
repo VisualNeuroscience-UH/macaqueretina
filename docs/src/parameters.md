@@ -1,8 +1,8 @@
 # Overview
-Most parameters are available for modification in yaml files at [your_repo_root]/macaqueretina/parameters. They will be converted into Configuration type, and will be available under the macaqueretina.config object either with dot notation or as a dict keys. See [Tutorials, Utility methods, Print parameters](example_utility_methods.md#print-parameters) for examples on the mr.config use.
+Most parameters are available for modification in yaml files at [your_repo_root]/macaqueretina/parameters. They will be available in a Configuration object, accessed as macaqueretina.config.your_parameter (or as dict keys: macaqueretina.config["your_parameter"]). See [Tutorials, Utility methods, Print parameters](example_utility_methods.md#print-parameters) for examples on the mr.config use.
 
 ## core_parameters.yaml
-These parameters include major path settings, seed number, cpu/cuda device selection, profiler flag. In addition, it contains a run pipeline to create retina, make stimulus, simulate and show basic visualization. The run pipeline is executed if you run with `python macaqueretina/project/project_conf_module.py`
+These parameters include major path settings, seed number, cpu/cuda device selection, profiler flag. In addition, it contains a run pipeline to create retina, make stimulus, simulate, and show basic visualization. The run pipeline is executed if you run `python macaqueretina`.
 
 Project paths:
 ```text
@@ -19,17 +19,17 @@ model_root_path/
 - ***input_folder*** : **str** | 3rd level folder for input like VAE models, images, videos, other data
 - ***output_folder*** : **str** | 3rd level folder for output like spikes, retinas, experiment metadata
 - ***numpy_seed*** : **int** or  `null` | integer as fixed seed to replicate simulation or null for random seed.
-- ***device*** :  **str** `"cpu"` or `"cuda"` | If you have NVIDIA GPU and CUDA installed, it is useful for speed. For large models GPU may run out of memory. 
+- ***device*** :  **str** `"cpu"` or `"cuda"` | If you have an NVIDIA GPU and CUDA installed, it is useful for speed. For large models the GPU may run out of memory. 
 - ***profile*** : **bool** | false or true (lowercase in yaml format)
 
 
 ## Parameters for constructing retina
 ### retina_parameters.yaml
-These are the core retina parameters. These become the hash in retina related filenames so that you can avoid rebuilding when you rerunning the pipeline. Available options are documented besides the keys.
+These are the core retina parameters. These are used to generate a unique hash in retina-related filenames, so that you can avoid rebuilding when you re-run the pipeline with the same retna parameters. Available options for each parameter are documented in the yaml file besides the keys.
 
-The core parameters include the ganglion cell and response types, spatial and temporal model types, dog model type (used both DOG model build and VAE model quantification). The retina segment is defined as `ecc_limits_deg: [start, stop]` and the polar segment size as `pol_limits_deg: [start, stop]`. At the moment polar rotation is not fully applied, so you need to keep your retina centered at the horizontal meridian eg by `pol_limits_deg: [-1.5, 1.5]`.
+The core parameters include the ganglion cell and response types, spatial and temporal model types, and dog model type (used both DOG model build and VAE model quantification). The retina segment is defined as `ecc_limits_deg: [start, stop]` and the polar segment size as `pol_limits_deg: [start, stop]`. At the moment polar rotation is not fully applied, so you need to keep your retina centered at the horizontal meridian eg by `pol_limits_deg: [-1.5, 1.5]`.
 
-- ***model_density*** : **float** [0...1]  | 1.0 builds the retina patch with 100% density of ganglion cells according to literature.
+- ***model_density*** : **float** [0...1.0]  | 1.0 builds the retina patch with 100% density of ganglion cells according to literature.
 
 - ***retina_center*** : **str** complex number in degrees | E.g. `"5.0+0j"` for 5 deg eccentricity at horizontal meridian. This corresponds to stimulus_position (0, 0).
 
@@ -41,10 +41,10 @@ These are additional retina parameters which are not changing so often and are n
 For documentation of these parameters, see the yaml file.
 
 ## visual_stimulus_parameters.yaml
-This file contains the data for following dictionaries:
+This file contains the data for the following dictionaries:
 
 ### visual_stimulus_parameters
-This comprise complete definition of artificial stimuli and affect also external image and video stimuli. 
+This comprises a complete definition of artificial stimuli and also affects external image and video stimuli. 
 Valid parameters include (overriding visual_stimulus_module.VideoBaseClass):
 
 - ***image_width***: **int** | in pixels  
@@ -69,7 +69,7 @@ Valid parameters include (overriding visual_stimulus_module.VideoBaseClass):
 - ***contrast***:  **float** | Value between 0 and 1. 
 - ***mean***: **float** | Mean stimulus intensity in cd/m2. 
 
-With assuming rgb voltage = cd/m2, and average pupil diameter of 3 mm, the mean voltage of 128 in background
+Assuming rgb voltage = cd/m2, and average pupil diameter of 3 mm, the mean voltage of 128 in background
 would mean ~ 905 Trolands. Td = lum * pi * (diam/2)^2, resulting in 128 cd/m2 = 128 * pi * (3/2)^2 ~ 905 Td.
 
 - ***intensity***: [**float**, **float**] or `null` | If not null, it overrides contrast and mean.
@@ -128,4 +128,4 @@ These parameters guide simulation at runtime.
 Here you find the gain calibration values for various model combinations for visual signals and for background noise.
 
 ## literature.yaml
-Filenames and additional metadata for redigitized literature data. The files and corresponding jpg images are in the main repo at macaqueretina/retina/literature_data. To visualize the datafiles, see example_utility_methods.py subsection "Sample and view figure data from literature"
+Filenames and additional metadata for redigitized literature data. The files and corresponding .jpg images are in the main repo at macaqueretina/retina/literature_data. To visualize the datafiles, see example_utility_methods.py subsection "Sample and view figure data from literature".

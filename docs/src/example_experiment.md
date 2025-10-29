@@ -1,8 +1,7 @@
 ## Build and run experiment
-This example shows how to build, run, analyze and visualize the results of an experiment.
+This example shows how to build, run, analyze, and visualize the results of an experiment.
 
-
-```
+```python
 import matplotlib.pyplot as plt
 import macaqueretina as mr
 ```
@@ -11,7 +10,6 @@ You need to build retina first
 ```python
 mr.construct_retina()
 ```
-
 
 ### Short contrast response function experiment
 The `exp_variables` are the variables to be changed in the experiment. 
@@ -28,7 +26,7 @@ mr.config.experiment_parameters = {
 }
 filename = mr.experiment.build_and_run(build_without_run=False)
 ```
-You will need the `filename` downstream
+You will need the `filename` downstream.
 
 #### Analyze short experiment
 ```python
@@ -49,7 +47,7 @@ plt.show()
 ```
 
 ### Long experiment
-Let's change the stimulus pattern and duration  
+Let's change the stimulus pattern and duration:
 ```python
 mr.config.visual_stimulus_parameters.pattern = "sine_grating"
 mr.config.visual_stimulus_parameters.duration_seconds = 6.0

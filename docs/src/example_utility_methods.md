@@ -2,7 +2,7 @@
 This example shows some additional methods useful for examining the model and results.
 
 
-```
+```python
 from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
