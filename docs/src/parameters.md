@@ -74,7 +74,7 @@ would mean ~ 905 Trolands. Td = lum * pi * (diam/2)^2, resulting in 128 cd/m2 = 
 
 - ***intensity***: [**float**, **float**] or `null` | If not null, it overrides contrast and mean.
 
-- ***stimulus_video_name***: **str** with suffix | Name of the stimulus video. if null, defaults to f"{stimulus_folder}.mp4".  
+- ***stimulus_video_name***: **str** with suffix | Name of the stimulus video. if null, defaults to f"{stimulus_folder}_{hash}.mp4".  The hash is constructed from the visual stimulus parameter values.
 - ***background***: **str** or **float** | options are `"mean"`, `"intensity_min"`, `"intensity_max"` or value in cd/m2. This is the frame around stimulus in time and space, incl pre- and post-stimulus baselines.  
 - ***ND_filter***: **float** | Adds log10 neutral density filter factor, can be negative. This is handy if you want large retinal illumination changes without redoing the stimuli. Applies only to `subunit` temporal_model.
 

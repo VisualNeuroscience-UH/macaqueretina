@@ -7,7 +7,7 @@ visual_stimulus_parameters:
   duration_seconds: 1.0  # actual frames = floor(duration_seconds * fps)
   baseline_start_seconds: 0.5  # Total duration is duration + both baselines
   baseline_end_seconds: 0.5
-  pattern: "sine_grating"  # One of the StimulusPatterns
+  pattern: "temporal_sine_pattern"  # One of the StimulusPatterns
   stimulus_form: "circular"
   stimulus_position: [0.0, 0.0]  # relative to stimulus center in retina
   stimulus_size: 1.5  # 2.2,  # deg, radius for circle, sidelen/2 for rectangle.
@@ -15,7 +15,7 @@ visual_stimulus_parameters:
   spatial_frequency: 5  # cpd
   orientation: 90  # degrees
   phase_shift: 0  # math.pi + 0.1,  # radians
-  stimulus_video_name: null # if null, defaults to f"{stimulus_folder}.mp4"  
+  stimulus_video_name: null # if null, defaults to f"{stimulus_folder}_{hash}.mp4"  
   contrast: 1.0  # mean +- contrast * mean
   mean: 128  # Mean luminance in  cd/m2 and adaptation level
   intensity: null  # intensity overrides contrast and mean if provided as a tuple like (0, 255)
@@ -24,6 +24,6 @@ visual_stimulus_parameters:
 
 # For external video and image input. See visual_stimulus_module.VideoBaseClass for more options.
 external_stimulus_parameters:
-  stimulus_file: "testi.jpg"  # nature1.avi, testi.jpg
+  stimulus_file: "test_image.jpg"  
   pix_per_deg: 30  # VanHateren_1998_ProcRSocLondB 2 arcmin per pixel
   fps: 25

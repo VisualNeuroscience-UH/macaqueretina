@@ -585,7 +585,7 @@ class ConfigParams(BaseConfigModel):
         self.git_repo_root_path = git_repo_path
         if self.visual_stimulus_parameters.stimulus_video_name is None:
             self.visual_stimulus_parameters.stimulus_video_name = (
-                f"{self.stimulus_folder}.mp4"
+                f"{self.stimulus_folder}.hdf5"
             )
         self.retina_parameters_extend.dd_regr_model = getattr(
             self.retina_parameters_extend.dd_regr_model_options,
