@@ -614,8 +614,10 @@ class DataIO:
         # Get filename stem. Check for mp4 and hdf5 files. If either does not exists, create them.
         fullpath_filename = self.get_video_full_name(filename)
 
-        if not fullpath_filename.is_file():
-            self._write_frames_to_mp4_videofile(fullpath_filename, stimulus)
+        filename_mp4 = Path(f"{fullpath_filename.stem}.mp4")
+        fullpath_filename_mp4 = Path.joinpath(fullpath_filename.parent, filename_mp4)
+        if not fullpath_filename_mp4.is_file():
+            self._write_frames_to_mp4_videofile(fullpath_filename_mp4, stimulus)
 
         filename_hdf5 = Path(f"{fullpath_filename.stem}.hdf5")
         fullpath_filename_hdf5 = Path.joinpath(fullpath_filename.parent, filename_hdf5)

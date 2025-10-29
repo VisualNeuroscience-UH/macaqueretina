@@ -788,19 +788,24 @@ class VisualStimulus(VideoBaseClass):
 
         visual_stimulus_parameters = self.config.visual_stimulus_parameters
 
+        # Load stimulus if it exists, identified by hash of parameters. Otherwise, make new stimulus and save.
         video_hash = self.config.visual_stimulus_parameters.hash()
-        video_file_full = self.data_io.parse_path("", substring=f"{video_hash}.hdf5")
+        video_name_stem = Path(visual_stimulus_parameters.stimulus_video_name).stem
+        video_file_name = video_name_stem + "_" + video_hash + ".hdf5"
+        video_file_full = self.data_io.parse_path("", substring=video_file_name)
         if video_file_full:
-            print("Video stimulus hash exists, loading stimulus from file:", video_hash)
+            print(
+                "Video stimulus hash exists, loading stimulus from file:",
+                video_file_full,
+            )
             stimulus_video = self.data_io.load_stimulus_from_videofile(video_file_full)
-            return stimulus_video
+            visual_stimulus_parameters.stimulus_video_name = video_file_name
+            return stimulus_video  # This does not return to simulation. Simulation reloads stimulus from file.
         else:
             print(
                 "Did not find existing stimulus video hash, making a stimulus with the following properties:"
             )
-            video_name_stem = Path(visual_stimulus_parameters.stimulus_video_name).stem
-            video_file_name = video_name_stem + "_" + video_hash + ".mp4"
-            visual_stimulus_parameters.stimulus_video_name = str(video_file_name)
+            visual_stimulus_parameters.stimulus_video_name = video_file_name
 
         for this_option in visual_stimulus_parameters:
             print(this_option, ":", visual_stimulus_parameters[this_option])
@@ -849,14 +854,12 @@ class VisualStimulus(VideoBaseClass):
             f'StimulusForm.{self.options["stimulus_form"]}(self)'
         )  # Direct call to class.method() requires the self argument
 
-        # Natural images are filtered at the StimulusPattern method,
-        # because they are typically not evolving over time
+        # background for baseline before stimulus:
         frames_baseline_start = self._create_frames(
             self.options["baseline_start_seconds"]
-        )  # background for baseline before stimulus
-        frames_baseline_end = self._create_frames(
-            self.options["baseline_end_seconds"]
-        )  # background for baseline after stimulus
+        )
+        # background for baseline after stimulus:
+        frames_baseline_end = self._create_frames(self.options["baseline_end_seconds"])
         # Concatenate baselines and stimulus, recycle to self.frames
         self.frames = np.concatenate(
             (frames_baseline_start, self.frames, frames_baseline_end), axis=0
@@ -876,18 +879,9 @@ class VisualStimulus(VideoBaseClass):
 
         stimulus_video = self
 
-        # Save video
-        # breakpoint()
-        stimulus_video_name = Path(self.options["stimulus_video_name"])
-        self.data_io.save_stimulus_to_videofile(stimulus_video_name, stimulus_video)
+        self.data_io.save_stimulus_to_videofile(video_file_name, stimulus_video)
 
         return stimulus_video
-
-    def get_2d_video(self):
-        stim_video_2d = np.reshape(
-            self.video, (self.video_n_frames, self.video_height * self.video_width)
-        ).T  # pixels as rows, time as cols
-        return stim_video_2d
 
 
 class AnalogInput:
