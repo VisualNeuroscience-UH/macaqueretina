@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "macaqueretina"
-version = "0.9.0"  # Replace with dynamic version extraction if possible
+version = "0.9.1"  # Replace with dynamic version extraction if possible
 description = "Python software to build a model of macaque retina and convert visual stimuli to cortical input"
 authors = ["Simo Vanni <simo.vanni@helsinki.fi>", "Henri Hokkanen"]
 license = "MIT"
