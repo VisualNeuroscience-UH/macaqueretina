@@ -671,7 +671,7 @@ class ConfigParams(BaseConfigModel):
     @model_validator(mode="after")
     def set_derived_values(self) -> Self:
         # Set parameters that depend on another value in a different class
-        self.project_conf_module_file_path = proj_conf_mod_file_path
+        self.project_manager_module_file_path = proj_manager_mod_file_path
         self.git_repo_root_path = git_repo_path
         if self.visual_stimulus_parameters.stimulus_video_name is None:
             self.visual_stimulus_parameters.stimulus_video_name = (
@@ -769,7 +769,7 @@ def _create_and_validate_core_paths(config):
 # Façade
 def validate_params(
     config: Configuration,
-    project_conf_module_file_path: Path,
+    project_manager_module_file_path: Path,
     git_repo_root_path: Path,
 ) -> Configuration:
     """
@@ -786,8 +786,8 @@ def validate_params(
         Configuration object with the validated parameters, plus any computed
         field from ConfigParams.
     """
-    global proj_conf_mod_file_path
-    proj_conf_mod_file_path = project_conf_module_file_path
+    global proj_manager_mod_file_path
+    proj_manager_mod_file_path = project_manager_module_file_path
 
     global git_repo_path
     git_repo_path = git_repo_root_path

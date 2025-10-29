@@ -50,7 +50,7 @@ tomli = "^2.2.1"
 tqdm = "*"
 
 [tool.poetry.scripts]
-run_macaqueretina = "project.project_conf_module:main"
+run_macaqueretina = "project.project_manager_module:main"
 
 [tool.poetry.group.dev.dependencies]
 click = "8.2.1"

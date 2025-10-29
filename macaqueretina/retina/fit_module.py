@@ -1054,7 +1054,7 @@ class FitExperimental(FitDataTypeTemplate):
             cen_rot_rad_all,
         ) = self.experimental_data.read_spatial_filter_data()
 
-        # Check that original experimental data spatial resolution match metadata given in project_conf_module.
+        # Check that original experimental data spatial resolution match metadata given in the yaml files.
         assert (
             spatial_data.shape[1] == self.metadata["data_spatialfilter_height"]
         ), "Spatial data height does not match metadata"

@@ -144,7 +144,7 @@ class Viz:
 
         # Construct full save path
         path = self.config.path
-        project_conf_module_file_path = self.config.project_conf_module_file_path
+        project_manager_module_file_path = self.config.project_manager_module_file_path
         full_subfolderpath = Path.joinpath(path, subfolderpath)
         save_path = Path.joinpath(full_subfolderpath, final_filename)
 

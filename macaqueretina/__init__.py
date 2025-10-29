@@ -11,7 +11,7 @@ import tomli
 
 # Local
 from .analysis.analysis_module import Analysis
-from .project.project_conf_module import load_parameters as _load_parameters
+from .project.project_manager_module import load_parameters as _load_parameters
 from .project.project_manager_module import ProjectManager as _ProjectManager
 from .retina.retina_math_module import RetinaMath
 from .stimuli.experiment_module import Experiment

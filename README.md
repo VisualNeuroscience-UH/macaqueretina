@@ -40,7 +40,7 @@ We suggest using [Poetry](https://python-poetry.org/docs/main/) for creating and
 
 Navigate to your local MacaqueRetina git repository root and run:
 
-```
+```bash
 poetry install
 ```
 
@@ -52,28 +52,17 @@ If you encounter issues with the Pytorch installation through Poetry and have an
 
 Navigate to your local MacaqueRetina git repository root.
 
-Open file macaqueretina/project/project_conf_module.py. At the moment, this file is the main interface for the software. It instantiates the ProjectManager which is a facade for the rest of the software. 
-
-In the project_conf_module.py -file update the model_root_path to match your system. This is where all data will be written out.
-
-Review and adjust the configuration as needed. 
-
-For the variational autoencoder mode -- see retina_parameters dictionary "spatial_model_type" : "VAE" --  you need the "vae_run_mode": "train_model" for the first run, and thereafter you can use the much faster "load_model" option. The hyperparameters are fixed in the VAE module, so no tuning will be necessary.
-
-
 Activate your Poetry-managed environment:
 
-```
+```bash
 poetry shell
 ```
 
 Run the project:
 
+```python
+python macaqueretina
 ```
-python macaqueretina/project/project_conf_module.py
-```
-
-Thereafter, comment in or out lines in the project_conf_module.py, or adjust parameters to access all functionality of the simulator, and rerun the module.
 
 ### How to cite this project
 
