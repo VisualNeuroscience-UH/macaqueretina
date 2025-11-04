@@ -8,23 +8,23 @@ When run directly, all parameters are read from all yaml files in the [your_repo
 
 When imported, all parameters are first read from the yaml files, but you have the option of changing the parameters at runtime.
 
+
 ## Short installation guide
 
 We suggest using [Poetry](https://python-poetry.org/docs/main/) for creating and managing the project environment.
 
-Navigate to your local MacaqueRetina git repository root and run:
+Navigate to your local MacaqueRetina git repository root and run `poetry install`.
 
-```
-poetry install
-```
 
 ## Documentation
 
 For local documentation, run `mkdocs serve` at repo root after installation.
 
+
 ## How to cite this project
 
 Vanni S, Vedele F, Hokkanen H. Macaque Retina Simulator (in preparation)
+
 
 ## Contributing
 
