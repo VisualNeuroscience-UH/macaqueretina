@@ -1,12 +1,12 @@
 [tool.poetry]
 name = "macaqueretina"
-version = "0.10.0"  # Replace with dynamic version extraction if possible
+version = "1.0.0"
 description = "Python software to build a model of macaque retina and convert visual stimuli to cortical input"
-authors = ["Simo Vanni <simo.vanni@helsinki.fi>", "Henri Hokkanen"]
+authors = ["Henri Hokkanen", "Simo Vanni <simo.vanni@helsinki.fi>", "Francescangelo Vedele <francescangelo.vedele@helsinki.fi>"]
 license = "MIT"
 readme = "README.md"
-homepage = "https://github.com/VisualNeuroscience-UH/MacaqueRetina"
-repository = "https://github.com/VisualNeuroscience-UH/MacaqueRetina"
+homepage = "https://github.com/VisualNeuroscience-UH/macaqueretina"
+repository = "https://github.com/VisualNeuroscience-UH/macaqueretina"
 classifiers = [
     "Intended Audience :: Science/Research",
     "License :: OSI Approved :: MIT License",
@@ -68,9 +68,8 @@ known_third_party = [
     "numpy", "pandas", "matplotlib", "scipy", "torch", "torchvision", 
     "torchmetrics", "torchsummary", "torchaudio", "opencv", "cv2", 
     "imageio", "seaborn", "scikit-image", "scikit-learn", "PIL", 
-    "Pillow", "h5py", "Shapely", "tqdm", "colorednoise", "brian2", 
-    "brian2cuda", "ipython", "jupyterlab", 
-    "notebook", "pyshortcuts"
+    "Pillow", "h5py", "Shapely", "tqdm", "brian2", "brian2cuda", 
+    "ipython", "pyshortcuts", "tomli", "pydantic"
 ]
 known_localfolder = ["macaqueretina", "docs"]
 sections = "FUTURE,STDLIB,THIRDPARTY,FIRSTPARTY,LOCALFOLDER"

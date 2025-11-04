@@ -13,13 +13,13 @@ test_root = Path(__file__).resolve().parent.parent
 
 
 @pytest.fixture(scope="module")
-def stimulus_config():
+def stimulus_config(tmp_path_factory):
     """
     Fixture to reset and provide the stimulus configuration.
     """
+    temp_dir = tmp_path_factory.mktemp("stimulus_test")
     mr.config.visual_stimulus_parameters = VideoBaseClass().options
-    mr.config.stimulus_folder = Path("tmp_stimulus_test")
-    mr.config.stimulus_folder.mkdir(exist_ok=True)
+    mr.config.stimulus_folder = temp_dir
     return mr.config
 
 

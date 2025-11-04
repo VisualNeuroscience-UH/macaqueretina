@@ -310,6 +310,7 @@ class Configuration(MutableMapping):
 
     def __deepcopy__(self, memo):
         """Supports deep copy with the copy built-in library."""
+        # Built-in
         import copy as _copy
 
         return type(self)(_copy.deepcopy(self.to_dict(), memo))
@@ -357,8 +358,8 @@ class Configuration(MutableMapping):
                 return tuple(_immutable(item) for item in obj)
             if isinstance(obj, bytearray):
                 return bytes(obj)
-            if isinstance(obj, Quantity):  # Something with Brian2 units
-                return obj.tostring()
+            if isinstance(obj, Quantity):  # Brian2 units
+                return obj.tobytes()
             if isinstance(obj, complex):
                 return (obj.real, obj.imag)
             if isinstance(obj, (datetime.datetime)):

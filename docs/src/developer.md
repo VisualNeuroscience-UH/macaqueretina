@@ -6,6 +6,8 @@ You can add new parameters to existing yaml files at the root level, which becom
 
 The parameter_validation adds Brian2 units to some variables to avoid errors in unit magnitudes and conversions. We import the units as `import brian2.units as b2u` and the units can be applied as e.g. `x = 1.0 * b2u.second`. You can strip the unit by `x / b2u.second` e.g. for pyplot.
 
+You can make any class pretty printable by inheriting from PrintableMixin in project_utilities_module. It shows you attributes by type and methods.
+
 The retina buildup and simulation become memory-heavy with larger retina patches. 
 
 ### Abbreviations in the code
