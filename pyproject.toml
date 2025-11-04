@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "macaqueretina"
-version = "0.5.2"  # Replace with dynamic version extraction if possible
+version = "0.10.0"  # Replace with dynamic version extraction if possible
 description = "Python software to build a model of macaque retina and convert visual stimuli to cortical input"
 authors = ["Simo Vanni <simo.vanni@helsinki.fi>", "Henri Hokkanen"]
 license = "MIT"
@@ -18,20 +18,23 @@ classifiers = [
 ]
 
 [tool.poetry.dependencies]
-python = "^3.11"
-colorednoise = "*"
-cxsystem2 = { git = "https://github.com/VisualNeuroscience-UH/CxSystem2.git" }
+brian2 = "2.7.1"
+brian2cuda = "^1.0a6"
+cython = "^3.0.11"
 h5py = "*"
 imageio = "*"
 ipython = "*"
-jupyterlab = "*"
+isort = "*"
 matplotlib = "*"
-notebook = "*"
 numpy = "*"
 opencv-python-headless = "*"
 pandas = "*"
 Pillow = "*"
+pydantic = "^2.11.7"
 pyshortcuts = "*"
+pytest = "*"
+python = "^3.11"
+pyqt5 = "^5.15.11"
 scikit-image = "*"
 scikit-learn = "*"
 scipy = "*"
@@ -43,18 +46,17 @@ torchmetrics = "*"
 torchsummary = "*"
 torchaudio = "*"
 torchvision = "*"
+tomli = "^2.2.1"
 tqdm = "*"
-cython = "^3.0.11"
-brian2 = "^2.7.1"
-pyqt5 = "^5.15.11"
-brian2cuda = "^1.0a6"
-isort = "*"
-optuna = "*"
-pytest = "*"
-ray = {extras = ["tune"], version = "*"}
 
 [tool.poetry.scripts]
-run_macaqueretina = "project.project_conf_module:main"
+run_macaqueretina = "project.project_manager_module:main"
+
+[tool.poetry.group.dev.dependencies]
+click = "8.2.1"
+mkdocs = "^1.6.1"
+mkdocs-material = "^9.6.21"
+mkdocstrings-python = "^1.18.2"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
@@ -67,14 +69,13 @@ known_third_party = [
     "torchmetrics", "torchsummary", "torchaudio", "opencv", "cv2", 
     "imageio", "seaborn", "scikit-image", "scikit-learn", "PIL", 
     "Pillow", "h5py", "Shapely", "tqdm", "colorednoise", "brian2", 
-    "brian2cuda", "ray", "optuna", "ipython", "jupyterlab", 
+    "brian2cuda", "ipython", "jupyterlab", 
     "notebook", "pyshortcuts"
 ]
-known_first_party = ["cxsystem2"]
-known_localfolder = ["macaqueretina"]
+known_localfolder = ["macaqueretina", "docs"]
 sections = "FUTURE,STDLIB,THIRDPARTY,FIRSTPARTY,LOCALFOLDER"
 default_section = "THIRDPARTY"
 import_heading_stdlib = "Built-in"
 import_heading_thirdparty = "Third-party"
-import_heading_firstparty = "First-party"
 import_heading_localfolder = "Local"
+force_single_line = false

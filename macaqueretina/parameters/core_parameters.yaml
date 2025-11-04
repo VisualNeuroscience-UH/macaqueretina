@@ -1,0 +1,20 @@
+model_root_path: "/opt3/projects"
+project: "macaqueretina"
+experiment: "test"
+input_folder: "../in"  # input VAE models, images, videos, other data
+output_folder: "test" # spikes, retinas, experiment metadata
+numpy_seed: 42  # null for random or int for fixed seed
+device: "cuda"  # "cpu" or "cuda"
+profile: false
+
+run:
+  build_retina: True
+  make_stimulus: True
+  simulate_retina: True
+  visualize_DoG_img_grid: 
+    show: True
+    gc_list: [0, 1, 5, 10]
+    n_samples: null
+    savefigname: null
+  visualize_all_gc_responses: 
+    show: True

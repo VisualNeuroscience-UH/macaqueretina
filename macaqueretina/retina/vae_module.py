@@ -1,6 +1,4 @@
 # Built-in
-import os
-import time
 from collections import OrderedDict
 from copy import deepcopy
 from datetime import datetime
@@ -12,19 +10,12 @@ from sys import exit
 import matplotlib.pyplot as plt  # plotting library
 import numpy as np  # this module is useful to work with numerical arrays
 import pandas as pd
-import psutil
-import ray
 import torch
 import torch.optim.lr_scheduler as lr_scheduler
-from optuna.samplers import TPESampler
-from ray import air, tune
-from ray.tune import Callback, CLIReporter
-from ray.tune.schedulers import ASHAScheduler
-from ray.tune.search.optuna import OptunaSearch
 from scipy.ndimage import fourier_shift, rotate
 from sklearn.model_selection import train_test_split
 from torch import nn
-from torch.utils.data import DataLoader, random_split
+from torch.utils.data import DataLoader
 from torchmetrics import MeanSquaredError, StructuralSimilarityIndexMeasure
 from torchmetrics.image.kid import KernelInceptionDistance
 from torchsummary import summary
@@ -32,38 +23,20 @@ from torchvision import transforms
 from tqdm import tqdm
 
 # Local
-from macaqueretina.retina.apricot_data_module import ApricotData
+from macaqueretina.retina.experimental_data_module import ExperimentalData
 from macaqueretina.retina.retina_math_module import RetinaMath
-
-
-class HardDiskWatchDog(Callback):
-    def __init__(self, output_path, disk_usage_threshold=90):
-        self.disk_usage_threshold = disk_usage_threshold
-        self.output_path = output_path
-
-    def on_trial_result(self, iteration, trials, trial, result, **info):
-        if result["training_iteration"] % 100 == 0:
-            disk_usage = psutil.disk_usage(str(self.output_path))
-            if disk_usage.percent > self.disk_usage_threshold:
-                print(
-                    f"""
-                    WARNING: disk_usage_threshold exceeded ({disk_usage.percent:.2f}%
-                    Shutting down ray and exiting.
-                    """
-                )
-                ray.shutdown()
 
 
 class AugmentedDataset(torch.utils.data.Dataset):
     """
-    Apricot dataset class for Pytorch.
+    Experimental dataset class for Pytorch.
 
-    The constructor reads the data from the ApricotData class and stores it as
+    The constructor reads the data from the ExperimentalData class and stores it as
     tensors of shape (n_cells, channels, height, width). While the constructor
     is called with particular gc_type and response_type, all data is retrieved
     and thus the __getitem__ method can be called with any index. This enables
     teaching the network with all data. The gc_type and response_type are, however,
-    logged into the ApricotDataset instance object.
+    logged into the ExperimentalDataset instance object.
     """
 
     def __init__(self, data, labels, resolution_hw, augmentation_dict=None):
@@ -672,157 +645,9 @@ class VariationalAutoencoder(nn.Module):
         }
 
 
-class TrainableVAE(tune.Trainable):
-    """
-    Tune will convert this class into a Ray actor, which runs on a separate process.
-    By default, Tune will also change the current working directory of this process to
-    its corresponding trial-level log directory self.logdir. This is designed so that
-    different trials that run on the same physical node wont accidently write to the same
-    location and overstep each other
-
-    Generally you only need to implement setup, step, save_checkpoint, and load_checkpoint when subclassing Trainable.
-
-    Accessing config through Trainable.setup
-
-    Return metrics from Trainable.step
-
-    https://docs.ray.io/en/latest/tune/api_docs/trainable.html#tune-trainable-class-api
-    """
-
-    def setup(
-        self,
-        config,
-        data_dict=None,
-        device=None,
-        methods=None,
-        fixed_params=None,
-    ):
-        # Assert that none of the optional arguments are None
-        assert data_dict is not None, "data_dict is None, aborting..."
-        assert device is not None, "device is None, aborting..."
-        assert methods is not None, "methods is None, aborting..."
-
-        self.train_data = data_dict["train_data"]
-        self.train_labels = data_dict["train_labels"]
-        self.val_data = data_dict["val_data"]
-        self.val_labels = data_dict["val_labels"]
-        self.test_data = data_dict["test_data"]
-        self.test_labels = data_dict["test_labels"]
-
-        # Augment training and validation data.
-        augmentation_dict = {
-            "rotation": config.get("rotation"),
-            "translation": (
-                config.get("translation"),
-                config.get("translation"),
-            ),
-            "noise": config.get("noise"),
-            "flip": config.get("flip"),
-            "data_multiplier": config.get("data_multiplier"),
-        }
-
-        self.augment_and_get_dataloader = methods["augment_and_get_dataloader"]
-
-        self.train_loader = self.augment_and_get_dataloader(
-            data_type="train",
-            augmentation_dict=augmentation_dict,
-            batch_size=config.get("batch_size"),
-            shuffle=True,
-        )
-
-        self.val_loader = self.augment_and_get_dataloader(
-            data_type="val",
-            augmentation_dict=augmentation_dict,
-            batch_size=config.get("batch_size"),
-            shuffle=True,
-        )
-
-        self.device = device
-        self._train_epoch = methods["_train_epoch"]
-        self._validate_epoch = methods["_validate_epoch"]
-
-        self.model = VariationalAutoencoder(
-            latent_dims=config.get("latent_dim"),
-            resolution_hw=config.get("resolution_hw"),
-            ksp_key=config.get("kernel_stride"),
-            channels=config.get("channels"),
-            conv_layers=config.get("conv_layers"),
-            batch_norm=config.get("batch_norm"),
-            latent_distribution=config.get("latent_distribution"),
-            device=self.device,
-        )
-
-        # Will be saved with checkpoint model
-        self.model.augmentation_dict = augmentation_dict
-
-        self.model.to(self.device)
-
-        self.optim = torch.optim.Adam(
-            self.model.parameters(), lr=config.get("lr"), weight_decay=1e-5
-        )
-        # Define the scheduler with a step size and gamma factor
-        self.scheduler = lr_scheduler.StepLR(
-            self.optim,
-            step_size=fixed_params["lr_step_size"],
-            gamma=fixed_params["lr_gamma"],
-        )
-
-    def step(self):
-        train_loss = self._train_epoch(
-            self.model, self.device, self.train_loader, self.optim, self.scheduler
-        )
-
-        (
-            val_loss_epoch,
-            mse_epoch,
-            ssim_epoch,
-            kid_mean_epoch,
-            kid_std_epoch,
-        ) = self._validate_epoch(self.model, self.device, self.val_loader)
-
-        # Convert to float, del & empty cache to free GPU memory
-        train_loss_out = float(train_loss)
-        val_loss_out = float(val_loss_epoch)
-        mse_out = float(mse_epoch)
-        ssim_out = float(ssim_epoch)
-        kid_mean_out = float(kid_mean_epoch)
-        kid_std_out = float(kid_std_epoch)
-
-        del (
-            train_loss,
-            val_loss_epoch,
-            mse_epoch,
-            ssim_epoch,
-            kid_mean_epoch,
-            kid_std_epoch,
-        )
-        torch.cuda.empty_cache()
-
-        return {
-            "iteration": self.iteration
-            + 1,  # Do not remove, plus one for 0=>1 indexing
-            "train_loss": train_loss_out,
-            "val_loss": val_loss_out,
-            "mse": mse_out,
-            "ssim": ssim_out,
-            "kid_mean": kid_mean_out,
-            "kid_std": kid_std_out,
-        }
-
-    def save_checkpoint(self, tmp_checkpoint_dir):
-        checkpoint_path = os.path.join(tmp_checkpoint_dir, "model.pth")
-        torch.save(self.model.state_dict(), checkpoint_path)
-        return tmp_checkpoint_dir
-
-    def load_checkpoint(self, tmp_checkpoint_dir):
-        checkpoint_path = os.path.join(tmp_checkpoint_dir, "model.pth")
-        self.model.load_state_dict(torch.load(checkpoint_path, weights_only=True))
-
-
 class RetinaVAE(RetinaMath):
     """
-    Class to apply variational autoencoder to Apricot retina data and run single learning run
-    or Ray[Tune] hyperparameter search.
+    Class to apply variational autoencoder to experimental retina data and run single learning run.
 
     Refereces for validation metrics:
     FID : Heusel_2017_NIPS
@@ -830,42 +655,33 @@ class RetinaVAE(RetinaMath):
     SSIM : Wang_2009_IEEESignProcMag, Wang_2004_IEEETransImProc
     """
 
-    def __init__(self, context: dict) -> None:
+    def __init__(self, config) -> None:
 
-        self._context = context
-        self.training_mode = context.retina_parameters["training_mode"]
-        self.gc_type = context.retina_parameters["gc_type"]
-        self.response_type = context.retina_parameters["response_type"]
+        self._config = config
+        self.vae_run_mode = config.vae_train_parameters["vae_run_mode"]
+        self.gc_type = config.retina_parameters["gc_type"]
+        self.response_type = config.retina_parameters["response_type"]
         self.gc_response_types = [[self.gc_type], [self.response_type]]
 
-        self.random_seed = self.context.numpy_seed
+        self.random_seed = self.config.numpy_seed
         torch.manual_seed(self.random_seed)
         np.random.seed(self.random_seed)
 
     @property
-    def context(self):
-        return self._context
+    def config(self):
+        return self._config
 
     def client(
         self,
-        save_tuned_models=False,
     ):
 
-        self.dog_metadata_parameters = self.context.dog_metadata_parameters
-        vae_train_parameters = self.context.retina_parameters["vae_train_parameters"]
+        self.experimental_metadata = self.config.experimental_metadata
+        vae_train_parameters = self.config.vae_train_parameters
         self.epochs = vae_train_parameters["epochs"]
         self.lr_step_size = vae_train_parameters["lr_step_size"]
         self.lr_gamma = vae_train_parameters["lr_gamma"]
         self.resolution_hw = vae_train_parameters["resolution_hw"]
 
-        # For ray tune only
-        self.grid_search = vae_train_parameters["grid_search"]
-        self.time_budget = vae_train_parameters["time_budget"]
-        self.grace_period = vae_train_parameters["grace_period"]
-
-        #######################
-        # Single run parameters
-        #######################
         self.latent_dim = vae_train_parameters["latent_dim"]
         self.channels = vae_train_parameters["channels"]
         self.lr = vae_train_parameters["lr"]
@@ -881,7 +697,7 @@ class RetinaVAE(RetinaMath):
         # Utility parameters
         ####################
         self.latent_space_plot_scale = 15.0
-        self.models_folder = self._set_models_folder(self.context)
+        self.models_folder = self._set_models_folder(self.config)
         self.train_log_folder = self.models_folder / "train_logs"
         self.dependent_variables = [
             "train_loss",
@@ -891,46 +707,25 @@ class RetinaVAE(RetinaMath):
             "kid_std",
             "kid_mean",
         ]
-        self.device = self.context.device
+        self.device = self.config.device
 
-        match self.training_mode:
+        match self.vae_run_mode:
 
             case "load_model":
-                # After tune_model
-                if self.context.retina_parameters["ray_tune_trial_id"] is not None:
-                    self.ray_dir = self._set_ray_folder(self.context)
-                    trial_name = self.context.retina_parameters["ray_tune_trial_id"]
-                    self.vae, result_grid, trial_folder = self._load_model(
-                        trial_name=trial_name
-                    )
-
-                    [this_result] = [
-                        result
-                        for result in result_grid
-                        if trial_name in result.metrics["trial_id"]
-                    ]
-                    self._update_retinavae_to_ray_result(this_result)
-
-                # After train_model
-                elif self.context.retina_parameters["ray_tune_trial_id"] is None:
-                    if self.context.retina_parameters["model_file_name"] is None:
-                        self.vae = self._load_model(model_path=self.models_folder)
-                        self._load_logging()
-                        self._load_latent_stats()
-                    else:
-                        model_file_name = self.context.retina_parameters[
-                            "model_file_name"
-                        ]
-                        self._validate_model_file_name(model_file_name)
-                        model_path_full = self.models_folder / model_file_name
-                        self.vae = self._load_model(model_path=model_path_full)
-                        self._load_logging(model_file_name=model_file_name)
-                        self._load_latent_stats()
-
+                model_file_name = self.config.retina_parameters.get(
+                    "model_file_name", None
+                )
+                if model_file_name is None:
+                    self.vae = self._load_model(model_path=self.models_folder)
+                    self._load_logging()
+                    self._load_latent_stats()
                 else:
-                    raise ValueError(
-                        "No output path (models_folder) or trial name given, cannot load model, aborting..."
-                    )
+                    # model_file_name = self.config.retina_parameters["model_file_name"]
+                    self._validate_model_file_name(model_file_name)
+                    model_path_full = self.models_folder / model_file_name
+                    self.vae = self._load_model(model_path=model_path_full)
+                    self._load_logging(model_file_name=model_file_name)
+                    self._load_latent_stats()
 
                 summary(
                     self.vae.to(self.device),
@@ -939,7 +734,7 @@ class RetinaVAE(RetinaMath):
                 )
 
             case "train_model":
-                self.get_and_split_apricot_data()
+                self.get_and_split_experimental_data()
 
                 self.timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
@@ -973,92 +768,6 @@ class RetinaVAE(RetinaMath):
                     batch_size=-1,
                 )
 
-            case "tune_model":
-                self.get_and_split_apricot_data()
-
-                self.ray_dir = self._set_ray_folder(self.context)
-
-                # This will be captured at _set_ray_tuner
-                # Search space of the tuning job. Both preprocessor and dataset can be tuned here.
-                # Use grid search to try out all values for each parameter. values: iterable
-                # Note that initial_params under _set_ray_tuner MUST be included in the search space.
-                # Grid search: https://docs.ray.io/en/latest/tune/api_docs/search_space.html#ray.tune.grid_search
-                # Sampling: https://docs.ray.io/en/latest/tune/api_docs/search_space.html#tune-sample-docs
-                self.search_space = {
-                    "lr": [0.0005],
-                    "latent_dim": [32],  # 32 best # 4, 8, 16, 32 search space
-                    "resolution_hw": [13],  # Both x and y, 13 or 28
-                    # k3s2,k3s1,k5s2,k5s1,k7s1, k9s1 Kernel-stride-padding for conv layers. NOTE you cannot use >3 conv layers with stride 2
-                    "kernel_stride": ["k7s1"],  # "k3s1", "k5s1", "k7s1", "k9s1"
-                    "channels": [16],  # 4, 8, 16, 32
-                    "batch_size": [256],
-                    "conv_layers": [2],  # 1, 2, 3, 4
-                    "batch_norm": [True],  # False, True
-                    "latent_distribution": ["uniform"],  # "normal", "uniform"
-                    "rotation": [0],  # Augment: max rotation in degrees
-                    # Augment: fract of im, max in (x, y)/[xy] dir
-                    "translation": [0],  # 1/13 pixels
-                    # Augment: noise added, btw [0., 1.]
-                    "noise": [0],  # 0, 0.025, 0.05, 0.1
-                    "flip": [0.5],  # Augment: flip prob, both horiz and vert
-                    "data_multiplier": [4],  # N times to get the data w/ augmentation
-                    "num_models": 8,  # repetitions of the same model
-                }
-
-                # The first metric is the one that will be used to prioritize the checkpoints and pruning.
-                self.multi_objective = {
-                    "metric": ["val_loss"],
-                    "mode": ["min"],
-                }
-
-                # Fraction of GPU per trial. 0.25 for smaller models is enough. Larger may need 0.33 or 0.5.
-                # Increase if you get CUDA out of memory errors.
-                self.gpu_fraction = 0.5
-
-                self.disk_usage_threshold = 90  # %, stops training if exceeded
-
-                # Save tuned models. > 100 MB / model.
-                self.save_tuned_models = save_tuned_models
-
-                tuner = self._set_ray_tuner(grid_search=self.grid_search)
-                self.result_grid = tuner.fit()
-
-                results_df = self.result_grid.get_dataframe()
-                print(
-                    "Shortest training time:",
-                    results_df["time_total_s"].min(),
-                    "for config:",
-                    results_df[
-                        results_df["time_total_s"] == results_df["time_total_s"].min()
-                    ].index.values,
-                )
-                print(
-                    "Longest training time:",
-                    results_df["time_total_s"].max(),
-                    "for config:",
-                    results_df[
-                        results_df["time_total_s"] == results_df["time_total_s"].max()
-                    ].index.values,
-                )
-
-                self.best_result = self.result_grid.get_best_result(
-                    metric="val_loss", mode="min"
-                )
-                print("Best result:", self.best_result)
-                result_df = self.best_result.metrics_dataframe
-                result_df[["training_iteration", "val_loss", "time_total_s"]]
-
-                # Load model state dict from checkpoint to new self.vae and return the state dict.
-                self.vae = self._load_model(best_result=self.best_result)
-
-                self._update_retinavae_to_ray_result(self.best_result)
-
-                # Give one second to write the checkpoint to disk
-                time.sleep(1)
-                self.test_loader = self.augment_and_get_dataloader(
-                    data_type="test", shuffle=False
-                )
-
     def _validate_model_file_name(self, model_file_name):
         assert (
             self.gc_type in model_file_name
@@ -1067,293 +776,23 @@ class RetinaVAE(RetinaMath):
             self.response_type in model_file_name
         ), "response_type not in model_file_name, aborting..."
 
-    def _update_retinavae_to_ray_result(self, this_result):
-        """
-        Update the VAE to match the one model found by ray tune.
-        """
-
-        attributes_to_update = {
-            "latent_dim": "latent_dim",
-            "channels": "channels",
-            "lr": "lr",
-            "latent_distribution": "latent_distribution",
-            "batch_size": "batch_size",
-            "kernel_stride": "kernel_stride",
-            "conv_layers": "conv_layers",
-            "batch_norm": "batch_norm",
-        }
-
-        augmentation_keys = [
-            "rotation",
-            "translation",
-            "noise",
-            "flip",
-            "data_multiplier",
-        ]
-
-        for key in augmentation_keys:
-            try:
-                self.augmentation_dict[key] = this_result.config[key]
-            except KeyError:
-                print(
-                    f"WARNING: Key '{key}' is missing in augmentation_dict and will not be updated"
-                )
-
-        for attr_name, config_key in attributes_to_update.items():
-            try:
-                setattr(self, attr_name, this_result.config[config_key])
-            except KeyError:
-                print(f"WARNING: Key '{config_key}' is missing and will not be updated")
-
-        self.train_loader = self.augment_and_get_dataloader(
-            data_type="train",
-            augmentation_dict=self.augmentation_dict,
-            batch_size=self.batch_size,
-            shuffle=True,
-        )
-        self.val_loader = self.augment_and_get_dataloader(
-            data_type="val",
-            augmentation_dict=self.augmentation_dict,
-            batch_size=self.batch_size,
-            shuffle=True,
-        )
-
-    def _set_ray_tuner(self, grid_search=True):
-        """Set ray tuner"""
-
-        # List of strings from the self.search_space dictionary which should be reported.
-        # Include only the parameters which have more than one item listed in the search space.
-        parameters_to_report = []
-        for key, value in self.search_space.items():
-            if key == "num_models":
-                continue
-            if len(value) > 1:
-                parameters_to_report.append(key)
-
-        print(f"parameters_to_report: {parameters_to_report}")
-        reporter = CLIReporter(
-            metric_columns=[
-                "time_total_s",
-                "iteration",
-                "train_loss",
-                "val_loss",
-                "mse",
-                "ssim",
-                "kid_mean",
-                "kid_std",
-            ],
-            parameter_columns=parameters_to_report,
-        )
-
-        trainable = tune.with_resources(TrainableVAE, {"gpu": self.gpu_fraction})
-        trainable_with_parameters = tune.with_parameters(
-            trainable,
-            data_dict={
-                "train_data": self.train_data,
-                "train_labels": self.train_labels,
-                "val_data": self.val_data,
-                "val_labels": self.val_labels,
-                "test_data": self.test_data,  # For later evaluation and viz
-                "test_labels": self.test_labels,
-            },
-            device=self.device,
-            methods={
-                "_train_epoch": self._train_epoch,
-                "_validate_epoch": self._validate_epoch,
-                "augment_and_get_dataloader": self.augment_and_get_dataloader,
-            },
-            fixed_params={
-                "lr_step_size": self.lr_step_size,
-                "lr_gamma": self.lr_gamma,
-            },
-        )
-
-        if grid_search:
-            param_space = {
-                "lr": tune.grid_search(self.search_space["lr"]),
-                "latent_dim": tune.grid_search(self.search_space["latent_dim"]),
-                "resolution_hw": tune.grid_search(self.search_space["resolution_hw"]),
-                "kernel_stride": tune.grid_search(self.search_space["kernel_stride"]),
-                "channels": tune.grid_search(self.search_space["channels"]),
-                "batch_size": tune.grid_search(self.search_space["batch_size"]),
-                "conv_layers": tune.grid_search(self.search_space["conv_layers"]),
-                "batch_norm": tune.grid_search(self.search_space["batch_norm"]),
-                "latent_distribution": tune.grid_search(
-                    self.search_space["latent_distribution"]
-                ),
-                "rotation": tune.grid_search(self.search_space["rotation"]),
-                "translation": tune.grid_search(self.search_space["translation"]),
-                "noise": tune.grid_search(self.search_space["noise"]),
-                "flip": tune.grid_search(self.search_space["flip"]),
-                "data_multiplier": tune.grid_search(
-                    self.search_space["data_multiplier"]
-                ),
-                "model_id": tune.grid_search(
-                    [
-                        "model_{}".format(i)
-                        for i in range(self.search_space["num_models"])
-                    ]
-                ),
-            }
-
-            # Efficient hyperparameter selection. Search Algorithms are wrappers around open-source
-            # optimization libraries. Each library has a
-            # specific way of defining the search space.
-            # https://docs.ray.io/en/latest/ray-air/package-ref.html#ray.tune.tune_config.TuneConfig
-            tune_config = tune.TuneConfig(
-                search_alg=tune.search.basic_variant.BasicVariantGenerator(
-                    constant_grid_search=True,
-                ),
-            )
-        else:
-            # Note that the initial parameters must be included in the search space
-            initial_params = [
-                {
-                    "lr": 0.001,
-                    "latent_dim": 16,
-                    "kernel_stride": "k7s1",
-                    "channels": 16,
-                    "batch_size": 128,
-                    "conv_layers": 2,
-                    "batch_norm": False,
-                    "rotation": 0,
-                    "translation": 0,
-                    "noise": 0.0,
-                    "flip": 0.5,
-                    "data_multiplier": 4,
-                    "model_id": "model_0",
-                }
-            ]
-
-            # tune (log)uniform etc require two positional arguments, so we need to unpack the list
-            param_space = {
-                "lr": tune.loguniform(
-                    self.search_space["lr"][0], self.search_space["lr"][-1]
-                ),
-                "latent_dim": tune.choice(self.search_space["latent_dim"]),
-                "kernel_stride": tune.choice(self.search_space["kernel_stride"]),
-                "channels": tune.choice(self.search_space["channels"]),
-                "batch_size": tune.choice(self.search_space["batch_size"]),
-                "conv_layers": tune.choice(self.search_space["conv_layers"]),
-                "batch_norm": tune.choice(self.search_space["batch_norm"]),
-                "latent_distribution": tune.choice(
-                    self.search_space["latent_distribution"]
-                ),
-                "rotation": tune.uniform(
-                    self.search_space["rotation"][0], self.search_space["rotation"][-1]
-                ),
-                "translation": tune.uniform(
-                    self.search_space["translation"][0],
-                    self.search_space["translation"][-1],
-                ),
-                "noise": tune.uniform(
-                    self.search_space["noise"][0], self.search_space["noise"][-1]
-                ),
-                "flip": tune.uniform(
-                    self.search_space["flip"][0], self.search_space["flip"][-1]
-                ),
-                "data_multiplier": tune.choice(self.search_space["data_multiplier"]),
-                "model_id": tune.choice(
-                    [
-                        "model_{}".format(i)
-                        for i in range(self.search_space["num_models"])
-                    ]
-                ),
-            }
-
-            # Efficient hyperparameter selection. Search Algorithms are wrappers around open-source
-            # optimization libraries. Each library has a specific way of defining the search space.
-            # https://docs.ray.io/en/latest/ray-air/package-ref.html#ray.tune.tune_config.TuneConfig
-            tune_config = tune.TuneConfig(
-                # Local optuna search will generate study name "optuna" indicating in-memory storage
-                search_alg=OptunaSearch(
-                    sampler=TPESampler(),
-                    metric=self.multi_objective["metric"],
-                    mode=self.multi_objective["mode"],
-                    points_to_evaluate=initial_params,
-                ),
-                scheduler=ASHAScheduler(
-                    time_attr="training_iteration",
-                    metric=self.multi_objective["metric"][
-                        0
-                    ],  # Only 1st metric used for pruning
-                    mode=self.multi_objective["mode"][0],
-                    max_t=self.epochs,
-                    grace_period=self.grace_period,
-                    reduction_factor=2,
-                ),
-                time_budget_s=self.time_budget,
-                num_samples=-1,
-            )
-
-        # Runtime configuration that is specific to individual trials. Will overwrite the run config passed to the
-        # Trainer. for API, see https://docs.ray.io/en/latest/ray-air/package-ref.html#ray.air.config.RunConfig
-
-        if self.save_tuned_models is True:
-            hard_disk_watchdog = [
-                HardDiskWatchDog(
-                    self.ray_dir, disk_usage_threshold=self.disk_usage_threshold
-                )
-            ]
-        else:
-            hard_disk_watchdog = None
-
-        run_config = (
-            air.RunConfig(
-                stop={"training_iteration": self.epochs},
-                progress_reporter=reporter,
-                local_dir=self.ray_dir,
-                callbacks=hard_disk_watchdog,
-                checkpoint_config=air.CheckpointConfig(
-                    checkpoint_score_attribute=self.multi_objective["metric"][0],
-                    checkpoint_score_order=self.multi_objective["mode"][0],
-                    num_to_keep=1,
-                    checkpoint_at_end=self.save_tuned_models,
-                    checkpoint_frequency=0,
-                ),
-                verbose=1,
-            ),
-        )
-
-        tuner = tune.Tuner(
-            trainable_with_parameters,
-            param_space=param_space,
-            run_config=run_config[0],
-            tune_config=tune_config,
-        )
-
-        return tuner
-
-    def _set_models_folder(self, context=None):
+    def _set_models_folder(self, config=None):
         """Set the folder where models are saved"""
 
         # If input_folder is Path instance or string, use it as models_folder
-        if isinstance(self.context.input_folder, Path) or isinstance(
-            self.context.input_folder, str
+        if isinstance(self.config.input_folder, Path) or isinstance(
+            self.config.input_folder, str
         ):
-            models_folder = self.context.input_folder
+            models_folder = self.config.input_folder
         else:
-            models_folder = self.context.output_folder / "models"
+            models_folder = self.config.output_folder / "models"
         Path(models_folder).mkdir(parents=True, exist_ok=True)
 
         return models_folder
 
-    def _set_ray_folder(self, context):
-        """Set the folder where ray tune results are saved"""
-
-        if isinstance(self.context.input_folder, Path) or isinstance(
-            self.context.input_folder, str
-        ):
-            ray_dir = self.context.input_folder / "ray_results"
-        else:
-            ray_dir = self.context.output_folder / "ray_results"
-        Path(ray_dir).mkdir(parents=True, exist_ok=True)
-
-        return ray_dir
-
     def _save_model(self):
         """
-        Save model for single trial, a.k.a. 'train_model' training_mode
+        Save model for single trial, a.k.a. 'train_model' vae_run_mode
         """
         model_filename = f"model_{self.gc_type}_{self.response_type}_{self.device}_{self.timestamp}.pt"
         model_path = f"{self.models_folder}/{model_filename}"
@@ -1366,7 +805,7 @@ class RetinaVAE(RetinaMath):
 
     def _save_latent_stats(self):
         """
-        Save latent data after 'train_model' training_mode
+        Save latent data after 'train_model' vae_run_mode
         """
         latent_stats_filename = f"latent_stats_{self.gc_type}_{self.response_type}_{self.device}_{self.timestamp}.npy"
         latent_stats_path = f"{self.models_folder}/{latent_stats_filename}"
@@ -1402,7 +841,7 @@ class RetinaVAE(RetinaMath):
         return timestamp
 
     def _load_latent_stats(self, model_file_name=None):
-        # Load latent data after 'load_model' training_mode
+        # Load latent data after 'load_model' vae_run_mode
         if model_file_name is None:
             latent_stats_file_name = f"latent_stats_{self.gc_type}_{self.response_type}_{self.device}_{self.timestamp_for_loading}.npy"  # timestamp_for_loading is set in _load_model
             timestamp = self.timestamp_for_loading
@@ -1434,17 +873,7 @@ class RetinaVAE(RetinaMath):
 
         vae_model = self._create_empty_model()
 
-        if best_result is not None:
-            # ref https://medium.com/distributed-computing-with-ray/simple-end-to-end-ml-from-selection-to-serving-with-ray-tune-and-ray-serve-10f5564d33ba
-            log_dir = best_result.log_dir
-            checkpoint_dir = [
-                d for d in os.listdir(log_dir) if d.startswith("checkpoint")
-            ][0]
-            checkpoint_path = os.path.join(log_dir, checkpoint_dir, "model.pth")
-
-            vae_model.load_state_dict(torch.load(checkpoint_path, weights_only=True))
-
-        elif model_path is not None:
+        if model_path is not None:
             model_path = Path(model_path)
             if Path.exists(model_path) and model_path.is_file():
                 print(
@@ -1474,43 +903,6 @@ class RetinaVAE(RetinaMath):
             else:
                 print(f"Model {model_path} does not exist.")
 
-        elif trial_name is not None:
-            # trial_name = "TrainableVAE_XXX" from ray.tune results table.
-            # Search under self.ray_dir for folder with the trial name. Under that folder,
-            # there should be a checkpoint folder which contains the model.pth file.
-            try:
-                correct_trial_folder = [
-                    p for p in Path(self.ray_dir).glob(f"**/") if trial_name in p.stem
-                ][0]
-            except IndexError:
-                raise FileNotFoundError(
-                    f"Could not find trial with name {trial_name}. Aborting..."
-                )
-            # However, we need to first check that the model dimensionality is correct.
-            # This will be hard coded for checking and changing only latent_dim.
-            # More versatile version is necessary if other dimensions are searched.
-
-            # Get the results as dataframe from the ray directory / correct run
-            results_folder = correct_trial_folder.parents[0]
-            tuner = tune.Tuner.restore(str(results_folder))
-            results = tuner.get_results()
-
-            # Load the model from the checkpoint folder.
-            try:
-                checkpoint_folder_name = [
-                    p for p in Path(correct_trial_folder).glob("checkpoint_*")
-                ][0]
-            except IndexError:
-                raise FileNotFoundError(
-                    f"Could not find checkpoint folder in {correct_trial_folder}. Aborting..."
-                )
-            model_path = Path.joinpath(checkpoint_folder_name, "model.pth")
-            vae_model.load_state_dict(torch.load(model_path, weights_only=True))
-
-            # Move new model to same device as the input data
-            vae_model.to(self.device)
-            return vae_model, results, correct_trial_folder
-
         else:
             # Get the most recent model. Max recognizes the timestamp with the largest value
             try:
@@ -1524,92 +916,19 @@ class RetinaVAE(RetinaMath):
 
         return vae_model
 
-    def _visualize_augmentation_and_exit(self):
+    def _get_spatial_experimental_data(self):
         """
-        Visualize the augmentation effects and exit
-        """
-
-        # Get numpy data
-        data_np, labels_np, data_names2labels_dict = self._get_spatial_apricot_data()
-
-        # Split to training, validation and testing
-        train_val_data, test_data, train_val_labels, test_labels = train_test_split(
-            data_np,
-            labels_np,
-            test_size=self.test_split,
-            random_state=self.random_seed,
-            stratify=labels_np,
-        )
-
-        # Augment training and validation data
-        train_val_ds = AugmentedDataset(
-            train_val_data,
-            train_val_labels,
-            self.resolution_hw,
-            augmentation_dict=self.augmentation_dict,
-        )
-
-        # Do not augment test data
-        test_ds = AugmentedDataset(
-            test_data, test_labels, self.resolution_hw, augmentation_dict=None
-        )
-
-        # Split into train and validation
-        train_ds, val_ds = random_split(
-            train_val_ds,
-            [
-                int(np.round(len(train_val_ds) * (1 - self.test_split))),
-                int(np.round(len(train_val_ds) * self.test_split)),
-            ],
-        )
-
-        # Get n items for the three sets
-        self.n_train = len(train_ds)
-        self.n_val = len(val_ds)
-        self.n_test = len(test_ds)
-
-        # Make a figure with 2 rows and 5 columns, with upper row containing 5 original and the lower row 5 augmented images.
-        # The original images are in the train_val_data (numpy array with dims (N x C x H x W)), and the augmented images are in the train_val_ds
-        # (torch dataset with dims (N x C x H x W)). The labels are in train_val_labels (numpy array with dims (N, 1)).
-        fig, axs = plt.subplots(2, 5, figsize=(10, 5))
-        for i in range(5):
-            axs[0, i].imshow(train_val_data[i, 0, :, :], cmap="gray")
-            axs[0, i].axis("off")
-            axs[1, i].imshow(train_val_ds[i][0][0, :, :], cmap="gray")
-            axs[1, i].axis("off")
-
-        # Set the labels as text upper left inside the images of the upper row
-        for i in range(5):
-            axs[0, i].text(
-                0.05,
-                0.85,
-                self.apricot_data.data_labels2names_dict[train_val_labels[i][0]],
-                fontsize=10,
-                color="blue",
-                transform=axs[0, i].transAxes,
-            )
-
-        # Set subtitle "Original" for the first row
-        axs[0, 0].set_title("Original", fontsize=14)
-        # Set subtitle "Augmented" for the second row
-        axs[1, 0].set_title("Augmented", fontsize=14)
-
-        plt.show()
-        exit()
-
-    def _get_spatial_apricot_data(self):
-        """
-        Get spatial ganglion cell data from file using the apricot_data method read_spatial_filter_data().
+        Get spatial ganglion cell data from file using the experimental_data method read_spatial_filter_data().
         All data is returned, the requested data is logged in the class attributes gc_type and response_type.
         """
 
         # Get requested data
-        self.apricot_data = ApricotData(
-            self.dog_metadata_parameters, self.gc_type, self.response_type
+        self.experimental_data = ExperimentalData(
+            self.experimental_metadata, self.gc_type, self.response_type
         )
 
         # Log requested label
-        self.gc_label = self.apricot_data.data_names2labels_dict[
+        self.gc_label = self.experimental_data.data_names2labels_dict[
             f"{self.gc_type}_{self.response_type}"
         ]
 
@@ -1623,7 +942,7 @@ class RetinaVAE(RetinaMath):
         ]
 
         response_labels = [
-            self.apricot_data.data_names2labels_dict[key]
+            self.experimental_data.data_names2labels_dict[key]
             for key in train_by_combinations
         ]
 
@@ -1639,8 +958,8 @@ class RetinaVAE(RetinaMath):
             (
                 0,
                 1,
-                self.apricot_data.metadata["data_spatialfilter_height"],
-                self.apricot_data.metadata["data_spatialfilter_width"],
+                self.experimental_data.metadata["data_spatialfilter_height"],
+                self.experimental_data.metadata["data_spatialfilter_width"],
             )
         )
         collated_labels_np = np.empty((0, 1), dtype=int)
@@ -1650,14 +969,14 @@ class RetinaVAE(RetinaMath):
             gc_types, response_types, response_labels
         ):
             print(f"Loading data for {gc_type}_{response_type} (label {label})")
-            apricot_data = ApricotData(
-                self.dog_metadata_parameters, gc_type, response_type
+            experimental_data = ExperimentalData(
+                self.experimental_metadata, gc_type, response_type
             )
-            bad_data_idx = apricot_data.manually_picked_bad_data_idx
+            bad_data_idx = experimental_data.known_bad_data_idx
             (
                 gc_spatial_data_np_orig,
                 _,
-            ) = apricot_data.read_spatial_filter_data()
+            ) = experimental_data.read_spatial_filter_data()
 
             # Drop bad data
             gc_spatial_data_np = np.delete(
@@ -1679,7 +998,7 @@ class RetinaVAE(RetinaMath):
         return (
             collated_gc_spatial_data_np,
             collated_labels_np,
-            apricot_data.data_names2labels_dict,
+            experimental_data.data_names2labels_dict,
         )
 
     def _create_empty_model(self):
@@ -1847,7 +1166,7 @@ class RetinaVAE(RetinaMath):
 
     def _train(self):
         """
-        Train for training_mode = train_model
+        Train for vae_run_mode = train_model
         """
         for epoch in range(self.epochs):
             train_loss = self._train_epoch(
@@ -1897,14 +1216,16 @@ class RetinaVAE(RetinaMath):
             self.log_df.loc[epoch, "kid_mean"] = kid_mean_out
             self.log_df.loc[epoch, "kid_std"] = kid_std_out
 
-    def get_and_split_apricot_data(self):
+    def get_and_split_experimental_data(self):
         """
         Load data
         Split into training, validation and testing
         """
 
         # Get numpy data
-        data_np, labels_np, data_names2labels_dict = self._get_spatial_apricot_data()
+        data_np, labels_np, data_names2labels_dict = (
+            self._get_spatial_experimental_data()
+        )
 
         # Split to training+validation and testing
         (
@@ -2021,7 +1342,7 @@ class RetinaVAE(RetinaMath):
         encoded_samples = []
         for sample in tqdm(ds):
             img = sample[0].unsqueeze(0).to(self.device)
-            label = self.apricot_data.data_labels2names_dict[sample[1].item()]
+            label = self.experimental_data.data_labels2names_dict[sample[1].item()]
             # Encode image
             self.vae.eval()
             with torch.no_grad():

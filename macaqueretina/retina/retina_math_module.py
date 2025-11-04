@@ -24,83 +24,10 @@ class RetinaMath:
     ) -> float:
         return a * np.exp(b * x) + c * np.exp(d * x)
 
-    def double_exponential_func_log(
-        self, log_x: float, a: float, b: float, c: float, d: float
-    ) -> float:
-        """
-        Compute double exponential function value in logarithmic space.
-        The function computes: log(f(x)) = log(a * exp(b * exp(log_x)) + c * exp(d * exp(log_x)))
-        Parameters
-        ----------
-        log_x : float
-            Independent variable in log space (log_x = log(x)).
-        a : float
-            Amplitude of first exponential term.
-        b : float
-            Decay rate of first exponential term.
-        c : float
-            Amplitude of second exponential term.
-        d : float
-            Decay rate of second exponential term.
-        Returns
-        -------
-        float
-            Natural logarithm of the double exponential function value.
-        """
-        # Convert back to linear space for the exponential calculation
-        x = np.exp(log_x)
-        result = self.double_exponential_func(x, a, b, c, d)
-        # Replace negative values with -inf
-        log_result = np.full_like(result, float("-inf"))
-        positive_mask = result > 0
-        log_result[positive_mask] = np.log(result[positive_mask])
-        return log_result
-
     def triple_exponential_func(
         self, x: float, a: float, b: float, c: float, d: float, e: float, f: float
     ) -> float:
         return np.maximum(a * np.exp(b * x) + c * np.exp(d * x) + e * np.exp(f * x), 0)
-
-    def triple_exponential_func_log(
-        self, log_x: float, a: float, b: float, c: float, d: float, e: float, f: float
-    ) -> float:
-        """
-        Compute triple exponential function value in logarithmic space with non-negative constraint.
-        The function computes:
-        log(f(x)) = log(max(0, a * exp(b * exp(log_x)) + c * exp(d * exp(log_x)) + e * exp(f * exp(log_x))))
-
-        Parameters
-        ----------
-        log_x : float
-            Independent variable in log space (log_x = log(x)).
-        a : float
-            Amplitude of first exponential term.
-        b : float
-            Decay rate of first exponential term.
-        c : float
-            Amplitude of second exponential term.
-        d : float
-            Decay rate of second exponential term.
-        e : float
-            Amplitude of third exponential term.
-        f : float
-            Decay rate of third exponential term.
-
-        Returns
-        -------
-        float
-            Natural logarithm of the maximum between zero and the sum of three exponential terms.
-        """
-        # Convert back to linear space for the exponential calculation
-        x = np.exp(log_x)
-        result = self.triple_exponential_func(x, a, b, c, d, e, f)
-
-        # Replace negative values with -inf
-        log_result = np.full_like(result, float("-inf"))
-        positive_mask = result > 0
-        log_result[positive_mask] = np.log(result[positive_mask])
-
-        return log_result
 
     def generalized_gauss_func(self, x, a, x0, alpha, beta):
         """
@@ -412,8 +339,9 @@ class RetinaMath:
         # Calculate the luminance (L) in cd/m²
         L = L_td / A_pupil
 
-        # Drop units for the return value
-        # L = L
+        # Strip seconds if I_cone has been given without units
+        if type(L) == b2u.Quantity:
+            L = L / L.get_best_unit()
 
         return L
 
@@ -782,7 +710,7 @@ class RetinaMath:
 
     # Fit & RetinaVAE method
 
-    def flip_negative_spatial_rf(self, spatial_rf_unflipped, mask_noise=0):
+    def flip_negative_spatial_rf(self, spatial_rf_unflipped, data_noise_threshold=0):
         """
         Flips negative values of a spatial RF to positive values.
 
@@ -817,8 +745,8 @@ class RetinaMath:
             if mean_max_pixels_values < 0:
                 spatial_rf[i] = spatial_rf[i] * -1
 
-            if mask_noise > 0:
-                threshold = mask_noise
+            if data_noise_threshold > 0:
+                threshold = data_noise_threshold
                 if mean_max_pixels_values < 0:
                     threshold *= -1  # invert multiplier, too
 
@@ -1017,3 +945,123 @@ class RetinaMath:
         volume_surround = ampl_s * 2 * np.pi * sigma_xs * sigma_ys
 
         return volume_central, volume_surround
+
+    # Validation
+    def naka_rushton(self, c: np.ndarray, Rmax: float, c50: float, baseline: float):
+        """
+        Naka-Rushton function.
+        Ref: Naka & Rushton 1966 J Physiol
+
+        Parameters
+        ----------
+        c : numpy array
+            The independent variable (contrast).
+        Rmax : float
+            The maximum response.
+        c50 : float
+            The contrast at which the response is half of Rmax.
+        baseline : float
+            The baseline response.
+
+        Returns
+        -------
+        numpy.ndarray
+            The Naka-Rushton function evaluated at each point in c.
+        """
+        return baseline + (Rmax * c) / (c50 + c)
+
+    def naka_rushton_inverse(
+        self, R: np.ndarray, Rmax: float, c50: float, baseline: float
+    ) -> np.ndarray:
+        """
+        Inverse of the Naka-Rushton function.
+
+        Parameters
+        ----------
+        R : numpy array
+            The response values.
+        Rmax : float
+            The maximum response.
+        c50 : float
+            The contrast at which the response is half of Rmax.
+        baseline : float
+            The baseline response.
+
+        Returns
+        -------
+        numpy.ndarray
+            The contrast values corresponding to each response in R.
+        """
+        return (R - baseline) * c50 / (Rmax - R + baseline)
+
+    def enrothcugell_robson(
+        self,
+        sf: float | np.ndarray,
+        K: float,
+        k_c: float,
+        r_c: float,
+        k_s: float,
+        r_s: float,
+    ):
+        """
+        Calculate the spatial contrast sensitivity function F(sf) = C(sf) - S(sf),
+        where sf is the spatial frequency.
+        Ref: Enroth-Cugell & Robson 1966 J Physiol
+
+        Parameters
+        ----------
+        sf : float | array
+            The variable sf
+        K : float
+            Constant for the overall sensitivity
+        k_c : float
+            Constant for C(sf)
+        r_c : float
+            Characteristic radius for C(sf) in deg
+        k_s : float
+            Constant for S(sf)
+        r_s : float
+            Characteristic radius for S(sf) in deg
+
+        Returns
+        -------
+        float or array: The contrast sensitivity function F(sf)
+        """
+
+        C = k_c * np.pi * r_c**2 * np.exp(-((np.pi * sf * r_c) ** 2))
+        S = k_s * np.pi * r_s**2 * np.exp(-((np.pi * sf * r_s) ** 2))
+        F = K * (C - S)
+
+        return F
+
+    def temporal_contrast_sensitivity(
+        self, tf: float | np.ndarray, s1: float, k1: float, s2: float, k2: float
+    ):
+        """
+        Calculate the temporal contrast sensitivity function, with a difference of
+        two exponential functions, where tf is the temporal frequency.
+        Ref: Derrington 1984b J Physiol
+
+        Parameters
+        ----------
+        tf : float | array
+            The variable tf
+        s1 : float
+            Scaling constant for the first process
+        k1 : float
+            Resiprocal of the time constant first process
+        s2 : float
+            Scaling constant for the second process
+        k2 : float
+            Resiprocal of the time constant second process
+
+        Returns
+        -------
+        float or array: The temporal contrast sensitivity function F(tf)
+        """
+
+        p1 = s1 * np.exp(-(tf * k1))
+        p2 = s2 * np.exp(-(tf * k2))
+        F = p1 - p2
+
+        return F

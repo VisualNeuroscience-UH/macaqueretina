@@ -105,20 +105,17 @@ class Experiment(VideoBaseClass):
     Build your experiment here
     """
 
-    def __init__(
-        self, context, data_io, stimulate, simulate_retina, get_cone_noise_hash
-    ):
+    def __init__(self, config, data_io, stimulate, simulate_retina):
         super().__init__()
 
-        self._context = context
+        self._config = config
         self._data_io = data_io
         self._stimulate = stimulate
         self._simulate_retina = simulate_retina
-        self.get_cone_noise_hash = get_cone_noise_hash
 
     @property
-    def context(self):
-        return self._context
+    def config(self):
+        return self._config
 
     @property
     def data_io(self):
@@ -269,7 +266,7 @@ class Experiment(VideoBaseClass):
         # can be linear or logarithmic
         cond_metadata_key = {}
         for idx, option in enumerate(exp_variables):
-            if isinstance(self.context.visual_stimulus_parameters[option], tuple):
+            if isinstance(self.config.visual_stimulus_parameters[option], tuple):
                 assert all(
                     isinstance(x, tuple)
                     for x in [logarithmic[idx], min_max_values[idx], n_steps[idx]]
@@ -286,7 +283,7 @@ class Experiment(VideoBaseClass):
                     == 1
                 ), "If exp_variable in visual_stimulus_parameters is tuple, min_max_values, n_steps, and logarithmic must have the same length, aborting..."
 
-                n_values = len(self.context.visual_stimulus_parameters[option])
+                n_values = len(self.config.visual_stimulus_parameters[option])
                 for value_idx in range(n_values):
                     value = self._get_cond_metadata_values(
                         logarithmic[idx][value_idx],
@@ -332,7 +329,7 @@ class Experiment(VideoBaseClass):
             ), f"Missing {option} in visual_stimulus_parameters, check exp_variables name..."
 
             for cond_idx, this_cond in enumerate(cond_options):
-                if isinstance(self.context.visual_stimulus_parameters[option], tuple):
+                if isinstance(self.config.visual_stimulus_parameters[option], tuple):
                     names, values = zip(
                         *[
                             [name, value]
@@ -472,20 +469,19 @@ class Experiment(VideoBaseClass):
 
     def build_and_run(
         self,
-        experiment_parameters,
         build_without_run=False,
         show_histogram=False,
     ):
 
-        exp_variables = experiment_parameters["exp_variables"]
+        exp_variables = self.config.experiment_parameters["exp_variables"]
         cond_names_string = "_".join(exp_variables)
-        experiment_hash = self.context.generate_hash(experiment_parameters)
+        experiment_hash = self.config.experiment_parameters.hash()
         filename_df = f"exp_metadata_{cond_names_string}_{experiment_hash}.csv"
-        output_folder = self.context.output_folder
+        output_folder = self.config.output_folder
         save_exp_metadata_path = output_folder / filename_df
         if not save_exp_metadata_path.is_file():
             cond_options, cond_names = self._build(
-                experiment_parameters, show_histogram=show_histogram
+                self.config.experiment_parameters, show_histogram=show_histogram
             )
         else:
             print(
@@ -501,21 +497,23 @@ class Experiment(VideoBaseClass):
         """
 
         # Update options to match visual_stimulus_parameters in conf file
-        self._replace_options(self.context.visual_stimulus_parameters)
+        self._replace_options(self.config.visual_stimulus_parameters)
 
         # Replace filename with None. If don't want to save the stimulus, None is valid,
         # but if want to save, then filename will be generated in the loop below
-        run_parameters = self.context.run_parameters
-        self.options["n_sweeps"] = experiment_parameters["n_sweeps"]
-        run_parameters["n_sweeps"] = experiment_parameters["n_sweeps"]
+        simulation_parameters = self.config.simulation_parameters
+        self.options["n_sweeps"] = self.config.experiment_parameters["n_sweeps"]
+        simulation_parameters["n_sweeps"] = self.config.experiment_parameters[
+            "n_sweeps"
+        ]
 
-        if not build_without_run:
-            # Replace with input options
-            for idx, input_options in enumerate(cond_options):
-                # Create stimulus video name. Note, this updates the cond_options dict
-                stimulus_video_name = "Stim_" + cond_names[idx]
-                input_options["stimulus_video_name"] = stimulus_video_name
+        # Replace with input options
+        for idx, input_options in enumerate(cond_options):
+            # Create stimulus video name. Note, this updates the cond_options dict
+            stimulus_video_name = "Stim_" + cond_names[idx]
+            input_options["stimulus_video_name"] = stimulus_video_name
 
+            if not build_without_run:
                 # Replace options with input_options
                 self._replace_options(input_options)
 
@@ -526,12 +524,10 @@ class Experiment(VideoBaseClass):
                     )
                 except FileNotFoundError:
                     stim = self.stimulate.make_stimulus_video(self.options)
-                    # Raw intensity is stimulus specific
-                    # TODO Why removes the raw_intensity from the options with rerun, with try. Here gets it correctly?
                     self.options["raw_intensity"] = stim.options["raw_intensity"]
 
-                gc_type = self.context.retina_parameters["gc_type"]
-                response_type = self.context.retina_parameters["response_type"]
+                gc_type = self.config.retina_parameters["gc_type"]
+                response_type = self.config.retina_parameters["response_type"]
                 filename_prefix = f"Response_{gc_type}_{response_type}_"
                 filename = Path(output_folder) / (filename_prefix + cond_names[idx])
 
@@ -543,15 +539,14 @@ class Experiment(VideoBaseClass):
 
         if not save_exp_metadata_path.is_file():
 
-            # if len(cond_options[0].keys()) > 1:
-            self.options["logarithmic"] = tuple(experiment_parameters["logarithmic"])
-            # else:
-            #     self.options["logarithmic"] = experiment_parameters["logarithmic"]
-            # breakpoint()
-            self.options["retina_center"] = self.context.retina_parameters[
+            self.options["logarithmic"] = tuple(
+                self.config.experiment_parameters["logarithmic"]
+            )
+            self.options["retina_center"] = self.config.retina_parameters[
                 "retina_center"
             ]
             relevant_metadata = self._relevant_stimulus_options(self.options)
+
             result_df = self._create_dataframe(
                 cond_options, cond_names, relevant_metadata
             )

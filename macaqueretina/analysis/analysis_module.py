@@ -13,16 +13,16 @@ from scipy.stats import pearsonr
 
 
 class Analysis:
-    def __init__(self, context, data_io, **kwargs) -> None:
-        self._context = context
+    def __init__(self, config, data_io, **kwargs) -> None:
+        self._config = config
         self._data_io = data_io
 
         for attr, value in kwargs.items():
             setattr(self, attr, value)
 
     @property
-    def context(self):
-        return self._context
+    def config(self):
+        return self._config
 
     @property
     def data_io(self):
@@ -609,8 +609,8 @@ class Analysis:
 
         exp_variables = my_analysis_options["exp_variables"]
         cond_names_string = "_".join(exp_variables)
-        data_folder = self.context.output_folder
-        experiment_df = self.data_io.get_data(filename=filename)
+        data_folder = self.config.output_folder
+        experiment_df = self.data_io.load_data(filename=filename)
         cond_names = experiment_df.index.values
         t_start = my_analysis_options["t_start_ana"]
         t_end = my_analysis_options["t_end_ana"]
@@ -632,7 +632,7 @@ class Analysis:
         cond_name = cond_names[0]
         filename_prefix = f"Response_{gc_type}_{response_type}_"
         filename = Path(data_folder) / (filename_prefix + cond_name + ".gz")
-        data_dict = self.data_io.get_data(filename)
+        data_dict = self.data_io.load_data(filename)
 
         if gc_units is None:
             n_units = data_dict["n_units"]
@@ -662,8 +662,8 @@ class Analysis:
         ccoef_mtx_mean = np.mean(ccoef_mtx, axis=0)
 
         # Load mosaic
-        gc_dataframe = self.data_io.get_data(
-            filename=self.context.retina_parameters["mosaic_file"]
+        gc_dataframe = self.data_io.load_data(
+            filename=self.config.retina_parameters["mosaic_file"]
         )
         # Get xy coords from dataframe
         pos_ecc_mm = gc_dataframe["pos_ecc_mm"].values
@@ -710,14 +710,18 @@ class Analysis:
 
         exp_variables = my_analysis_options["exp_variables"]
         cond_names_string = "_".join(exp_variables)
-        experiment_df = self.data_io.get_data(filename=filename)
-        data_folder = self.context.output_folder
+        experiment_df = self.data_io.load_data(filename=filename)
+        data_folder = self.config.output_folder
         cond_names = experiment_df.index.values
         t_start = my_analysis_options["t_start_ana"]
         t_end = my_analysis_options["t_end_ana"]
         n_sweeps_vec = pd.to_numeric(experiment_df.loc[:, "n_sweeps"].values)
-        gc_type = self.context.retina_parameters["gc_type"]
-        response_type = self.context.retina_parameters["response_type"]
+        gc_type = self.config.retina_parameters["gc_type"]
+        response_type = self.config.retina_parameters["response_type"]
+
+        if "temporal_frequency" not in exp_variables:
+            temp_freq = self.config.visual_stimulus_parameters["temporal_frequency"]
+            experiment_df["temporal_frequency"] = temp_freq
 
         # Assert for equal number of trials
         assert np.all(
@@ -738,7 +742,7 @@ class Analysis:
             filename = Path(data_folder) / (
                 f"Response_{gc_type}_{response_type}_{cond_name}.gz"
             )
-            data_dict = self.data_io.get_data(filename)
+            data_dict = self.data_io.load_data(filename)
 
             temp_freq = pd.to_numeric(
                 experiment_df.loc[cond_name, "temporal_frequency"]
@@ -852,7 +856,7 @@ class Analysis:
     def get_gain_calibration_df(self, threshold, folder_pattern, signal_gain=1.0):
 
         matching_files_or_folders = self.data_io.all_patterns(
-            self.context.path, folder_pattern
+            self.config.path, folder_pattern
         )
         matching_folders = [f for f in matching_files_or_folders if f.is_dir()]
         matching_folders.sort()
@@ -910,12 +914,12 @@ class Analysis:
 
         exp_variables = my_analysis_options["exp_variables"]
         cond_names_string = "_".join(exp_variables)
-        data_folder = self.context.output_folder
-        experiment_df = self.data_io.get_data(filename=filename)
+        data_folder = self.config.output_folder
+        experiment_df = self.data_io.load_data(filename=filename)
         cond_names = experiment_df.index.values
         n_sweeps_vec = pd.to_numeric(experiment_df.loc[:, "n_sweeps"].values)
-        gc_type = self.context.retina_parameters["gc_type"]
-        response_type = self.context.retina_parameters["response_type"]
+        gc_type = self.config.retina_parameters["gc_type"]
+        response_type = self.config.retina_parameters["response_type"]
 
         t_start = my_analysis_options["t_start_ana"]
         t_end = my_analysis_options["t_end_ana"]
@@ -941,7 +945,7 @@ class Analysis:
             df_index_start = idx * n_tp
             df_index_end = (idx + 1) * n_tp
 
-            data_npz = self.data_io.get_data(data_fullpath)
+            data_npz = self.data_io.load_data(data_fullpath)
             available_data = [f for f in data_npz.files if "allow_pickle" not in f]
             if idx == 0:
                 df = pd.DataFrame(
@@ -986,11 +990,11 @@ class Analysis:
         """ """
         exp_variables = my_analysis_options["exp_variables"]
         cond_names_string = "_".join(exp_variables)
-        data_folder = self.context.output_folder
-        experiment_df = self.data_io.get_data(filename=filename)
+        data_folder = self.config.output_folder
+        experiment_df = self.data_io.load_data(filename=filename)
         cond_names = experiment_df.index.values
-        gc_type = self.context.retina_parameters["gc_type"]
-        response_type = self.context.retina_parameters["response_type"]
+        gc_type = self.config.retina_parameters["gc_type"]
+        response_type = self.config.retina_parameters["response_type"]
 
         t_start = my_analysis_options["t_start_ana"]
         t_end = my_analysis_options["t_end_ana"]
@@ -1014,7 +1018,7 @@ class Analysis:
         pattern = f"Response_{gc_type}_{response_type}_{cond_names[0]}_*.npz"
         data_fullpath = self.data_io.most_recent_pattern(data_folder, pattern)
 
-        data_npz = self.data_io.get_data(data_fullpath)
+        data_npz = self.data_io.load_data(data_fullpath)
         A_pupil = data_npz["A_pupil"]
         lambda_nm = data_npz["lambda_nm"]
         available_data = [
@@ -1049,7 +1053,7 @@ class Analysis:
 
             # Dependent variables
             data_fullpath = self.data_io.most_recent_pattern(data_folder, pattern)
-            data_npz = self.data_io.get_data(data_fullpath)
+            data_npz = self.data_io.load_data(data_fullpath)
 
             df.iloc[idx, 0] = background
             df.iloc[idx, 1] = int(

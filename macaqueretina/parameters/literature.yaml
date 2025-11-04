@@ -1,0 +1,36 @@
+gc_density_1_datafile: "Wässle_1989_Nature_Fig2a_c.npz"
+
+gc_density_1_scaling_data_and_function: [[0, 0.75, 3],[3.34, 2, 1],"single_exponential_func",]
+
+gc_density_2_datafile: "Wässle_1989_Nature_Fig3_gcData_c.npz"
+gc_density_control_datafile: "Wässle_1989_Nature_Fig3_c.npz"
+
+
+dendr_diam1_datafile_parasol: "Perry_1984_Neurosci_ParasolDendrDiam_Fig6A_c.npz"
+dendr_diam2_datafile_parasol: "Watanabe_1989_JCompNeurol_ParasolDendrDiam_Fig7_c.npz"
+dendr_diam3_datafile_parasol: "Goodchild_1996_JCompNeurol_Parasol_DendDiam_Fig2A_c.npz"
+temporal_BK_model_datafile_parasol: "Benardete_1999_VisNeurosci_parasol.csv"
+spatial_DoG_datafile_parasol: "Schottdorf_2021_JPhysiol_CenRadius_Fig4C_parasol_c.npz"
+
+dendr_diam1_datafile_midget: "Perry_1984_Neurosci_MidgetDendrDiam_Fig6B_c.npz"
+dendr_diam2_datafile_midget: "Watanabe_1989_JCompNeurol_MidgetDendrDiam_Fig7_c.npz"
+dendr_diam3_datafile_midget: "Goodchild_1996_JCompNeurol_Midget_DendDiam_Fig2B_c.npz"
+temporal_BK_model_datafile_midget: "Benardete_1997_VisNeurosci_midget.csv"
+spatial_DoG_datafile_midget: "Schottdorf_2021_JPhysiol_CenRadius_Fig4C_midget_c.npz"
+
+dendr_diam_units:
+  data1: ["mm", "um"]
+  data2: ["mm", "um"]
+  data3: ["deg", "um"]
+
+cone_density1_datafile: "Packer_1989_JCompNeurol_ConeDensity_Fig6A_main_c.npz"
+cone_density2_datafile: "Packer_1989_JCompNeurol_ConeDensity_Fig6A_insert_c.npz"
+cone_noise_datafile: "Angueyra_2013_NatNeurosci_Fig6E_c.npz"
+cone_response_datafile: "Angueyra_2013_NatNeurosci_Fig6B_c.npz"
+
+bipolar_table_datafile: "Boycott_1991_EurJNeurosci_Table1.csv"
+
+parasol_on_RI_values_datafile: "Turner_2018_eLife_Fig5C_ON_c.npz"
+parasol_off_RI_values_datafile: "Turner_2018_eLife_Fig5C_OFF_c.npz"
+
+temporal_pattern_datafile: "Angueyra_2022_JNeurosci_Fig2B_c.npz"

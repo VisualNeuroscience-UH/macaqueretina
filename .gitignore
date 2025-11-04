@@ -20,7 +20,5 @@
 
 *.pyc
 *.rst~
-docs/_build/
-docs/build/
-
+docs/html/
 

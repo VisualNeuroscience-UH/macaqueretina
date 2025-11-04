@@ -1,11 +1,33 @@
+"""
+Module on retina management
+
+We use dependency injection to make the code more modular and easier to test.
+It means that during construction here at the manager level, we can inject
+an object instance to constructor of a "client", which becomes an attribute
+of the instance.
+"""
+
+from __future__ import annotations
+
+# Built-in
+import time
+import warnings
+from pathlib import Path
+from typing import TYPE_CHECKING, Callable
+
 # Third-party
+import matplotlib.pyplot as plt
 import numpy as np
 
 # Local
 from macaqueretina.analysis.analysis_module import Analysis
-from macaqueretina.context.context_module import Context
+from macaqueretina.data_io.config_io import load_yaml
 from macaqueretina.data_io.data_io_module import DataIO
-from macaqueretina.project.project_utilities_module import ProjectUtilities
+from macaqueretina.parameters.param_reorganizer import ParamReorganizer
+from macaqueretina.project.project_utilities_module import (
+    DataSampler,
+    ProjectUtilitiesMixin,
+)
 from macaqueretina.retina.construct_retina_module import ConstructRetina
 from macaqueretina.retina.fit_module import Fit
 from macaqueretina.retina.retina_math_module import RetinaMath
@@ -19,16 +41,86 @@ from macaqueretina.stimuli.experiment_module import Experiment
 from macaqueretina.stimuli.visual_stimulus_module import AnalogInput, VisualStimulus
 from macaqueretina.viz.viz_module import Viz, VizResponse
 
-"""
-Module on retina management
+if TYPE_CHECKING:
+    from macaqueretina.data_io.config_io import Configuration
 
-We use dependency injection to make the code more modular and easier to test.
-It means that during construction here at the manager level, we can inject
-an object instance to constructor of a "client", which becomes an attribute
-of the instance.
 
-Simo Vanni 2022
-"""
+warnings.simplefilter("ignore")
+
+
+def _get_validation_params_method(parameters_folder: Path) -> Callable | None:
+    """
+    Get parameter validation method if a .py file with 'validation' in its name
+    is found in the parameters/ subfolder.
+
+    Returns:
+        Callable or None: validation function () if found, None otherwise
+    """
+    validation_files = list(parameters_folder.glob("*validation*.py"))
+    match len(validation_files):
+        case 0:
+            print(
+                f"No validation file provided in {parameters_folder}. "
+                f"Proceeding without parameter validation."
+            )
+            return None
+        case 1:
+            try:
+                # Local
+                from macaqueretina.parameters.param_validation import validate_params
+
+                return validate_params
+            except ImportError as e:
+                print(f"Could not import validation file: {e}")
+                return None
+        case n:
+            raise ValueError(
+                f"Expected at most 1 validation file in {parameters_folder}, but found {n} files"
+                f" with 'validation' in their name:"
+                f"{[file.name for file in validation_files]}"
+            )
+
+
+def _dispatcher(PM: ProjectManager, config: Configuration) -> None:
+    """Runs the pipeline(s) chosen in the main yaml file."""
+    run = config.run
+    if run.build_retina:
+        PM.construct_retina.build_retina_client()
+    if run.make_stimulus:
+        PM.stimulate.make_stimulus_video()
+    if run.simulate_retina:
+        PM.simulate_retina.client()
+    if run.visualize_DoG_img_grid.show:
+        options = run.visualize_DoG_img_grid
+        PM.viz.show_DoG_img_grid(
+            gc_list=options.gc_list,
+            n_samples=options.n_samples,
+            savefigname=options.savefigname,
+        )
+    if run.visualize_all_gc_responses:
+        options = run.visualize_all_gc_responses
+        PM.viz.show_all_gc_responses()
+
+
+def load_parameters() -> Configuration:
+    """Load configuration parameters."""
+    project_manager_module_file_path = Path(__file__).resolve()
+    git_repo_root_path = project_manager_module_file_path.parent.parent
+
+    parameters_folder: Path = git_repo_root_path.joinpath("parameters/")
+    yaml_files = list(parameters_folder.glob("*.yaml"))
+    validate_params: Callable | None = _get_validation_params_method(parameters_folder)
+
+    config: Configuration = load_yaml(yaml_files)
+
+    if validate_params:
+        validated_config = validate_params(
+            config, project_manager_module_file_path, git_repo_root_path
+        )
+        reorganizer = ParamReorganizer()
+        config = reorganizer.reorganize(validated_config)
+
+    return config
 
 
 class ProjectData:
@@ -42,123 +134,111 @@ class ProjectData:
         self.fit = {}
 
 
-class ProjectManager(ProjectUtilities):
-    def __init__(self, **all_properties):
+class ProjectManager(ProjectUtilitiesMixin):
+    def __init__(self, config):
         """
         Main project manager.
         In init we construct other classes and inject necessary dependencies.
         This class is allowed to house project-dependent data and methods.
         """
 
-        context = Context(all_properties)
-        context.device = context.validated_properties["device"]
+        self.config = config
 
-        self.context = context
-        self._get_unique_hashes()
-        self._set_retina_filenames()
-
-        data_io = DataIO(context)
+        data_io = DataIO(self.config)
         self.data_io = data_io
 
-        self._save_basic_retina_metadata()
-        self._set_and_drop_retina_parameters_append()
+        self.project_data = ProjectData()
 
-        project_data = ProjectData()
-
-        retina_math = RetinaMath()
+        self.retina_math = RetinaMath()
 
         ana = Analysis(
-            # Interfaces
-            context,
+            # Dependencies
+            self.config,
             data_io,
             # Methods which are needed also elsewhere
-            pol2cart=retina_math.pol2cart,
-            get_photoisomerizations_from_luminance=retina_math.get_photoisomerizations_from_luminance,
+            pol2cart=self.retina_math.pol2cart,
+            get_photoisomerizations_from_luminance=self.retina_math.get_photoisomerizations_from_luminance,
         )
 
         self.ana = ana
 
         viz = Viz(
-            # Interfaces
-            context,
+            # Dependencies
+            self.config,
             data_io,
-            project_data,
+            self.project_data,
             ana,
             # Methods which are needed also elsewhere
-            round_to_n_significant=self.round_to_n_significant,
-            DoG2D_fixed_surround=retina_math.DoG2D_fixed_surround,
-            DoG2D_independent_surround=retina_math.DoG2D_independent_surround,
-            DoG2D_circular=retina_math.DoG2D_circular,
-            pol2cart=retina_math.pol2cart,
-            sector2area_mm2=retina_math.sector2area_mm2,
-            interpolate_data=retina_math.interpolate_data,
-            lorenzian_function=retina_math.lorenzian_function,
+            DoG2D_fixed_surround=self.retina_math.DoG2D_fixed_surround,
+            DoG2D_independent_surround=self.retina_math.DoG2D_independent_surround,
+            DoG2D_circular=self.retina_math.DoG2D_circular,
+            pol2cart=self.retina_math.pol2cart,
+            sector2area_mm2=self.retina_math.sector2area_mm2,
+            interpolate_data=self.retina_math.interpolate_data,
+            lorenzian_function=self.retina_math.lorenzian_function,
         )
-
         self.viz = viz
 
         self.viz_spikes_with_stimulus = VizResponse(
-            context,
+            self.config,
             data_io,
-            project_data,
+            self.project_data,
             VisualSignal,
         )
 
-        fit = Fit(project_data, context.dog_metadata_parameters)
+        self.construct_retina = self.build_retina_instance()
 
-        retina_vae = RetinaVAE(context)
-
-        self.construct_retina = ConstructRetina(
-            context,
-            data_io,
-            viz,
-            fit,
-            retina_vae,
-            retina_math,
-            project_data,
-            self.get_xy_from_npz,
-        )
         self.viz.construct_retina = self.construct_retina
 
-        stimulate = VisualStimulus(context, data_io, self.get_xy_from_npz)
+        stimulate = VisualStimulus(self.config, data_io, self.get_xy_from_npz)
         self.stimulate = stimulate
 
         simulate_retina = SimulateRetina(
-            context, data_io, project_data, retina_math, context.device, stimulate
+            self.config,
+            data_io,
+            self.project_data,
+            self.retina_math,
+            self.config.device,
+            stimulate,
         )
         self.simulate_retina = simulate_retina
 
-        experiment = Experiment(
-            context, data_io, stimulate, simulate_retina, self.get_cone_noise_hash
-        )
+        experiment = Experiment(self.config, data_io, stimulate, simulate_retina)
         self.experiment = experiment
 
         analog_input = AnalogInput(
-            context,
+            self.config,
             data_io,
             viz,
             ReceptiveFields=ReceptiveFieldsBase,
             pol2cart_df=self.simulate_retina.pol2cart_df,
             get_w_z_coords=self.simulate_retina.get_w_z_coords,
         )
-
         self.analog_input = analog_input
 
+        self.data_sampler = DataSampler
+
         # Set numpy random seed
-        np.random.seed(self.context.numpy_seed)
+        np.random.seed(self.config.numpy_seed)
 
-    @property
-    def context(self):
-        return self._context
+    def build_retina_instance(self):
+        project_data = ProjectData()
 
-    @context.setter
-    def context(self, value):
-        if isinstance(value, Context):
-            self._context = value
-        else:
-            raise AttributeError(
-                "Trying to set improper context. Context must be a context object."
-            )
+        fit = Fit(project_data, self.config.experimental_metadata)
+
+        retina_vae = RetinaVAE(self.config)
+
+        construct_retina = ConstructRetina(
+            self.config,
+            self.data_io,
+            self.viz,
+            fit,
+            retina_vae,
+            self.retina_math,
+            project_data,
+            self.get_xy_from_npz,
+        )
+        return construct_retina
 
     @property
     def data_io(self):
@@ -171,19 +251,6 @@ class ProjectManager(ProjectUtilities):
         else:
             raise AttributeError(
                 "Trying to set improper data_io. Data_io must be a DataIO object."
-            )
-
-    @property
-    def construct_retina(self):
-        return self._construct_retina
-
-    @construct_retina.setter
-    def construct_retina(self, value):
-        if isinstance(value, ConstructRetina):
-            self._construct_retina = value
-        else:
-            raise AttributeError(
-                "Trying to set improper construct_retina. construct_retina must be a ConstructRetina instance."
             )
 
     @property
@@ -225,75 +292,38 @@ class ProjectManager(ProjectUtilities):
                 "Trying to set improper analog_input. analog_input must be a AnalogInput instance."
             )
 
-    def get_cone_noise_hash(self, cone_noise_dict):
 
-        retina_limits = {
-            key: self.context.retina_parameters[key]
-            for key in ["ecc_limits_deg", "pol_limits_deg"]
-        }
-        cone_noise_dict.update(retina_limits)
+def main():
+    start_time = time.time()
+    config = load_parameters()
 
-        stim_duration = {
-            key: self.context.visual_stimulus_parameters[key]
-            for key in [
-                "fps",
-                "duration_seconds",
-                "baseline_start_seconds",
-                "baseline_end_seconds",
-            ]
-        }
+    if config.profile is True:
+        import cProfile
+        import pstats
 
-        cone_noise_dict.update(stim_duration)
+        profiler = cProfile.Profile()
+        profiler.enable()
+        end_time = time.time()
 
-        return self.context.generate_hash(cone_noise_dict, n_hashes=1)
+    PM = ProjectManager(config)
 
-    def _get_unique_hashes(self):
+    _dispatcher(PM, config)
 
-        self.context.retina_parameters["retina_parameters_hash"] = (
-            self.context.generate_hash(self.context.retina_parameters)
-        )
+    end_time = time.time()
+    print(
+        "Total time taken: ",
+        time.strftime(
+            "%H hours %M minutes %S seconds", time.gmtime(end_time - start_time)
+        ),
+    )
 
-        self.context.retina_parameters_append["cone_noise_hash"] = (
-            self.get_cone_noise_hash(
-                self.context.retina_parameters_append["cone_general_parameters"]
-            )
-        )
+    plt.show()
 
-    def _set_retina_filenames(self):
-        hashstr = self.context.retina_parameters["retina_parameters_hash"]
-        gc_type = self.context.retina_parameters["gc_type"]
-        response_type = self.context.retina_parameters["response_type"]
-        self.context.retina_parameters["mosaic_file"] = (
-            gc_type + "_" + response_type + "_" + hashstr + "_mosaic.csv"
-        )
-        self.context.retina_parameters["spatial_rfs_file"] = (
-            gc_type + "_" + response_type + "_" + hashstr + "_spatial_rfs.npz"
-        )
-        self.context.retina_parameters["ret_file"] = (
-            gc_type + "_" + response_type + "_" + hashstr + "_ret.npz"
-        )
-        self.context.retina_parameters["retina_metadata_file"] = (
-            gc_type + "_" + response_type + "_" + hashstr + "_metadata.yaml"
-        )
+    if config.profile is True:
+        profiler.disable()
+        stats = pstats.Stats(profiler).sort_stats("tottime")
+        stats.print_stats(20)
 
-    def _save_basic_retina_metadata(self):
-        retina_parameters = self.context.retina_parameters
-        yaml_filename = retina_parameters["retina_metadata_file"]
-        yaml_filename_full = self.context.output_folder.joinpath(yaml_filename)
 
-        # yaml does not support complex numbers, so we convert to string
-        retina_parameters["retina_center"] = str(retina_parameters["retina_center"])
-
-        self.data_io.save_dict_to_yaml(
-            yaml_filename_full,
-            self.context.retina_parameters,
-            overwrite=False,
-        )
-
-        # And then we change it back to complex number
-        retina_parameters["retina_center"] = complex(retina_parameters["retina_center"])
-
-    def _set_and_drop_retina_parameters_append(self):
-
-        self.context.retina_parameters.update(self.context.retina_parameters_append)
-        del self.context.retina_parameters_append
+if __name__ == "__main__":
+    main()

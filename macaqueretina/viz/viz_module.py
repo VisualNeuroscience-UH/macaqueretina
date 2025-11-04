@@ -39,8 +39,8 @@ class Viz:
 
     cmap = "gist_earth"  # viridis or cividis would be best for color-blind
 
-    def __init__(self, context, data_io, project_data, ana, **kwargs) -> None:
-        self._context = context
+    def __init__(self, config, data_io, project_data, ana, **kwargs) -> None:
+        self._config = config
         self._data_io = data_io
         self._project_data = project_data
         self._ana = ana
@@ -53,8 +53,8 @@ class Viz:
         self.cmap_spatial_filter = "bwr"
 
     @property
-    def context(self):
-        return self._context
+    def config(self):
+        return self._config
 
     @property
     def data_io(self):
@@ -96,7 +96,7 @@ class Viz:
             is saved with that name. If it's a relative path, the figure is saved to that path.
             If not provided, the figure is saved as 'MyFigure.png'. Defaults to "".
         myformat : str, optional
-            The format of the figure (e.g., 'png', 'jpg', 'svg', etc.).
+            The format of the figure (e.g., 'png', 'jpg', 'eps', etc.).
             If provided with a leading ".", the "." is removed. Defaults to 'png'.
         subfolderpath : str, optional
             The subfolder within the working directory to which the figure is saved.
@@ -108,7 +108,6 @@ class Viz:
 
         Notes
         -----
-        - The fonts in the figure are configured to be saved as fonts, not as paths.
         - If the specified subfolder doesn't exist, it is created.
         - If both `figurename` and `subfolderpath` are paths, `figurename` takes precedence,
         and `subfolderpath` is overridden.
@@ -144,8 +143,8 @@ class Viz:
             final_filename = f"{base_name}{extension}"
 
         # Construct full save path
-        path = self.context.path
-        project_conf_module_file_path = self.context.project_conf_module_file_path
+        path = self.config.path
+        project_manager_module_file_path = self.config.project_manager_module_file_path
         full_subfolderpath = Path.joinpath(path, subfolderpath)
         save_path = Path.joinpath(full_subfolderpath, final_filename)
 
@@ -398,379 +397,6 @@ class Viz:
             self._figsave(figurename=title + "_" + savefigname)
 
     # ConstructRetina visualization
-    def _get_imgs(
-        self,
-        df,
-        nsamples,
-        exp_spat_filt,
-        this_trial_idx,
-    ):
-        log_dir = df["logdir"][this_trial_idx]
-
-        # Get folder name starting "checkpoint"
-        checkpoint_folder_name = [f for f in os.listdir(log_dir) if "checkpoint" in f][
-            0
-        ]
-        checkpoint_path = Path(log_dir) / checkpoint_folder_name / "model.pth"
-
-        # Load the model
-        model = torch.load(checkpoint_path)
-
-        if hasattr(model, "test_data"):
-            test_data = model.test_data[:nsamples, :, :, :]
-        else:
-            # Make a list of dict keys starting "cell_ix_" from exp_spat_filt dictionary
-            keys = exp_spat_filt.keys()
-            cell_ix_names_list = [key for key in keys if "cell_ix_" in key]
-            # Make a numpy array of numbers following "cell_ix_"
-            cell_ix_array = np.array(
-                [int(key.split("cell_ix_")[1]) for key in cell_ix_names_list]
-            )
-
-            # Take first nsamples from cell_ix_array. They have to be constant,
-            # because we are showing multiple sets of images on top of each other.
-            samples = cell_ix_array[:nsamples]
-
-            test_data = np.zeros(
-                [
-                    nsamples,
-                    1,
-                    exp_spat_filt["num_pix_y"],
-                    exp_spat_filt["num_pix_x"],
-                ]
-            )
-            for idx, this_sample in enumerate(samples):
-                test_data[idx, 0, :, :] = exp_spat_filt[f"cell_ix_{this_sample}"][
-                    "spatial_data_array"
-                ]
-
-        # Hack to reuse the AugmentedDataset._feature_scaling method. Scales to [0,1]
-        test_data = AugmentedDataset._feature_scaling("", test_data)
-
-        test_data = torch.from_numpy(test_data).float()
-        img_size = model.decoder.unflatten.unflattened_size
-        test_data = TF.resize(test_data, img_size[-2:], antialias=True)
-
-        self.device = self.context.device
-        samples = range(0, nsamples)
-
-        model.eval()
-        model.to(self.device)
-
-        img = test_data.to(self.device)
-
-        with torch.no_grad():
-            rec_img = model(img)
-
-        img = img.cpu().squeeze().numpy()
-        rec_img = rec_img.cpu().squeeze().numpy()
-
-        return img, rec_img, samples
-
-    def _subplot_dependent_boxplots(self, axd, kw, df, dep_vars, config_vars_changed):
-        """Boxplot dependent variables for one ray tune experiment"""
-
-        # config_vars_changed list contain the varied columns in dataframe df
-        # From config_vars_changed, 'config/model_id' contain the replications of the same model
-        # Other config_vars_changed contain the models of interest
-        # Make an seaborn boxplot for each model of interest
-        config_vars_changed.remove("config/model_id")
-
-        # If there are more than one config_vars_changed,
-        # make a new dataframe column with the values of the config_vars_changed as strings
-        if len(config_vars_changed) > 1:
-            df["config_vars"] = (
-                df[config_vars_changed].astype(str).agg(",".join, axis=1)
-            )
-            # config_vars_changed = ["config_vars"]
-            config_vars_for_label = [
-                col.removeprefix("config/") for col in config_vars_changed
-            ]
-            # Combine the string listed in config_vars_changed to one string
-            config_vars_label = ",".join(config_vars_for_label)
-
-        else:
-            df["config_vars"] = df[config_vars_changed[0]]
-            config_vars_label = [
-                col.removeprefix("config/") for col in config_vars_changed
-            ][0]
-
-        # Make one subplot for each dependent variable
-        # Plot labels only after the last subplot
-        for idx, dep_var in enumerate(dep_vars):
-            ax = axd[f"{kw}{idx}"]
-
-            # Create the boxplot with seaborn
-            ax_sns = sns.boxplot(
-                x="config_vars", y=dep_var, data=df, ax=ax, whis=[0, 100]
-            )
-            # If any of the df["config_vars"] has length > 4, make x-label rotated 90 degrees
-            if any(df["config_vars"].astype(str).str.len() > 4):
-                ax_sns.set_xticklabels(ax.get_xticklabels(), rotation=90)
-
-            # Set the title of the subplot to be the dependent variable name
-            ax.set_title(dep_var)
-
-            # Set y-axis label
-            ax.set_ylabel("")
-
-            # Set x-axis label
-            if idx == 0:  # only the first subplot gets an x-axis label
-                ax.set_xlabel(config_vars_label)
-            else:
-                ax.set_xlabel("")
-
-    def _get_best_trials(self, df, dep_var, best_is, num_best_trials):
-        """
-        Get the indices of the best trials for a dependent variable.
-
-        Parameters
-        ----------
-        df : pandas.DataFrame
-            Dataframe containing the results of the hyperparameter search.
-        dep_var : str
-            Name of the dependent variable.
-        best_is : str
-            Whether the best trials are the ones with the highest or lowest values.
-        num_best_trials : int
-            Number of best trials to return. Overrides frac_best.
-
-        Returns
-        -------
-        best_trials : list
-            List of indices of the best trials.
-        """
-
-        # get array of values for this dependent variable
-        dep_var_vals = df[dep_var].values
-
-        # get the indices of the num_best_trials
-        if best_is == "min":
-            best_trials = np.argsort(dep_var_vals)[:num_best_trials]
-        elif best_is == "max":
-            best_trials = np.argsort(dep_var_vals)[-num_best_trials:]
-
-        return best_trials, dep_var_vals
-
-    def _subplot_dependent_variables(self, axd, kw, result_grid, dep_vars, best_trials):
-        """Plot dependent variables as a function of epochs."""
-
-        df = result_grid.get_dataframe()
-        # Find all columns with string "config/"
-        config_cols = [x for x in df.columns if "config/" in x]
-
-        # From the config_cols, identify columns where there is more than one unique value
-        # These are the columns which were varied in the search space
-        varied_cols = []
-        for col in config_cols:
-            if len(df[col].unique()) > 1:
-                varied_cols.append(col)
-
-        # Drop the "config/" part from the column names
-        varied_cols = [x.replace("config/", "") for x in varied_cols]
-
-        # # remove "model_id" from the varied columns
-        # varied_cols.remove("model_id")
-
-        num_colors = len(best_trials)
-        colors = plt.cm.get_cmap("tab20", num_colors).colors
-
-        total_n_epochs = 0
-        # Make one subplot for each dependent variable
-        for idx, dep_var in enumerate(dep_vars):
-            # Create a new plot for each label
-            color_idx = 0
-            ax = axd[f"{kw}{idx}"]
-
-            for i, result in enumerate(result_grid):
-                if i not in best_trials:
-                    continue
-
-                if idx == 0:
-                    label = f"{dep_vars[color_idx]}: " + ",".join(
-                        f"{x}={result.config[x]}" for x in varied_cols
-                    )
-                    legend = True
-                    first_ax = ax
-
-                else:
-                    label = None
-                    legend = False
-
-                result.metrics_dataframe.plot(
-                    "training_iteration",
-                    dep_var,
-                    ax=ax,
-                    label=label,
-                    color=colors[color_idx],
-                    legend=legend,
-                )
-
-                if len(result.metrics_dataframe) > total_n_epochs:
-                    total_n_epochs = len(result.metrics_dataframe)
-
-                # At the end (+1) of the x-axis, add mean and SD of last 50 epochs as dot and vertical line, respectively
-                last_50 = result.metrics_dataframe.tail(50)
-                mean = last_50[dep_var].mean()
-                std = last_50[dep_var].std()
-                n_epochs = result.metrics_dataframe.tail(1)["training_iteration"]
-                ax.plot(
-                    n_epochs + n_epochs // 5,
-                    mean,
-                    "o",
-                    color=colors[color_idx],
-                )
-                ax.plot(
-                    [n_epochs + n_epochs // 5] * 2,
-                    [mean - std, mean + std],
-                    "-",
-                    color=colors[color_idx],
-                )
-
-                color_idx += 1
-
-            if idx == 0:
-                ax.set_ylabel("Metrics")
-
-            # Add legend and bring it to the front
-            leg = first_ax.legend(
-                loc="center left", bbox_to_anchor=((idx + 2.0), 0.5, 1.0, 0.2)
-            )
-            first_ax.set_zorder(1)
-
-            # change the line width for the legend
-            for line in leg.get_lines():
-                line.set_linewidth(3.0)
-
-            # Set x and y axis tick font size 8
-            ax.tick_params(axis="both", which="major", labelsize=8)
-
-            # Change legend font size to 8
-            for text in leg.get_texts():
-                text.set_fontsize(8)
-
-            ax.grid(True)
-
-            # set x axis labels off
-            ax.set_xlabel("")
-            # set x ticks off
-            ax.set_xticks([])
-
-        first_ax.set_title(
-            f"Evolution for best trials (ad {total_n_epochs} epochs)\nDot and vertical line indicate mean and SD of last 50 epochs",
-            loc="left",
-        )
-
-    def _subplot_img_recoimg(self, axd, kw, subidx, img, samples, title):
-        """
-        Plot sample images
-        """
-        for pos_idx, sample_idx in enumerate(samples):
-            if subidx is None:
-                ax = axd[f"{kw}{pos_idx}"]
-            else:
-                ax = axd[f"{kw}{subidx}{pos_idx}"]
-            ax.imshow(img[sample_idx], cmap="gist_gray")
-            ax.get_xaxis().set_visible(False)
-            ax.get_yaxis().set_visible(False)
-            if pos_idx == 0:
-                # ax.set_title(title, fontsize=8, fontdict={'verticalalignment': 'baseline', 'horizontalalignment': 'left'})
-                # Print title to the left of the first image. The coordinates are in axes coordinates
-                ax.text(
-                    -1.0,
-                    0.5,
-                    title,
-                    fontsize=8,
-                    fontdict={
-                        "verticalalignment": "baseline",
-                        "horizontalalignment": "left",
-                    },
-                    transform=ax.transAxes,
-                )
-
-    def _show_tune_depvar_evolution(self, result_grid, dep_vars, highlight_trial=None):
-        """Plot results from ray tune"""
-
-        df = result_grid.get_dataframe()
-        # Find all columns with string "config/"
-        config_cols = [x for x in df.columns if "config/" in x]
-
-        # From the config_cols, identify columns where there is more than one unique value
-        # These are the columns which were varied in the search space
-        varied_cols = []
-        for col in config_cols:
-            if len(df[col].unique()) > 1:
-                varied_cols.append(col)
-
-        # Drop the "config/" part from the column names
-        varied_cols = [x.replace("config/", "") for x in varied_cols]
-
-        num_colors = len(result_grid.get_dataframe())
-        if highlight_trial is None:
-            colors = plt.cm.get_cmap("tab20", num_colors).colors
-            highlight_idx = None
-        else:
-            [highlight_idx] = [
-                idx
-                for idx, r in enumerate(result_grid)
-                if highlight_trial in r.metrics["trial_id"]
-            ]
-            # set all other colors low contrast gray, and the highlight color to red
-            colors = np.array(
-                ["gray" if idx != highlight_idx else "red" for idx in range(num_colors)]
-            )
-
-        # Make one subplot for each dependent variable
-        nrows = 2
-        ncols = len(dep_vars) // 2
-        plt.figure(figsize=(ncols * 5, nrows * 5))
-
-        for idx, dep_var in enumerate(dep_vars):
-            # Create a new plot for each label
-            color_idx = 0
-            ax = plt.subplot(nrows, ncols, idx + 1)
-            label = None
-
-            for result in result_grid:
-                # Too cluttered for a legend
-                # if idx == 0 and highlight_idx is None:
-                #     label = ",".join(f"{x}={result.config[x]}" for x in varied_cols)
-                #     legend = True
-                # else:
-                #     legend = False
-
-                ax_plot = result.metrics_dataframe.plot(
-                    "training_iteration",
-                    dep_var,
-                    ax=ax,
-                    label=label,
-                    color=colors[color_idx],
-                    legend=False,
-                )
-
-                # At the end (+1) of the x-axis, add mean and SD of last 50 epochs as dot and vertical line, respectively
-                last_50 = result.metrics_dataframe.tail(50)
-                mean = last_50[dep_var].mean()
-                std = last_50[dep_var].std()
-                n_epochs = result.metrics_dataframe.tail(1)["training_iteration"]
-                ax.plot(
-                    n_epochs + n_epochs // 5,
-                    mean,
-                    "o",
-                    color=colors[color_idx],
-                )
-                ax.plot(
-                    [n_epochs + n_epochs // 5] * 2,
-                    [mean - std, mean + std],
-                    "-",
-                    color=colors[color_idx],
-                )
-
-                color_idx += 1
-            ax.set_title(f"{dep_var}")
-            ax.set_ylabel(dep_var)
-            ax.grid(True)
-
     def show_gc_positions(self):
         """
         Show retina unit positions and receptive fields
@@ -890,25 +516,23 @@ class Viz:
             The name of the file to save the figure. If None, the figure is not saved.
         """
 
-        mosaic_file = self.context.retina_parameters["mosaic_file"]
-        gc_df = self.data_io.get_data(mosaic_file)
+        mosaic_file = self.config.retina_parameters["mosaic_file"]
+        gc_df = self.data_io.load_data(mosaic_file)
 
         ecc_mm = gc_df["pos_ecc_mm"].to_numpy()
         pol_deg = gc_df["pos_polar_deg"].to_numpy()
 
-        ecc_lim_deg = self.context.retina_parameters["ecc_limits_deg"]
-        ecc_lim_mm = (
-            np.array(ecc_lim_deg) / self.context.retina_parameters["deg_per_mm"]
-        )
-        pol_lim_deg = self.context.retina_parameters["pol_limits_deg"]
+        ecc_lim_deg = self.config.retina_parameters["ecc_limits_deg"]
+        ecc_lim_mm = np.array(ecc_lim_deg) / self.config.retina_parameters["deg_per_mm"]
+        pol_lim_deg = self.config.retina_parameters["pol_limits_deg"]
         boundary_polygon = self.boundary_polygon(ecc_lim_mm, pol_lim_deg)
 
         # Obtain mm values
-        if self.context.retina_parameters["dog_model_type"] == "circular":
+        if self.config.retina_parameters["dog_model_type"] == "circular":
             semi_xc = gc_df["rad_c_mm"]
             semi_yc = gc_df["rad_c_mm"]
             angle_in_deg = np.zeros(len(gc_df))
-        elif self.context.retina_parameters["dog_model_type"] in [
+        elif self.config.retina_parameters["dog_model_type"] in [
             "ellipse_independent",
             "ellipse_fixed",
         ]:
@@ -928,7 +552,7 @@ class Viz:
             xcoord.flatten(),
             ycoord.flatten(),
             "b.",
-            label=self.context.retina_parameters["gc_type"],
+            label=self.config.retina_parameters["gc_type"],
         )
         # Ellipse parameters: Ellipse(xy, width, height, angle=0, **kwargs). Only possible one at the time, unfortunately.
         for index in np.arange(len(xcoord)):
@@ -985,7 +609,7 @@ class Viz:
         """
 
         include_multivariate = (statistics == "multivariate") & (
-            self.context.retina_parameters["spatial_model_type"] == "DOG"
+            self.config.retina_parameters["spatial_model_type"] == "DOG"
         )
 
         match distribution:
@@ -1296,7 +920,7 @@ class Viz:
         ax.legend()
 
         if dd_model_caption:
-            if self.context.retina_parameters["dd_regr_model"] == "linear":
+            if self.config.retina_parameters["dd_regr_model"] == "linear":
                 intercept = fit_parameters[1]
                 slope = fit_parameters[0]
                 ax.plot(data_all_x, intercept + slope * data_all_x, "k--")
@@ -1308,7 +932,7 @@ class Viz:
                     color="k",
                 )
 
-            elif self.context.retina_parameters["dd_regr_model"] == "quadratic":
+            elif self.config.retina_parameters["dd_regr_model"] == "quadratic":
                 intercept = fit_parameters[2]
                 slope = fit_parameters[1]
                 square = fit_parameters[0]
@@ -1325,7 +949,7 @@ class Viz:
                     color="k",
                 )
 
-            elif self.context.retina_parameters["dd_regr_model"] == "cubic":
+            elif self.config.retina_parameters["dd_regr_model"] == "cubic":
                 intercept = fit_parameters[3]
                 slope = fit_parameters[2]
                 square = fit_parameters[1]
@@ -1346,7 +970,7 @@ class Viz:
                     color="k",
                 )
 
-            elif self.context.retina_parameters["dd_regr_model"] == "exponential":
+            elif self.config.retina_parameters["dd_regr_model"] == "exponential":
                 constant = fit_parameters[0]
                 lamda = fit_parameters[1]
                 ax.plot(data_all_x, constant + np.exp(data_all_x / lamda), "k--")
@@ -1358,7 +982,7 @@ class Viz:
                     color="k",
                 )
 
-            elif self.context.retina_parameters["dd_regr_model"] == "powerlaw":
+            elif self.config.retina_parameters["dd_regr_model"] == "powerlaw":
                 # a = 10 ** fit_parameters[0]
                 a = fit_parameters[0]
                 b = fit_parameters[1]
@@ -1391,7 +1015,7 @@ class Viz:
         Plot cone noise as a function of temporal frequency using the model by Victor 1987 JPhysiol.
         """
 
-        ret_file_npz = self.data_io.get_data(self.context.retina_parameters["ret_file"])
+        ret_file_npz = self.data_io.load_data(self.config.retina_parameters["ret_file"])
         noise_frequency_data = ret_file_npz["noise_frequency_data"]
         noise_power_data = ret_file_npz["noise_power_data"]
         cone_noise_parameters = ret_file_npz["cone_noise_parameters"]
@@ -1404,7 +1028,7 @@ class Viz:
         self.cone_interp_function = self.interpolate_data(
             cone_frequency_data, cone_power_data
         )
-        self.cone_noise_wc = self.context.retina_parameters["cone_general_parameters"][
+        self.cone_noise_wc = self.config.retina_parameters["cone_general_parameters"][
             "cone_noise_wc"
         ]
 
@@ -1502,7 +1126,7 @@ class Viz:
         savefigname : str, optional
             The name of the file to save the figure. If None, the figure is not saved.
         """
-        if self.context.retina_parameters["spatial_model_type"] == "DOG":
+        if self.config.retina_parameters["spatial_model_type"] == "DOG":
             spat_filt = self.project_data.fit["exp_spat_filt"]
             self.show_spatial_filter_response(
                 spat_filt,
@@ -1511,7 +1135,7 @@ class Viz:
                 title="Experimental",
                 savefigname=savefigname,
             )
-        elif self.context.retina_parameters["spatial_model_type"] == "VAE":
+        elif self.config.retina_parameters["spatial_model_type"] == "VAE":
             gen_rfs = self.project_data.construct_retina["gen_rfs"]
             spat_filt = self.project_data.fit["gen_spat_filt"]
             self.show_spatial_filter_response(
@@ -1678,7 +1302,7 @@ class Viz:
         """
         retina_vae = self.project_data.construct_retina["retina_vae"]
         assert (
-            self.context.retina_parameters["spatial_model_type"] == "VAE"
+            self.config.retina_parameters["spatial_model_type"] == "VAE"
         ), "Only model type VAE is supported for show_gen_exp_spatial_rf()"
         if ds_name == "train_ds":
             ds = retina_vae.train_loader.dataset
@@ -1703,7 +1327,7 @@ class Viz:
             ax.text(
                 0.05,
                 0.85,
-                retina_vae.apricot_data.data_labels2names_dict[
+                retina_vae.experimental_data.data_labels2names_dict[
                     ds[sample_idx][1].item()
                 ],
                 fontsize=10,
@@ -1761,129 +1385,6 @@ class Viz:
         )
         ax0.set(xlabel="tsne-2d-one", ylabel="tsne-2d-two")
         plt.title("TSNE plot of encoded samples")
-
-    def show_ray_experiment(self, ray_exp, this_dep_var, highlight_trial=None):
-        """
-        Show the results of a ray experiment. If ray_exp is None, then
-        the most recent experiment is shown.
-
-        Parameters
-        ----------
-        ray_exp : str
-            The name of the ray experiment
-        this_dep_var : str
-            The dependent variable to use for selecting the best trials
-        highlight_trial : int
-            The trial to highlight in the evolution plot
-        """
-
-        info_columns = ["trial_id", "iteration"]
-        dep_vars = ["train_loss", "val_loss", "mse", "ssim", "kid_mean", "kid_std"]
-        dep_vars_best = ["min", "min", "min", "max", "min", "min"]
-        config_prefix = "config/"
-
-        if ray_exp is None:
-            most_recent = True
-        else:
-            most_recent = False
-
-        result_grid = self.data_io.load_ray_results_grid(
-            most_recent=most_recent, ray_exp=ray_exp
-        )
-        df = result_grid.get_dataframe()
-
-        # Get configuration variables
-        config_vars_all = [c for c in df.columns if config_prefix in c]
-
-        # Drop columns that are constant in the experiment
-        constant_cols = []
-        for col in config_vars_all:
-            if len(df[col].unique()) == 1:
-                constant_cols.append(col)
-        config_vars_changed = [
-            col for col in config_vars_all if col not in constant_cols
-        ]
-        config_vars = [col.removeprefix(config_prefix) for col in config_vars_changed]
-
-        # Remove all rows containing nan values in the dependent variables
-        df = df.dropna(subset=dep_vars)
-
-        # Collect basic data from the experiment
-        n_sweeps = len(df)
-        n_errors = result_grid.num_errors
-
-        # Columns to describe the experiment
-        exp_info_columns = info_columns + config_vars_changed + dep_vars
-        print(df[exp_info_columns].describe())
-
-        # Find the row indeces of the n best trials
-        best_trials_across_dep_vars = []
-        for dep_var, dep_var_best in zip(dep_vars, dep_vars_best):
-            if dep_var_best == "min":
-                best_trials_across_dep_vars.append(df[dep_var].idxmin())
-            elif dep_var_best == "max":
-                best_trials_across_dep_vars.append(df[dep_var].idxmax())
-            if this_dep_var in dep_var:
-                this_dep_var_best = dep_var_best
-
-        df_filtered = df[exp_info_columns].loc[best_trials_across_dep_vars]
-        # Print the exp_info_columns for the best trials
-        print(f"Best trials: in order of {dep_vars=}")
-        print(df_filtered)
-
-        self._show_tune_depvar_evolution(
-            result_grid, dep_vars, highlight_trial=highlight_trial
-        )
-
-        nrows = 9
-        ncols = len(dep_vars)
-        nsamples = 10
-
-        layout = [
-            ["dh0", "dh1", "dh2", "dh3", "dh4", "dh5", ".", ".", ".", "."],
-            [".", ".", ".", ".", ".", ".", ".", ".", ".", "."],
-            [".", ".", ".", ".", ".", ".", ".", ".", ".", "."],
-            # ["dv0", "dv1", "dv2", "dv3", "dv4", "dv5", ".", ".", ".", "."],
-            ["im0", "im1", "im2", "im3", "im4", "im5", "im6", "im7", "im8", "im9"],
-            ["re0" + str(i) for i in range(10)],
-            ["re1" + str(i) for i in range(10)],
-            ["re2" + str(i) for i in range(10)],
-            ["re3" + str(i) for i in range(10)],
-            ["re4" + str(i) for i in range(10)],
-        ]
-        fig, axd = plt.subplot_mosaic(layout, figsize=(ncols * 2, nrows))
-
-        # Fraction of best = 1/4
-        frac_best = 0.25
-        num_best_trials = int(len(df) * frac_best)
-
-        self._subplot_dependent_boxplots(axd, "dh", df, dep_vars, config_vars_changed)
-
-        exp_spat_filt = self.project_data.fit["exp_spat_filt"]
-
-        num_best_trials = 5  # Also N reco img to show
-        best_trials, dep_var_vals = self._get_best_trials(
-            df, this_dep_var, this_dep_var_best, num_best_trials
-        )
-
-        img, rec_img, samples = self._get_imgs(
-            df, nsamples, exp_spat_filt, best_trials[0]
-        )
-
-        title = f"Original \nimages"
-        self._subplot_img_recoimg(axd, "im", None, img, samples, title)
-
-        title = f"Reco for \n{this_dep_var} = \n{dep_var_vals[best_trials[0]]:.3f}, \nidx = {best_trials[0]}"
-        self._subplot_img_recoimg(axd, "re", 0, rec_img, samples, title)
-
-        for idx, this_trial in enumerate(best_trials[1:]):
-            img, rec_img, samples = self._get_imgs(
-                df, nsamples, exp_spat_filt, this_trial
-            )
-
-            title = f"Reco for \n{this_dep_var} = \n{dep_var_vals[this_trial]:.3f}, \nidx = {this_trial}"
-            # Position idx in layout: enumerate starts at 0, so add 1.
-            self._subplot_img_recoimg(axd, "re", idx + 1, rec_img, samples, title)
 
     def show_unit_placement_progress(
         self,
@@ -2153,20 +1654,20 @@ class Viz:
         Visualize a ganglion cell and its connected cones.
         """
 
-        gc_df = self.data_io.get_data(self.context.retina_parameters["mosaic_file"])
-        gc_npz = self.data_io.get_data(
-            self.context.retina_parameters["spatial_rfs_file"]
+        gc_df = self.data_io.load_data(self.config.retina_parameters["mosaic_file"])
+        gc_npz = self.data_io.load_data(
+            self.config.retina_parameters["spatial_rfs_file"]
         )
 
         x_mm, y_mm = self.pol2cart(
             gc_df[["pos_ecc_mm"]].values, gc_df[["pos_polar_deg"]].values
         )
         gc_pos_mm = np.column_stack((x_mm, y_mm))
-        X_grid_mm = gc_npz["X_grid_mm"]
-        Y_grid_mm = gc_npz["Y_grid_mm"]
+        X_grid_cen_mm = gc_npz["X_grid_cen_mm"]
+        Y_grid_cen_mm = gc_npz["Y_grid_cen_mm"]
         gc_img_mask = gc_npz["gc_img_mask"]
 
-        ret_npz = self.data_io.get_data(self.context.retina_parameters["ret_file"])
+        ret_npz = self.data_io.load_data(self.config.retina_parameters["ret_file"])
         weights = ret_npz["cones_to_gcs_weights"]
         cone_positions = ret_npz["cone_optimized_pos_mm"]
 
@@ -2183,14 +1684,14 @@ class Viz:
 
         for idx, this_sample in enumerate(gc_list):
             gc_position = gc_pos_mm[this_sample, :]
-            if self.context.retina_parameters["dog_model_type"] == "circular":
+            if self.config.retina_parameters["dog_model_type"] == "circular":
                 DoG_patch = Circle(
                     xy=gc_position,
                     radius=gc_df.loc[this_sample, "rad_c_mm"],
                     edgecolor="g",
                     facecolor="none",
                 )
-            elif self.context.retina_parameters["dog_model_type"] in [
+            elif self.config.retina_parameters["dog_model_type"] in [
                 "ellipse_independent",
                 "ellipse_fixed",
             ]:
@@ -2225,8 +1726,8 @@ class Viz:
             )
 
             mask = gc_img_mask[this_sample, ...]
-            x_mm = X_grid_mm[this_sample, ...] * mask
-            y_mm = Y_grid_mm[this_sample, ...] * mask
+            x_mm = X_grid_cen_mm[this_sample, ...] * mask
+            y_mm = Y_grid_cen_mm[this_sample, ...] * mask
             x_mm = x_mm[x_mm != 0]
             y_mm = y_mm[y_mm != 0]
 
@@ -2250,22 +1751,22 @@ class Viz:
         Visualize a ganglion cell and its connected bipolars.
         """
 
-        gc_df = self.data_io.get_data(self.context.retina_parameters["mosaic_file"])
-        gc_npz = self.data_io.get_data(
-            self.context.retina_parameters["spatial_rfs_file"]
+        gc_df = self.data_io.load_data(self.config.retina_parameters["mosaic_file"])
+        gc_npz = self.data_io.load_data(
+            self.config.retina_parameters["spatial_rfs_file"]
         )
 
         x_mm, y_mm = self.pol2cart(
             gc_df[["pos_ecc_mm"]].values, gc_df[["pos_polar_deg"]].values
         )
         gc_pos_mm = np.column_stack((x_mm, y_mm))
-        X_grid_mm = gc_npz["X_grid_mm"]
-        Y_grid_mm = gc_npz["Y_grid_mm"]
+        X_grid_cen_mm = gc_npz["X_grid_cen_mm"]
+        Y_grid_cen_mm = gc_npz["Y_grid_cen_mm"]
         gc_img_mask = gc_npz["gc_img_mask"]
 
-        ret_npz = self.data_io.get_data(self.context.retina_parameters["ret_file"])
+        ret_npz = self.data_io.load_data(self.config.retina_parameters["ret_file"])
 
-        weights = ret_npz["bipolar_to_gcs_weights"]
+        weights = ret_npz["bipolar_to_gcs_cen_weights"]
         bipolar_positions = ret_npz["bipolar_optimized_pos_mm"]
 
         if isinstance(gc_list, list):
@@ -2281,14 +1782,14 @@ class Viz:
 
         for idx, this_sample in enumerate(gc_list):
             gc_position = gc_pos_mm[this_sample, :]
-            if self.context.retina_parameters["dog_model_type"] == "circular":
+            if self.config.retina_parameters["dog_model_type"] == "circular":
                 DoG_patch = Circle(
                     xy=gc_position,
                     radius=gc_df.loc[this_sample, "rad_c_mm"],
                     edgecolor="g",
                     facecolor="none",
                 )
-            elif self.context.retina_parameters["dog_model_type"] in [
+            elif self.config.retina_parameters["dog_model_type"] in [
                 "ellipse_independent",
                 "ellipse_fixed",
             ]:
@@ -2311,8 +1812,8 @@ class Viz:
                 ax[idx].scatter(*bipolar_pos, alpha=prob, color="blue")
 
             mask = gc_img_mask[this_sample, ...]
-            x_mm = X_grid_mm[this_sample, ...] * mask
-            y_mm = Y_grid_mm[this_sample, ...] * mask
+            x_mm = X_grid_cen_mm[this_sample, ...] * mask
+            y_mm = Y_grid_cen_mm[this_sample, ...] * mask
             x_mm = x_mm[x_mm != 0]
             y_mm = y_mm[y_mm != 0]
 
@@ -2349,7 +1850,7 @@ class Viz:
             If provided, the figure will be saved with this filename.
         """
 
-        ret_npz = self.data_io.get_data(self.context.retina_parameters["ret_file"])
+        ret_npz = self.data_io.load_data(self.config.retina_parameters["ret_file"])
 
         cones_to_bipolars_center_weights = ret_npz["cones_to_bipolars_center_weights"]
         cones_to_bipolars_surround_weights = ret_npz[
@@ -2418,14 +1919,14 @@ class Viz:
         savefigname : str, optional
             If provided, the figure will be saved with this filename.
         """
-        ret_data = self.data_io.get_data(self.context.retina_parameters["ret_file"])
+        ret_data = self.data_io.load_data(self.config.retina_parameters["ret_file"])
 
         weights = {
             "cones_to_bipolars_center": ret_data["cones_to_bipolars_center_weights"],
             "cones_to_bipolars_surround": ret_data[
                 "cones_to_bipolars_surround_weights"
             ],
-            "bipolar_to_gcs": ret_data["bipolar_to_gcs_weights"],
+            "bipolar_to_gcs": ret_data["bipolar_to_gcs_cen_weights"],
             "cones_to_gcs": ret_data["cones_to_gcs_weights"],
         }
 
@@ -2467,14 +1968,14 @@ class Viz:
         savefigname : str, optional
             If provided, the figure will be saved with this filename.
         """
-        ret_data = self.data_io.get_data(self.context.retina_parameters["ret_file"])
+        ret_data = self.data_io.load_data(self.config.retina_parameters["ret_file"])
 
         weights = {
             "cones_to_bipolars_center": ret_data["cones_to_bipolars_center_weights"],
             "cones_to_bipolars_surround": ret_data[
                 "cones_to_bipolars_surround_weights"
             ],
-            "bipolar_to_gcs": ret_data["bipolar_to_gcs_weights"],
+            "bipolar_to_gcs": ret_data["bipolar_to_gcs_cen_weights"],
             "cones_to_gcs": ret_data["cones_to_gcs_weights"],
         }
 
@@ -2528,21 +2029,21 @@ class Viz:
         Visualize a ganglion cell image, DoG fit and center grid points.
         """
 
-        gc_df = self.data_io.get_data(self.context.retina_parameters["mosaic_file"])
-        gc_npz = self.data_io.get_data(
-            self.context.retina_parameters["spatial_rfs_file"]
+        gc_df = self.data_io.load_data(self.config.retina_parameters["mosaic_file"])
+        gc_npz = self.data_io.load_data(
+            self.config.retina_parameters["spatial_rfs_file"]
         )
 
         x_mm, y_mm = self.pol2cart(
             gc_df[["pos_ecc_mm"]].values, gc_df[["pos_polar_deg"]].values
         )
         gc_pos_mm = np.column_stack((x_mm, y_mm))
-        X_grid_mm = gc_npz["X_grid_mm"]
-        Y_grid_mm = gc_npz["Y_grid_mm"]
+        X_grid_cen_mm = gc_npz["X_grid_cen_mm"]
+        Y_grid_cen_mm = gc_npz["Y_grid_cen_mm"]
         gc_img_mask = gc_npz["gc_img_mask"]
         gc_img = gc_npz["gc_img"]
 
-        gc_df = self.data_io.get_data(self.context.retina_parameters["mosaic_file"])
+        gc_df = self.data_io.load_data(self.config.retina_parameters["mosaic_file"])
         half_pix_mm = (gc_npz["um_per_pix"] / 1000) / 2
 
         if isinstance(gc_list, list):
@@ -2560,31 +2061,31 @@ class Viz:
             # Plot each rf image
 
             # extent (left, right, bottom, top)
-            left = X_grid_mm[this_sample, ...].min() - half_pix_mm
-            right = X_grid_mm[this_sample, ...].max() + half_pix_mm
-            bottom = Y_grid_mm[this_sample, ...].min() - half_pix_mm
-            top = Y_grid_mm[this_sample, ...].max() + half_pix_mm
+            left = X_grid_cen_mm[this_sample, ...].min() - half_pix_mm
+            right = X_grid_cen_mm[this_sample, ...].max() + half_pix_mm
+            bottom = Y_grid_cen_mm[this_sample, ...].min() - half_pix_mm
+            top = Y_grid_cen_mm[this_sample, ...].max() + half_pix_mm
             extent = (left, right, bottom, top)
             ax[idx].imshow(gc_img[this_sample, ...], extent=extent)
 
             # Center grid points
             mask = gc_img_mask[this_sample, ...]
-            x_mm = X_grid_mm[this_sample, ...] * mask
-            y_mm = Y_grid_mm[this_sample, ...] * mask
+            x_mm = X_grid_cen_mm[this_sample, ...] * mask
+            y_mm = Y_grid_cen_mm[this_sample, ...] * mask
             x_mm = x_mm[x_mm != 0]
             y_mm = y_mm[y_mm != 0]
             ax[idx].plot(x_mm, y_mm, ".g", label="center mask")
 
             # Create circle/ellipse patch for visualizing the RF
             gc_position = gc_pos_mm[this_sample, :]
-            if self.context.retina_parameters["dog_model_type"] == "circular":
+            if self.config.retina_parameters["dog_model_type"] == "circular":
                 DoG_patch = Circle(
                     xy=gc_position,
                     radius=gc_df.loc[this_sample, "rad_c_mm"],
                     edgecolor="g",
                     facecolor="none",
                 )
-            elif self.context.retina_parameters["dog_model_type"] in [
+            elif self.config.retina_parameters["dog_model_type"] in [
                 "ellipse_independent",
                 "ellipse_fixed",
             ]:
@@ -2625,8 +2126,8 @@ class Viz:
         this_function = cell_density_dict["function"]
         fit_parameters = cell_density_dict["fit_parameters"]
 
-        ecc_limits_deg = self.context.retina_parameters["ecc_limits_deg"]
-        deg_per_mm = self.context.retina_parameters["deg_per_mm"]
+        ecc_limits_deg = self.config.retina_parameters["ecc_limits_deg"]
+        deg_per_mm = self.config.retina_parameters["deg_per_mm"]
         ecc_lim_mm = np.asarray(ecc_limits_deg) / deg_per_mm
         mean_ecc = np.mean(ecc_lim_mm)
 
@@ -2684,7 +2185,7 @@ class Viz:
 
     def show_bipolar_nonlinearity(self, savefigname=None):
 
-        ret_file_npz = self.data_io.get_data(self.context.retina_parameters["ret_file"])
+        ret_file_npz = self.data_io.load_data(self.config.retina_parameters["ret_file"])
         popt = ret_file_npz["bipolar_nonlinearity_parameters"]
         bipolar_g_sur_scaled = ret_file_npz["bipolar_g_sur_scaled"]
         bipolar_RI_values = ret_file_npz["bipolar_RI_values"]
@@ -2737,9 +2238,8 @@ class Viz:
         deg_per_mm = stim_to_show["deg_per_mm"]
         retina_center = stim_to_show["retina_center"]
 
-        dog_model_type = self.context.retina_parameters["dog_model_type"]
-        fig = plt.figure()
-        ax = ax or plt.gca()
+        dog_model_type = self.config.retina_parameters["dog_model_type"]
+        fig, ax = plt.subplots()
         ax.imshow(stimulus_video.frames[frame_number, :, :])
         ax = plt.gca()
 
@@ -2885,9 +2385,7 @@ class Viz:
             Matplotlib Axes object to plot on. If not provided, uses the current axis.
         """
 
-        assert (
-            self.context.retina_parameters["temporal_model_type"] == "fixed"
-        ), "No fixed temporal filter for dynamic temporal model, aborting..."
+        self._check_for_fixed_model()
 
         spat_temp_filter_to_show = self.project_data.simulate_retina[
             "spat_temp_filter_to_show"
@@ -2910,120 +2408,6 @@ class Viz:
         plt.xlabel("Frequency (Hz)")
         plt.ylabel("Gain")
         ax.plot(freqs, ampl_s, ".")
-
-        if savefigname is not None:
-            self._figsave(figurename=savefigname)
-
-    def plot_midpoint_contrast(self, unit_index=0, ax=None, savefigname=None):
-        """
-        Plot the contrast at the midpoint pixel of the stimulus cropped to a specified RGC's surroundings.
-
-        Parameters
-        ----------
-        unit_index : int, optional
-            Index of the RGC for which to plot the contrast. Default is 0.
-        ax : matplotlib.axes.Axes, optional
-            Matplotlib Axes object to plot on. If not provided, uses the current axis.
-
-        """
-        stim_to_show = self.project_data.simulate_retina["stim_to_show"]
-        spatial_filter_sidelen = stim_to_show["spatial_filter_sidelen"]
-        stimulus_video = stim_to_show["stimulus_video"]
-        stimulus_cropped_all = stim_to_show["stimulus_cropped"]
-        stimulus_cropped = stimulus_cropped_all[unit_index]
-
-        midpoint_ix = (spatial_filter_sidelen - 1) // 2
-        signal = stimulus_cropped[midpoint_ix, midpoint_ix, :]
-
-        video_dt = (1 / stimulus_video.fps) * b2u.second
-        tvec = np.arange(0, len(signal)) * video_dt
-
-        if ax is None:
-            fig, ax = plt.subplots()
-
-        ax.plot(tvec, signal)
-        ax.set_ylim([-1, 1])
-
-        if savefigname is not None:
-            self._figsave(figurename=savefigname)
-
-    def plot_local_rms_contrast(self, unit_index=0, ax=None, savefigname=None):
-        """
-        Plot the local RMS contrast for the stimulus cropped to a specified RGC's surroundings.
-
-        Parameters
-        ----------
-        unit_index : int, optional
-            Index of the RGC for which to plot the local RMS contrast. Default is 0.
-        ax : matplotlib.axes.Axes, optional
-            Matplotlib Axes object to plot on. If not provided, uses the current axis.
-        """
-        stim_to_show = self.project_data.simulate_retina["stim_to_show"]
-        stimulus_cropped_all = stim_to_show["stimulus_cropped"]
-        stimulus_cropped = stimulus_cropped_all[unit_index]
-        stimulus_video = stim_to_show["stimulus_video"]
-        spatial_filter_sidelen = stim_to_show["spatial_filter_sidelen"]
-        # Invert from Weber contrast
-        stimulus_cropped = 127.5 * (stimulus_cropped + 1.0)
-
-        n_frames = stimulus_video.video_n_frames
-        sidelen = spatial_filter_sidelen
-        signal = np.zeros(n_frames)
-
-        for t in range(n_frames):
-            frame_mean = np.mean(stimulus_cropped[:, :, t])
-            squared_sum = np.sum((stimulus_cropped[:, :, t] - frame_mean) ** 2)
-            signal[t] = np.sqrt(1 / (frame_mean**2 * sidelen**2) * squared_sum)
-
-        video_dt = (1 / stimulus_video.fps) * b2u.second
-        tvec = np.arange(0, len(signal)) * video_dt
-
-        if ax is None:
-            fig, ax = plt.subplots()
-
-        ax.plot(tvec, signal)
-        ax.set_ylim([0, 1])
-
-        if savefigname is not None:
-            self._figsave(figurename=savefigname)
-
-    def plot_local_michelson_contrast(self, unit_index=0, ax=None, savefigname=None):
-        """
-        Plot the local Michelson contrast for the stimulus cropped to a specified RGC's surroundings.
-
-        Parameters
-        ----------
-        unit_index : int, optional
-            Index of the RGC for which to plot the local Michelson contrast. Default is 0.
-        ax : matplotlib.axes.Axes, optional
-            Matplotlib Axes object to plot on. If not provided, uses the current axis.
-        """
-        stim_to_show = self.project_data.simulate_retina["stim_to_show"]
-        stimulus_cropped_all = stim_to_show["stimulus_cropped"]
-        stimulus_cropped = stimulus_cropped_all[unit_index]
-        stimulus_video = stim_to_show["stimulus_video"]
-
-        # Invert from Weber contrast
-        stimulus_cropped = 127.5 * (stimulus_cropped + 1.0)
-
-        n_frames = stimulus_video.video_n_frames
-        signal = np.zeros(n_frames)
-
-        # unsigned int will overflow when frame_max + frame_min = 256
-        stimulus_cropped = stimulus_cropped.astype(np.uint16)
-        for t in range(n_frames):
-            frame_min = np.min(stimulus_cropped[:, :, t])
-            frame_max = np.max(stimulus_cropped[:, :, t])
-            signal[t] = (frame_max - frame_min) / (frame_max + frame_min)
-
-        video_dt = (1 / stimulus_video.fps) * b2u.second
-        tvec = np.arange(0, len(signal)) * video_dt
-
-        if ax is None:
-            fig, ax = plt.subplots()
-
-        ax.plot(tvec, signal)
-        ax.set_ylim([0, 1])
 
         if savefigname is not None:
             self._figsave(figurename=savefigname)
@@ -3097,7 +2481,6 @@ class Viz:
 
         # Ensure the gain column is numeric
         df["gain"] = pd.to_numeric(df["gain"])
-        # breakpoint()
         # Melt the DataFrame to long format for seaborn
         df_melted = df.melt(
             id_vars=["gain"],
@@ -3164,7 +2547,7 @@ class Viz:
             self._figsave(figurename=savefigname)
 
     def show_spikes_from_gz_file(
-        self, filename: str, savefigname: Optional[str] = None
+        self, filename: str, sweepname="spikes_0", savefigname: Optional[str] = None
     ) -> None:
         """
         Visualize ganglion cell (gc) responses loaded from file.
@@ -3176,11 +2559,9 @@ class Viz:
         savefigname : str, optional
             The name of the file where the figure will be saved. If None, the figure is not saved.
         """
-        # breakpoint()
-        data_dict = self.data_io.get_data(filename)
-        spiketrains = data_dict["spikes_0"]
+        data_dict = self.data_io.load_data(filename)
+        spiketrains = data_dict[sweepname]
         n_units = data_dict["n_units"]
-        dt = data_dict["dt"]
         spike_idx = spiketrains[0]
         spike_times = spiketrains[1] / b2u.second
 
@@ -3260,19 +2641,44 @@ class Viz:
         photodiode_response = photodiode_to_show["photodiode_response"]
 
         # Prepare data for manual visualization
-        for_eventplot = spiketrains.copy()  # list of different leght arrays
+        for_eventplot = spiketrains.copy()  # list of different length arrays
 
         for_histogram = np.concatenate(spiketrains)
         firing_rate_mean = np.nanmean(firing_rates, axis=0)
         sample_name = "unit #"
 
+        # Calculate and print mean firing rate across all units
+        spike_count = 0
+        for this_unit in range(n_units):
+            spike_count += len(spiketrains[this_unit])
+        mean_fr_across_units = spike_count / (n_units * (duration / b2u.second))
+
+        gc_type = self.config.retina_parameters.gc_type
+        response_type = self.config.retina_parameters.response_type
+        sample_name = f" ({gc_type}, {response_type})"
+        # breakpoint()
+
         # Create subplots
         fig, ax = plt.subplots(3, 1, sharex=True)
+
+        # Set figure title
+        fig.suptitle(
+            f"Sweep {sweep_idx} responses for {n_units} {gc_type} {response_type} GCs"
+        )
 
         # Event plot on first subplot
         ax[0].eventplot(for_eventplot)
         ax[0].set_xlim([0, duration / b2u.second])
-        ax[0].set_ylabel(sample_name)
+        ax[0].set_ylabel("Unit #")
+        ax[0].annotate(
+            f"Mean fr {mean_fr_across_units:.2f} Hz",
+            xy=(0.95, 0.95),
+            xycoords="axes fraction",
+            fontsize=10,
+            ha="right",
+            va="top",
+            bbox=dict(boxstyle="round,pad=0.5", fc="white", alpha=1.0),
+        )
 
         # Generator potential and average firing rate on second subplot
         tvec = np.arange(0, firing_rates.shape[-1], 1) * video_dt
@@ -3283,7 +2689,7 @@ class Viz:
         bin_width = 10 * b2u.ms
 
         # Find the nearest integer number of simulation_dt units for hist_dt
-        simulation_dt = self.context.run_parameters["simulation_dt"] * b2u.second
+        simulation_dt = self.config.simulation_parameters["simulation_dt"] * b2u.second
         hist_dt = np.round(bin_width / simulation_dt) * simulation_dt
 
         # Update bin_edges based on the new hist_dt
@@ -3398,7 +2804,7 @@ class Viz:
         generator_potentials = gc_responses_to_show["generator_potentials"]
         video_dt = gc_responses_to_show["video_dt"]
         firing_rates = gc_responses_to_show["firing_rates"]
-        visual_stimulus_parameters = self.context.visual_stimulus_parameters
+        visual_stimulus_parameters = self.config.visual_stimulus_parameters
         fps = visual_stimulus_parameters["fps"]
         baseline_start_seconds = visual_stimulus_parameters["baseline_start_seconds"]
 
@@ -3410,7 +2816,7 @@ class Viz:
         photodiode_to_show = self.project_data.simulate_retina["photodiode_to_show"]
         photodiode_response = photodiode_to_show["photodiode_response"]
 
-        temporal_model_type = self.context.retina_parameters["temporal_model_type"]
+        temporal_model_type = self.config.retina_parameters["temporal_model_type"]
 
         # Create subplots
         fig, ax = plt.subplots(4, 1, sharex=False, figsize=(12, 8))
@@ -3481,7 +2887,7 @@ class Viz:
             raise ValueError(
                 "Cone responses not available. Requires simulation w/ subunit temporal_model. Aborting..."
             )
-        visual_stimulus_parameters = self.context.visual_stimulus_parameters
+        visual_stimulus_parameters = self.config.visual_stimulus_parameters
 
         # Prepare data
         duration = gc_responses["duration"]
@@ -3546,7 +2952,7 @@ class Viz:
         if savefigname:
             plt.savefig(savefigname)
 
-    def show_gc_noise(self, savefigname=None):
+    def show_gc_noise_hist_cov_mtx(self, savefigname=None):
         """
         Display the noise in ganglion cell (gc) responses.
 
@@ -3571,7 +2977,7 @@ class Viz:
             cov_matrix[..., trial] = np.cov(gc_synaptic_noise[..., trial])
 
         cov_matrix_mean = np.mean(cov_matrix, axis=2)
-        # breakpoint()
+
         fig, ax = plt.subplots(1, 2, figsize=(10, 5))
         ax[0].hist(gc_synaptic_noise.flatten(), 100)
         ax[1].imshow(cov_matrix_mean, cmap="viridis")
@@ -3663,9 +3069,7 @@ class Viz:
             If a string is provided, the figure will be saved with this filename.
         """
 
-        assert (
-            self.context.retina_parameters["temporal_model_type"] == "fixed"
-        ), "No fixed temporal filter for dynamic temporal model, aborting..."
+        self._check_for_fixed_model()
 
         spat_temp_filter_to_show = self.project_data.simulate_retina[
             "spat_temp_filter_to_show"
@@ -3697,8 +3101,7 @@ class Viz:
         plt.colorbar(im, ax=ax[0])
 
         plt.subplot(122)
-        if self.context.retina_parameters["temporal_model_type"] == "dynamic":
-            # Print text to middle of ax[1]: "No fixed temporal filter for dynamic temporal model"
+        if self.config.retina_parameters["temporal_model_type"] == "dynamic":
             ax[1].text(
                 0.5,
                 0.5,
@@ -3716,7 +3119,14 @@ class Viz:
         if savefigname is not None:
             self._figsave(figurename=savefigname)
 
-    def show_spatiotemporal_filter_summary(self, savefigname=None):
+    def _check_for_fixed_model(self):
+        temporal_model_type = self.config.retina_parameters["temporal_model_type"]
+        if temporal_model_type != "fixed":
+            raise ValueError(
+                f"Not available for {temporal_model_type} model, aborting..."
+            )
+
+    def show_spatiotemporal_filter_sums(self, savefigname=None):
         """
         Display the spatiotemporal filter for all units in the current simulation.
 
@@ -3726,10 +3136,7 @@ class Viz:
         savefigname : str or None, optional
             If a string is provided, the figure will be saved with this filename.
         """
-
-        # assert (
-        #     self.context.retina_parameters["temporal_model_type"] == "fixed"
-        # ), "No fixed temporal filter for dynamic temporal model, aborting..."
+        self._check_for_fixed_model()
 
         spat_temp_filter_to_show = self.project_data.simulate_retina[
             "spat_temp_filter_to_show"
@@ -4019,7 +3426,7 @@ class Viz:
         Plot the mean firing rate response curve.
         """
 
-        data_folder = self.context.output_folder
+        data_folder = self.config.output_folder
         cond_names_string = "_".join(exp_variables)
         assert (
             len(exp_variables) == 1
@@ -4076,7 +3483,6 @@ class Viz:
         exp_variables,
         xlog=False,
         ylog=False,
-        F1_only=False,
         savefigname=None,
     ):
         """
@@ -4093,15 +3499,16 @@ class Viz:
             If True, the x-axis is shown in logarithmic scale.
         ylog : bool
             If True, the y-axis is shown in logarithmic scale.
-        F1_only : bool
-            If True, only F1 response is shown.
         savefigname : str or None
             If not empty, the figure is saved to this filename.
         """
 
-        data_folder = self.context.output_folder
+        data_folder = self.config.output_folder
         cond_names_string = "_".join(exp_variables)
         n_variables = len(exp_variables)
+
+        if n_variables > 2:
+            raise ValueError("Can only plot up to 2 variables at a time, aborting...")
 
         experiment_df = pd.read_csv(data_folder / filename, index_col=0)
         F_popul_df = pd.read_csv(
@@ -4124,8 +3531,11 @@ class Viz:
             F_popul_long_df[cond] = F_popul_long_df[f"{cond_names_string}_names"].map(
                 levels_s
             )
-        if F1_only:
+        if n_variables == 2:
             F_popul_long_df = F_popul_long_df[F_popul_long_df["F_peak"] == "F1"]
+            title_prefix = "Population mean F1 for "
+        else:
+            title_prefix = "Population mean F1 and F2 for "
 
         fig, ax = plt.subplots(1, n_variables, figsize=(8, 4))
 
@@ -4139,26 +3549,26 @@ class Viz:
                 errorbar=None,
                 ax=ax,
             )
-            ax.set_title("Population amplitude spectra for " + exp_variables[0])
+            ax.set_title(title_prefix + exp_variables[0])
             if xlog:
                 ax.set_xscale("log")
             if ylog:
                 ax.set_yscale("log")
 
-        else:
+        else:  # 2 variables
             for i, cond in enumerate(exp_variables):
+                F_popul_long_df = F_popul_long_df[F_popul_long_df["F_peak"] == "F1"]
+                secondary_condition = set(exp_variables) - {cond}
                 sns.lineplot(
                     data=F_popul_long_df,
                     x=cond,
                     y="amplitudes",
-                    hue="F_peak",
+                    hue=secondary_condition.pop(),
                     palette="tab10",
                     errorbar=None,
                     ax=ax[i],
                 )
-
-                # Title
-                ax[i].set_title("Population amplitude spectra for " + cond)
+                ax[i].set_title(title_prefix + cond)
                 if xlog:
                     ax[i].set_xscale("log")
                 if ylog:
@@ -4173,7 +3583,6 @@ class Viz:
         exp_variables,
         xlog=False,
         ylog=False,
-        hue="F_peak",
         savefigname=None,
     ):
         """
@@ -4191,14 +3600,15 @@ class Viz:
             If True, the x-axis is shown in logarithmic scale.
         ylog : bool
             If True, the y-axis is shown in logarithmic scale.
-        hue : str
-            The name of the column to be used for hue in the plot.
         savefigname : str or None
             If not empty, the figure is saved to this filename."""
 
-        data_folder = self.context.output_folder
+        data_folder = self.config.output_folder
         cond_names_string = "_".join(exp_variables)
         n_variables = len(exp_variables)
+
+        if n_variables > 2:
+            raise ValueError("Can only plot up to 2 variables at a time, aborting...")
 
         experiment_df = pd.read_csv(data_folder / filename, index_col=0)
 
@@ -4222,10 +3632,11 @@ class Viz:
                 levels_s
             )
 
-        if not hue == "F_peak":
+        if n_variables == 2:
             F_unit_long_df = F_unit_long_df[F_unit_long_df["F_peak"] == "F1"]
-            exp_variables.remove(hue)
-            n_variables = len(exp_variables)
+            title_prefix = "Unit mean F1 for "
+        else:
+            title_prefix = "Unit mean F1 and F2 for "
 
         fig, ax = plt.subplots(1, n_variables, figsize=(8, 4))
 
@@ -4234,11 +3645,11 @@ class Viz:
                 data=F_unit_long_df,
                 x=exp_variables[0],
                 y="amplitudes",
-                hue=hue,
+                hue="F_peak",
                 palette="tab10",
                 ax=ax,
             )
-            ax.set_title("Unit amplitude spectra for " + exp_variables[0])
+            ax.set_title(title_prefix + exp_variables[0])
             if xlog:
                 ax.set_xscale("log")
             if ylog:
@@ -4246,83 +3657,23 @@ class Viz:
 
         else:
             for i, cond in enumerate(exp_variables):
+                F_unit_long_df = F_unit_long_df[F_unit_long_df["F_peak"] == "F1"]
+                secondary_condition = set(exp_variables) - {cond}
                 sns.lineplot(
                     data=F_unit_long_df,
                     x=cond,
                     y="amplitudes",
-                    hue=hue,
+                    hue=secondary_condition.pop(),
                     palette="tab10",
                     ax=ax[i],
                 )
 
                 # Title
-                ax[i].set_title("Unit amplitude spectra for " + cond)
+                ax[i].set_title(title_prefix + cond)
                 if xlog:
                     ax[i].set_xscale("log")
                 if ylog:
                     ax[i].set_yscale("log")
-
-        if savefigname:
-            self._figsave(figurename=savefigname)
-
-    def ptp_response(
-        self, filename, exp_variables, x_of_interest=None, savefigname=None
-    ):
-        """
-        Plot the peak-to-peak firing rate magnitudes across conditions.
-
-        Parameters
-        ----------
-        filename : str
-            The name of the file containing the data to be plotted.
-        exp_variables : list of str
-            List of experimental variable names to be used for fetching the data and plotting.
-        x_of_interest : list of str or None
-            If provided, the data will be filtered to include only these variables.
-            If None, all data will be included.
-        savefigname : str or None
-            If not empty, the figure is saved to this filename.
-        """
-
-        data_folder = self.context.output_folder
-        cond_names_string = "_".join(exp_variables)
-        assert (
-            len(exp_variables) == 1
-        ), "Only one variable can be plotted at a time, aborting..."
-
-        experiment_df = pd.read_csv(data_folder / filename, index_col=0)
-        data_df = pd.read_csv(
-            data_folder / f"{cond_names_string}_PTP_population_means.csv", index_col=0
-        )
-
-        if x_of_interest is None:
-            data_df_selected = data_df
-        else:
-            data_df_selected = data_df.loc[:, x_of_interest]
-
-        # Turn series into array of values
-        x_values_df = experiment_df.loc[:, exp_variables]
-        x_values_series = x_values_df.iloc[0, :]
-        x_values_series = pd.to_numeric(x_values_series)
-
-        fig, ax = plt.subplots(1, 2, figsize=(8, 4))
-
-        plt.subplot(121)
-        plt.plot(
-            x_values_series.values,
-            data_df.mean().values,
-            color="black",
-        )
-
-        sns.boxplot(
-            data=data_df_selected,
-            color="black",
-            ax=ax[1],
-        )
-
-        # Title
-        ax[0].set_title(f"{cond_names_string} ptp (population mean)")
-        ax[1].set_title(f"{cond_names_string} ptp at two peaks and a through")
 
         if savefigname:
             self._figsave(figurename=savefigname)
@@ -4339,7 +3690,7 @@ class Viz:
             If not empty, the figure is saved to this filename.
         """
 
-        experiment_df = self.data_io.get_data(filename=filename)
+        experiment_df = self.data_io.load_data(filename=filename)
         cond_names = experiment_df.index.values
         exp_variables = self._get_exp_variables(experiment_df)
 
@@ -4354,13 +3705,13 @@ class Viz:
             # make sure ax is subscriptable
             ax = np.array(ax, ndmin=1)
 
-            gc_type = self.context.retina_parameters["gc_type"]
-            response_type = self.context.retina_parameters["response_type"]
+            gc_type = self.config.retina_parameters["gc_type"]
+            response_type = self.config.retina_parameters["response_type"]
             # Loop conditions
             for idx, cond_name in enumerate(cond_names):
                 gz_filename = f"Response_{gc_type}_{response_type}_{cond_name}.gz"
 
-                data_dict = self.data_io.get_data(gz_filename)
+                data_dict = self.data_io.load_data(gz_filename)
 
                 cond_s = experiment_df.loc[cond_name, :]
                 duration_seconds = pd.to_numeric(cond_s.loc["duration_seconds"])
@@ -4441,15 +3792,15 @@ class Viz:
             Filename to save the figure. If None, the figure will not be saved.
         """
         cond_names_string = "_".join(exp_variables)
-        experiment_df = self.data_io.get_data(filename=filename)
+        experiment_df = self.data_io.load_data(filename=filename)
         cond_names = experiment_df.index.values
-        gc_type = self.context.retina_parameters["gc_type"]
-        response_type = self.context.retina_parameters["response_type"]
-        data_folder = self.context.output_folder
+        gc_type = self.config.retina_parameters["gc_type"]
+        response_type = self.config.retina_parameters["response_type"]
+        data_folder = self.config.output_folder
 
         pattern = f"exp_results_{gc_type}_{response_type}_{cond_names_string}_*.csv"
         data_fullpath = self.data_io.most_recent_pattern(data_folder, pattern)
-        df = self.data_io.get_data(data_fullpath)
+        df = self.data_io.load_data(data_fullpath)
         available_data = df.columns.to_list()[3:]
         n_data = len(available_data)
 
@@ -4492,8 +3843,8 @@ class Viz:
             return a * np.exp(-b * x) + c
 
         cond_names_string = "_".join(exp_variables)
-        experiment_df = self.data_io.get_data(filename=filename)
-        data_folder = self.context.output_folder
+        experiment_df = self.data_io.load_data(filename=filename)
+        data_folder = self.config.output_folder
 
         # Load results
         filename_in = f"{cond_names_string}_correlation.npz"
@@ -4596,7 +3947,7 @@ class Viz:
             If True, y-axis is logarithmic.
         """
 
-        data_folder = self.context.output_folder
+        data_folder = self.config.output_folder
         cond_names_string = "_".join(exp_variables)
 
         # Experiment metadata
@@ -4684,12 +4035,12 @@ class Viz:
         savefigname (str, optional): Name of the figure to save. Defaults to None.
         """
 
-        gc_type = self.context.retina_parameters["gc_type"]
-        response_type = self.context.retina_parameters["response_type"]
+        gc_type = self.config.retina_parameters["gc_type"]
+        response_type = self.config.retina_parameters["response_type"]
 
         # Load results
         filename = f"exp_results_{gc_type}_{response_type}_response_vs_background.csv"
-        df = self.data_io.get_data(filename=filename)
+        df = self.data_io.load_data(filename=filename)
 
         match unit:
             case "R*":
@@ -4835,7 +4186,7 @@ class Viz:
     def validate_gc_rf_size(self, savefigname=None):
         gen_rfs = self.project_data.construct_retina["gen_rfs"]
 
-        if self.context.retina_parameters["spatial_model_type"] == "VAE":
+        if self.config.retina_parameters["spatial_model_type"] == "VAE":
             gen_rfs = gen_rfs
             gc_vae_img = gen_rfs["gc_vae_img"]
 
@@ -4846,7 +4197,7 @@ class Viz:
             gc_vae_df = self.construct_retina.gc_vae_df
 
             fit = self.construct_retina.Fit(
-                self.context.dog_metadata_parameters,
+                self.config.experimental_metadata,
                 self.construct_retina.gc_type,
                 self.construct_retina.response_type,
                 spatial_data=gc_vae_img,
@@ -4891,8 +4242,8 @@ class Viz:
         ecc_deg_vae = ecc_mm_vae * deg_per_mm
 
         # Read in corresponding data from literature
-        spatial_DoG_path = self.context.literature_data_files["spatial_DoG_path"]
-        spatial_DoG_data = self.data_io.get_data(spatial_DoG_path)
+        spatial_DoG_path = self.config.literature_data_files["spatial_DoG_path"]
+        spatial_DoG_data = self.data_io.load_data(spatial_DoG_path)
 
         lit_ecc_deg = spatial_DoG_data["Xdata"]  # ecc (deg)
         lit_cen_min_arc = spatial_DoG_data["Ydata"]  # rf center radius (min of arc)
@@ -4958,14 +4309,14 @@ class Viz:
         """
 
         coll_ana_df = copy.deepcopy(self.coll_spa_dict["coll_ana_df"])
-        to_spa_dict = copy.deepcopy(self.context.to_spa_dict)
+        to_spa_dict = copy.deepcopy(self.config.to_spa_dict)
 
         titles = to_spa_dict[param_plot_dict["title"]]
 
         if param_plot_dict["save_description"] is True:
             describe_df_list = []
             describe_df_columns_list = []
-            describe_folder_full = Path.joinpath(self.context.path, "Descriptions")
+            describe_folder_full = Path.joinpath(self.config.path, "Descriptions")
             describe_folder_full.mkdir(parents=True, exist_ok=True)
 
         # If param_plot_dict["inner_paths"] is True, replace titles with and [""] .
@@ -4995,7 +4346,7 @@ class Viz:
                 # read optimal values to dataframe from path/optimal_values/optimal_unfit_description.csv
                 optimal_df = pd.read_csv(
                     Path.joinpath(
-                        self.context.path,
+                        self.config.path,
                         optimal_value_foldername,
                         optimal_description_name,
                     )
@@ -5355,14 +4706,274 @@ class Viz:
                     subfolderpath=self.save_figure_to_folder,
                 )
 
+    def show_data_and_fit(
+        self,
+        fit_function,
+        x_data,
+        y_data,
+        p0=None,
+        xlim=None,
+        ylim=None,
+        xlog=False,
+        ylog=False,
+        fit_in_log_space=False,
+        bounds=(-np.inf, np.inf),
+        savefigname=None,
+    ):
+        """
+        Show the data with the specified function applied.
+
+        Parameters
+        ----------
+        fit_function : callable
+            The function to fit to the data.
+        x_data : array-like
+            The independent variable data.
+        y_data : array-like
+            The dependent variable data.
+        p0 : list, optional
+            Initial guess for the parameters.
+        """
+
+        if fit_in_log_space:
+            y_data = np.log(y_data)
+            # p0 = np.log(p0)
+
+            # Define the objective function in log space that works with vectors
+            def log_objective(x: np.ndarray, *params) -> np.ndarray:
+                y_pred = fit_function(x, *params)
+                # Handle potential negative or zero values
+                # Set minimum value to positive number
+                y_pred = np.maximum(y_pred, 1e-10)
+                return np.log(y_pred)
+
+            popt, pcov = opt.curve_fit(
+                log_objective,
+                x_data,
+                np.log(y_data),
+                p0=p0,
+                bounds=bounds,
+                maxfev=10000,
+                ftol=1e-08,
+            )
+            y_data = np.exp(y_data)  # Convert y_data back to original scale
+
+        else:
+            popt, pcov = opt.curve_fit(
+                fit_function,
+                x_data,
+                y_data,
+                p0=p0,
+                bounds=bounds,
+                # method="lm",
+                method="lm" if bounds == (-np.inf, np.inf) else "trf",
+                maxfev=10000,
+                ftol=1e-08,
+            )
+
+        x_dense = np.logspace(np.log10(np.min(x_data)), np.log10(np.max(x_data)), 100)
+        y_fitted = fit_function(x_dense, *popt)
+
+        # Remove fit ints with cs < 1, considered noise
+        mask = y_fitted < 1
+        x_dense = x_dense[~mask]
+        y_fitted = y_fitted[~mask]
+
+        fig, ax = plt.subplots()
+        ax.scatter(x_data, y_data, label=f"Data points")
+        ax.plot(x_dense, y_fitted, color="red", label="Fitted Curve")
+        ax.legend()
+        ax.set_title(savefigname if savefigname else "Data and Fit")
+
+        # Annotate the graph with the popt values
+        for i, (param_name, param_value) in enumerate(
+            zip(fit_function.__code__.co_varnames[2:], popt)
+        ):
+            ax.annotate(
+                f"{param_name} = {param_value:.2f}",
+                xy=(0.05, 0.95 - i * 0.05),
+                xycoords="axes fraction",
+            )
+
+        if xlim:
+            ax.set_xlim(xlim)
+
+        if ylim:
+            ax.set_ylim(ylim)
+
+        if xlog:
+            ax.set_xscale("log")
+
+        if ylog:
+            ax.set_yscale("log")
+
+        if savefigname:
+            self._figsave(figurename=savefigname)
+
+    def contrast_sensitivity(
+        self,
+        filename,
+        exp_variables,
+        xlog=False,
+        ylog=False,
+        xlim=None,
+        ylim=None,
+        savefigname=None,
+    ):
+        """
+        Fits Naka-Rushton model to drifting grating contrast response.
+        Fit threshold firing rate to the model function.
+        Plot contrast sensitivity function across the spatial/temporal frequencies.
+
+        Parameters
+        ----------
+        filename : str
+            The name of the file containing the experimental data.
+        exp_variables : list of str
+            The experimental variables to consider for the analysis.
+        xlog : bool
+            Whether to use a logarithmic scale for the x-axis.
+        ylog : bool
+            Whether to use a logarithmic scale for the y-axis.
+        savefigname : str, optional
+            The name of the file to save the figure. If None, the figure
+            will not be saved.
+        """
+
+        data_folder = self.config.output_folder
+        cond_names_string = "_".join(exp_variables)
+
+        if "frequency" in cond_names_string:
+            if "spatial" in cond_names_string:
+                frequency_parameter_name = "spatial_frequency"
+            elif "temporal" in cond_names_string:
+                frequency_parameter_name = "temporal_frequency"
+        else:
+            raise ValueError(
+                "For contrast sensitivity, exp_variables must include either spatial or temporal frequency."
+            )
+
+        experiment_df = pd.read_csv(data_folder / filename, index_col=0)
+
+        F_unit_ampl_df = pd.read_csv(
+            data_folder / f"{cond_names_string}_F1F2_unit_ampl_means.csv", index_col=0
+        )
+
+        # Delete obsolete rows and columns
+        F_unit_ampl_df = F_unit_ampl_df[F_unit_ampl_df["F_peak"] == "F1"]
+        F_unit_ampl_df = F_unit_ampl_df.drop(columns=["unit"])
+
+        # Average over units
+        std_ampl_df = F_unit_ampl_df.groupby("F_peak").std()
+        std_ampl_df = std_ampl_df.rename(index={"F1": "std"})
+        mean_ampl_df = F_unit_ampl_df.groupby("F_peak").mean()
+        mean_ampl_df = mean_ampl_df.rename(index={"F1": "mean"})
+
+        std_long_df = pd.melt(
+            std_ampl_df,
+            value_vars=std_ampl_df.columns,
+            var_name=f"{cond_names_string}_names",
+            value_name="std",
+        )
+
+        mean_long_df = pd.melt(
+            mean_ampl_df,
+            value_vars=mean_ampl_df.columns,
+            var_name=f"{cond_names_string}_names",
+            value_name="amplitudes",
+        )
+        result_df = mean_long_df.merge(
+            std_long_df, on=f"{cond_names_string}_names", how="left"
+        )
+        # Make new columns with conditions' levels
+        for cond in exp_variables:
+            levels_s = experiment_df.loc[:, cond]
+            levels_s = pd.to_numeric(levels_s)
+            levels_s = levels_s.round(decimals=2)
+            result_df[cond] = result_df[f"{cond_names_string}_names"].map(levels_s)
+
+        # Create an empty "threshold" column
+        result_df["threshold"] = float("nan")
+
+        # Check for existing zero contrast, warn if not found
+        if not (result_df["contrast"] == 0.0).any():
+            print(
+                "Warning, no zero contrast found. Replacing with fixed threshold of 10 Hz."
+            )
+            result_df["threshold"] = 10.0
+        else:
+            # Calculate threshold for contrast == 0.0
+            for this_freq in result_df[frequency_parameter_name].unique():
+                mask = (result_df["contrast"] == 0.0) & (
+                    result_df[frequency_parameter_name] == this_freq
+                )
+                if mask.any():
+                    threshold_value = (
+                        result_df.loc[mask, "amplitudes"].values[0]
+                        + 2 * result_df.loc[mask, "std"].values[0]
+                    )
+                    result_df.loc[
+                        result_df[frequency_parameter_name] == this_freq, "threshold"
+                    ] = threshold_value
+
+        # Loop frequency parameter, fit naka_rushton
+        # Parameters: Rmax: float, c50: float, baseline: float
+        fit_function = self.naka_rushton
+        inverse_fit_function = self.naka_rushton_inverse
+        Rmax = result_df["amplitudes"].values.max()
+        p0 = [Rmax, 0.5, 0.0]
+        bounds = ((0, 0, 0), (Rmax * 2, 100, Rmax))
+        abscissa = result_df[frequency_parameter_name].unique()
+
+        cs_all = np.zeros(len(abscissa))
+        for freq_idx, this_freq in enumerate(abscissa):
+            df = result_df[result_df[frequency_parameter_name] == this_freq]
+            x_data = df["contrast"].values
+            y_data = df["amplitudes"].values
+            popt, pcov = opt.curve_fit(
+                fit_function,
+                x_data,
+                y_data,
+                p0=p0,
+                bounds=bounds,
+            )
+            threshold = df["threshold"].values[0]
+            contrast_at_the_threshold = inverse_fit_function(threshold, *popt)
+            cs_all[freq_idx] = 1 / contrast_at_the_threshold
+
+        # Remove data points with cs < 1, considered noise
+        mask = cs_all < 1
+        abscissa = abscissa[~mask]
+        cs_all = cs_all[~mask]
+
+        try:
+            # K, k_c, r_c, k_s, r_s
+            # bounds = (-np.inf, np.inf)
+            bounds = ((0, 0, 0, 0, 0), (10000, 1000, 1, 1000, 1))
+            self.show_data_and_fit(
+                self.enrothcugell_robson,
+                abscissa,
+                cs_all,
+                p0=(1000, 10, 0.03, 5, 0.07),
+                xlim=xlim,
+                ylim=ylim,
+                xlog=xlog,
+                ylog=ylog,
+                fit_in_log_space=False,
+                bounds=bounds,
+                savefigname=savefigname,
+            )
+        except Exception as e:
+            print(f"Error occurred while fitting data: {e}")
+
 
 class VizResponse:
     """
     Show spiking rate dynamically together with the stimulus.
     """
 
-    def __init__(self, context, data_io, project_data, VisualSignal):
-        self.context = context
+    def __init__(self, config, data_io, project_data, VisualSignal):
+        self.config = config
         self.data_io = data_io
         self.project_data = project_data
 
@@ -5421,19 +5032,19 @@ class VizResponse:
         stimulus_video = self.data_io.load_stimulus_from_videofile(video_file_name)
 
         self.vs = self.VisualSignal(
-            self.context.visual_stimulus_parameters,
-            self.context.retina_parameters["retina_center"],
+            self.config.visual_stimulus_parameters,
+            self.config.retina_parameters["retina_center"],
             self.data_io.load_stimulus_from_videofile,
-            self.context.run_parameters["simulation_dt"],
-            self.context.retina_parameters["deg_per_mm"],
-            self.context.retina_parameters["optical_aberration"],
-            self.context.visual_stimulus_parameters["pix_per_deg"],
+            self.config.simulation_parameters["simulation_dt"],
+            self.config.retina_parameters["deg_per_mm"],
+            self.config.retina_parameters["optical_aberration"],
+            self.config.visual_stimulus_parameters["pix_per_deg"],
             stimulus_video=stimulus_video,
         )
         stimulus_video = self.vs.load_stimulus_from_videofile(video_file_name)
 
         # Extract retina center and unit positions
-        retina_center = self.context.retina_parameters["retina_center"]
+        retina_center = self.config.retina_parameters["retina_center"]
         retina_center_deg = (retina_center.real, retina_center.imag)
 
         # normalize frames to [0, 1] for visualization
@@ -5456,7 +5067,7 @@ class VizResponse:
         stim_stop_seconds = frame_seconds[stim_len_tp + baseline_len_tp - 1]
 
         # Get spike data
-        response_dict = self.data_io.get_data(filename=response_file_name)
+        response_dict = self.data_io.load_data(filename=response_file_name)
         spike_idx = response_dict["spikes_0"][0]
         spike_times = response_dict["spikes_0"][1] / b2u.second
         n_units = response_dict["n_units"]

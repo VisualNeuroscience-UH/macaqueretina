@@ -27,7 +27,7 @@ from skimage.transform import resize
 from tqdm import tqdm
 
 # Local
-from macaqueretina.project.project_utilities_module import Printable
+from macaqueretina.project.project_utilities_module import PrintableMixin
 from macaqueretina.retina.retina_math_module import RetinaMath
 
 BrianLogger.log_level_error()
@@ -287,11 +287,11 @@ class GanglionCellParasol(GanglionCellBase):
         svecs = self._validate_svec(svec, n_units, n_timepoints, params)
 
         # Time constant for dynamical variable c(t), ms. Victor_1987_JPhysiol
-        _Tc = np.array(15.0)
+        _Tc = np.array(15) * b2u.ms
 
         # parameter_names for parasol gain control ["NL", "TL", "HS", "T0", "Chalf", "D", "A"]
         NL = np.int32(params[:, 0])
-        TL = params[:, 1]
+        TL = params[:, 1]  # ms, control multiplier 0.25
         _HS = params[:, 2]
         _T0 = params[:, 3] * b2u.ms
         _Chalf = params[:, 4]
@@ -323,7 +323,7 @@ class GanglionCellParasol(GanglionCellBase):
             )
         x_input = b2.TimedArray(x_vec.T, dt=_dt)
 
-        # Define and run the high-pass stage
+        # Define and run the high-pass stage. x_input is precalculated, thus "manual" derivative.
         eqs = """
         dy/dt = (-y + Ts * x_derivative + (1 - HS) * x_input(t, i)) / Ts : 1
         x_derivative = (x_input(t, i) - x_input(t-dt, i)) / dt : Hz
@@ -354,7 +354,7 @@ class GanglionCellParasol(GanglionCellBase):
         neuron_group.HS = _HS
         neuron_group.T0 = _T0
         neuron_group.Chalf = _Chalf
-        neuron_group.Tc = _Tc * b2u.ms
+        neuron_group.Tc = _Tc
 
         state_monitor = b2.StateMonitor(neuron_group, ["y"], record=True)
 
@@ -583,7 +583,7 @@ class GanglionCellMidget(GanglionCellBase):
         return generator_potential
 
 
-class ResponseTypeBase(ABC, Printable):
+class ResponseTypeBase(ABC, PrintableMixin):
 
     @abstractmethod
     def get_contrast_by_response_type(
@@ -1459,8 +1459,6 @@ class TemporalModelSubunit(TemporalModelBase):
         vs = self._create_dynamic_contrast(vs, gcs)
         vs = self.cones.create_signal(vs)
         vs = self.bipolars.create_signal(vs)
-        # breakpoint()
-        # vs.generator_potentials
         return vs, gcs
 
 
@@ -1883,7 +1881,7 @@ class ConcreteSimulationBuilder(SimulationBuildInterface):
             net = b2.Network(poisson_group, spike_monitor)
         else:
             raise ValueError(
-                "Missing valid spike_generator_model, check run_parameters parameters, aborting..."
+                "Missing valid spike_generator_model, check simulation_parameters parameters, aborting..."
             )
 
         # Save brian state
@@ -2142,6 +2140,7 @@ class ConcreteSimulationBuilder(SimulationBuildInterface):
                 delaunay_mask[min_y : max_y + 1, min_x : max_x + 1], indicator
             )
 
+        # Unity region is where exactly one unit centre overlaps with the retina region
         unity_region = (unit_region * delaunay_mask) == 1
 
         uniformify_index = np.sum(unity_region) / np.sum(delaunay_mask)
@@ -2285,20 +2284,19 @@ class ConcreteSimulationBuilder(SimulationBuildInterface):
         Create noise for the simulation.
         """
         vs = self.vs
-        ndim_cones = (self.cones.n_units, vs.stim_len_tp)
-        ndim_gc = (self.gcs.n_units, vs.stim_len_tp)
+        ndim_cones = (self.cones.n_units, vs.stim_len_tp, self.n_sweeps)
+        ndim_gc = (self.gcs.n_units, vs.stim_len_tp, self.n_sweeps)
 
-        if all(
-            [
-                hasattr(vs, "cone_noise") and vs.cone_noise.shape == ndim_cones,
-                hasattr(vs, "cone_noise_u") and vs.cone_noise_u.shape == ndim_cones,
-                hasattr(vs, "gc_synaptic_noise")
-                and vs.gc_synaptic_noise.shape == ndim_gc,
-            ]
-        ):
-            return
+        if not hasattr(vs, "cone_noise"):
+            self.vs = self.cones.create_noise(vs, self.n_sweeps)
+        if not hasattr(vs, "gc_synaptic_noise"):
+            self.vs = self.cones.connect_cone_noise_to_gcs(vs, self.n_sweeps)
 
-        self.vs = self.cones.create_noise(vs, self.n_sweeps)
+        # Dimension checks
+        if not vs.cone_noise.shape == ndim_cones:
+            raise ValueError("Cone noise shape mismatch")
+        if not vs.gc_synaptic_noise.shape == ndim_gc:
+            raise ValueError("GC synaptic noise shape mismatch")
 
     def get_generator_potentials(self) -> None:
         """
@@ -2438,7 +2436,7 @@ class SimulationDirector:
         return vs, gcs
 
 
-class ReceptiveFieldsBase(ABC, Printable, RetinaMath):
+class ReceptiveFieldsBase(ABC, PrintableMixin, RetinaMath):
     """
     Base class for receptive fields information.
 
@@ -2836,7 +2834,7 @@ class ConeProduct(ReceptiveFieldsBase):
     ) -> np.ndarray:
         """
         Gaussian smoothing of images with optical aberration.
-                optical_aberration = self.context.retina_parameters["optical_aberration"]
+                optical_aberration = self.config.retina_parameters["optical_aberration"]
 
         """
 
@@ -2877,7 +2875,7 @@ class ConeProduct(ReceptiveFieldsBase):
         self.cone_response = cone_response
 
         # Save the cone response to output folder
-        filename = self.context.stimulus_metadata_parameters["stimulus_file"]
+        filename = self.config.external_stimulus_parameters["stimulus_file"]
         self.data_io.save_cone_response_to_hdf5(filename, cone_response)
 
     # Public functions
@@ -3013,24 +3011,32 @@ class ConeProduct(ReceptiveFieldsBase):
 
         magn = self.retina_parameters["noise_gain"]
 
-        # invert cone_noise_norm for shape (n_cones, n_timepoints)
+        # Transpose cone_noise_norm for shape (n_cones, n_timepoints)
         params_dict = self.retina_parameters["cone_signal_parameters"]
         max_response = params_dict["max_response"]
 
         cone_noise_norm_T = np.moveaxis(cone_noise_norm, 0, 1)
-        vs.cone_noise = cone_noise_norm_T * magn
-        vs.cone_noise_u = cone_noise_norm_T * magn * max_response
+        vs.cone_noise = cone_noise_norm_T
+
+        return vs
+
+    def connect_cone_noise_to_gcs(
+        self, vs: "VisualSignal", n_sweeps: int
+    ) -> "VisualSignal":
+
+        # Calculate the synaptic noise for ganglion cells
+        print("\nUsing PyTorch for connecting cone noise to ganglion cells...")
 
         # if model is dynamic or fixed, connect cone noise directly to ganglion cells
         cones_to_gcs_weights = self.cones_to_gcs_weights
+        magn = self.retina_parameters["noise_gain"]
+        cone_noise_norm_T = vs.cone_noise * magn
+        cone_noise_norm = np.moveaxis(cone_noise_norm_T, 0, 1)
 
         if np.any(np.sum(cones_to_gcs_weights, axis=0) == 0):
             raise ValueError("Zero value in cones_to_gcs_weights, aborting...")
         weights_norm = cones_to_gcs_weights / np.sum(cones_to_gcs_weights, axis=0)
         n_gcs = weights_norm.shape[1]
-
-        # Calculate the synaptic noise for ganglion cells
-        print("\nUsing PyTorch for ganglion cell synaptic noise...")
 
         device = self.device
         cone_noise_norm_tensor = torch.tensor(
@@ -3057,6 +3063,7 @@ class ConeProduct(ReceptiveFieldsBase):
 
         noise_type = self.retina_parameters["noise_type"]
 
+        # If noise type is independent, assume Gaussian statistics, independent for each gc unit
         match noise_type:
             case "shared":
                 noise_out = gc_synaptic_noise
@@ -3108,7 +3115,7 @@ class BipolarProduct(ReceptiveFieldsBase):
         super().__init__(retina_parameters)
         self.retina_parameters = retina_parameters
         self.ret_npz = ret_npz
-        self.n_units = self.ret_npz["bipolar_to_gcs_weights"].shape[0]
+        self.n_units = self.ret_npz["bipolar_to_gcs_cen_weights"].shape[0]
         self.target_gc_for_multiple_trials = target_gc_for_multiple_trials
 
     def create_signal(self, vs: "VisualSignal") -> "VisualSignal":
@@ -3137,14 +3144,15 @@ class BipolarProduct(ReceptiveFieldsBase):
         1. Applies response type-specific transformation to cone output.
         2. Calculates bipolar input contrast.
         3. Computes bipolar cell center and surround responses.
-        4. Applies nonlinearity (rectification) to bipolar output.
-        5. Generates ganglion cell synaptic input.
+        4. Applies nonlinearity (rectification) to bipolar to gc synapses, timepointwise.
+        5. Generates ganglion cell activation.
 
         The specific nonlinearity applied is based on the Turner_2018_eLife model.
         """
 
         popt = self.ret_npz["bipolar_nonlinearity_parameters"]
-        bipolar_to_gcs_weights = self.ret_npz["bipolar_to_gcs_weights"]
+        bipolar_to_gcs_cen_weights = self.ret_npz["bipolar_to_gcs_cen_weights"]
+        bipolar_to_gcs_sur_weights = self.ret_npz["bipolar_to_gcs_sur_weights"]
 
         # Get constructed weights [n_cones, n_bipolars]
         cones_to_bipolars_cen_w = self.ret_npz["cones_to_bipolars_center_weights"]
@@ -3156,47 +3164,85 @@ class BipolarProduct(ReceptiveFieldsBase):
 
         # Sign inversion for cones' glutamate release => ON bipolars
         if self.retina_parameters["response_type"] == "on":
-            bipolar_input_signal = 1 - cone_output
+            cone_output = 1 - cone_output
         elif self.retina_parameters["response_type"] == "off":
-            bipolar_input_signal = cone_output
+            cone_output = cone_output
 
-        # Turn bipolar input signal to bipolar contrast signal, cmp Weber contrast
+        # Turn cone signal to bipolar contrast signal, cmp Weber contrast. Turner 2018 eq 7
+        # Turner uses whole natural image to Weber contrast, here only cone signal is available.
+        # If baseline exists, use it, if not, take the mean of the first 10 timepoints
+        # For natural images, consider mean over image, separately for each timepoint.
+        if vs.baseline_len_tp > 0:
+            baseline_len_tp = vs.baseline_len_tp
+        else:
+            baseline_len_tp = 10
+        baseline = np.mean(cone_output[:, :baseline_len_tp], axis=1)[:, np.newaxis]
+        bipolar_input_contrast = (cone_output - baseline) / baseline
 
-        # This solution gets B from the baseline, unitwise.
-        bg = np.mean(bipolar_input_signal[:, : vs.baseline_len_tp], axis=1)[
-            :, np.newaxis
-        ]
-
-        # This prevents 0-lum bg, would lead to division by zero
-        bipolar_input_contrast = (bipolar_input_signal - bg) / bg
-
-        # [n_bipolars, n_timepoints]
+        # [n_bipolars, n_timepoints], subunit center and surround
         bipolar_cen_sum = cones_to_bipolars_cen_w.T @ bipolar_input_contrast
         bipolar_sur_sum = cones_to_bipolars_sur_w.T @ bipolar_input_contrast
-        bipolar_input_sum = bipolar_cen_sum - bipolar_sur_sum
+        subunit_sum = bipolar_cen_sum - bipolar_sur_sum
 
-        vs.bipolar_signal = bipolar_input_sum
+        vs.bipolar_signal = subunit_sum
 
-        # Apply synaptic input scaling for negative responses (rectification/nonlinearity)
-        # See Turner_2018_eLife for the model and parabola data in their Fig 5C
-        bipolar_output_sum = bipolar_to_gcs_weights.T @ bipolar_input_sum
-        bipolar_scaler_sum = bipolar_to_gcs_weights.T @ bipolar_sur_sum
+        # Calculate the nonlinear neg_scaler with dimensions [n_timepoints, n_gcs]
+        ##########################################################################
+        # invert polarity for surround
+        gc_surround_linear_input = bipolar_to_gcs_sur_weights.T @ (-1 * subunit_sum)
 
-        # RI is Rectification Index
-        RI = self.parabola(bipolar_scaler_sum, *popt)
+        # RI is Rectification Index. The abscissa values in Turner 2018 Fig 5C
+        # reflect surround conductances and are scaled to match our max surround
+        # linear input values for parasol on unit[-0.15, 0.15].
+        # See _fit_bipolar_rectification_index for implementation.
 
-        # [n_gcs, n_timepoints]
-        neg_scaler = 1 - RI
-        neg_idx = bipolar_output_sum < 0
+        RI = self.parabola(gc_surround_linear_input, *popt)
 
-        gc_synaptic_input = bipolar_output_sum.copy()
-        gc_synaptic_input[neg_idx] = bipolar_output_sum[neg_idx] * neg_scaler[neg_idx]
+        # [n_timepoints, n_gcs].  Inverts RI: neg_scaler zero is strong rectifier, whereas neg_scaler one is linear
+        neg_scaler = 1 - RI.T
+        ##########################################################################
+
+        signal_input = subunit_sum.T
+
+        ############## Ganglion cell activation computation ######################
+        # Loop over time points. Expand NegScaler(tp) to [NB,NGC]
+        # Multiply neg_scaler_expanded and bipolar_to_gcs_weights
+        # Take dot product of signal input [timepoint] and neg_scaler_expanded[timepoint]
+
+        def _compute_gc_input(bipo_to_gc_weights):
+            n_bipo = bipo_to_gc_weights.shape[0]
+            n_gc = bipo_to_gc_weights.shape[1]
+            n_tp = signal_input.shape[0]
+
+            gc_input_negative = np.zeros((n_tp, n_gc))
+
+            for tp in range(n_tp):
+                neg_scaler_expanded = np.tile(neg_scaler[tp, :], (n_bipo, 1))
+                # Scale connection weights with nonlinearity scaling
+                bipo_to_gc_weights_adjusted = bipo_to_gc_weights * neg_scaler_expanded
+
+                # Nonlinear summation to negative signal input
+                gc_input_negative[tp, :] = (
+                    np.where(signal_input[tp, :] < 0, signal_input[tp, :], 0)
+                    @ bipo_to_gc_weights_adjusted
+                )
+
+            # Linear summation for positive signal input
+            gc_input_positive = (
+                np.where(signal_input > 0, signal_input, 0) @ bipo_to_gc_weights
+            )
+            return gc_input_positive + gc_input_negative
+
+        gc_center_input = _compute_gc_input(bipolar_to_gcs_cen_weights)
+        gc_surround_input = _compute_gc_input(bipolar_to_gcs_sur_weights)
+
+        gc_activation = gc_center_input - gc_surround_input
 
         if self.target_gc_for_multiple_trials is not None:
             gc_index = self.target_gc_for_multiple_trials
-            gc_synaptic_input = gc_synaptic_input[gc_index, :]
+            gc_activation = gc_activation[gc_index, :]
 
-        vs.generator_potentials = gc_synaptic_input
+        vs.generator_potentials = gc_activation.T
 
         return vs
 
@@ -3213,8 +3259,8 @@ class GanglionCellProduct(ReceptiveFieldsBase):
     ----------
     retina_parameters : Dict[str, Any]
         Dictionary containing retina parameters.
-    dog_metadata_parameters : Dict[str, Any]
-        Metadata for the APRICOT dataset.
+    experimental_metadata : Dict[str, Any]
+        Metadata for the experimental dataset.
     rfs_npz : Dict[str, Any]
         Dictionary containing receptive field data.
     gc_dataframe : pd.DataFrame
@@ -3232,8 +3278,8 @@ class GanglionCellProduct(ReceptiveFieldsBase):
         Threshold for masking.
     refractory_parameters : Any
         Parameters for refractory period.
-    dog_metadata_parameters : Dict[str, Any]
-        Metadata for the APRICOT dataset.
+    experimental_metadata : Dict[str, Any]
+        Metadata for the experimental dataset.
     data_microm_per_pixel : float
         Micrometers per pixel in the data.
     data_filter_fps : float
@@ -3261,7 +3307,7 @@ class GanglionCellProduct(ReceptiveFieldsBase):
     def __init__(
         self,
         retina_parameters: Dict[str, Any],
-        dog_metadata_parameters: Dict[str, Any],
+        experimental_metadata: Dict[str, Any],
         rfs_npz: Dict[str, Any],
         gc_dataframe: pd.DataFrame,
         spike_generator_model: Any,
@@ -3281,10 +3327,10 @@ class GanglionCellProduct(ReceptiveFieldsBase):
             self.mask_threshold >= 0 and self.mask_threshold <= 1
         ), "mask_threshold must be between 0 and 1, aborting..."
 
-        self.dog_metadata_parameters = dog_metadata_parameters
-        self.data_microm_per_pixel = self.dog_metadata_parameters["data_microm_per_pix"]
-        self.data_filter_fps = self.dog_metadata_parameters["data_fps"]
-        self.data_filter_timesteps = self.dog_metadata_parameters[
+        self.experimental_metadata = experimental_metadata
+        self.data_microm_per_pixel = self.experimental_metadata["data_microm_per_pix"]
+        self.data_filter_fps = self.experimental_metadata["data_fps"]
+        self.data_filter_timesteps = self.experimental_metadata[
             "data_temporalfilter_samples"
         ]
         self.data_filter_duration = self.data_filter_timesteps * (
@@ -3460,7 +3506,7 @@ class GanglionCellProduct(ReceptiveFieldsBase):
         self.temporal_filter_len = int(self.data_filter_duration / (1000 / vs.fps))
 
 
-class VisualSignal(Printable):
+class VisualSignal(PrintableMixin):
     """
     Class containing simulation product, i.e. the information associated
     with visual signal passing through the retina.
@@ -3624,8 +3670,8 @@ class SimulateRetina(RetinaMath):
 
     Parameters
     ----------
-    context : Any
-        Configuration and context for the simulation.
+    config : Configuration
+        Configuration parameters object.
     data_io : Any
         Data input/output handler.
     viz : Any
@@ -3639,8 +3685,8 @@ class SimulateRetina(RetinaMath):
 
     Attributes
     ----------
-    context : Any
-        Configuration and context for the simulation.
+    config : Configuration
+        Configuration parameters object.
     data_io : Any
         Data input/output handler.
     viz : Any
@@ -3655,14 +3701,14 @@ class SimulateRetina(RetinaMath):
 
     def __init__(
         self,
-        context: Any,
+        config: Any,
         data_io: Any,
         project_data: Any,
         retina_math: RetinaMath,
         device: str,
         stimulate: Any,
     ) -> None:
-        self._context: Any = context
+        self._config: Any = config
         self._data_io: Any = data_io
         self._project_data: Any = project_data
         self._retina_math: RetinaMath = retina_math
@@ -3670,8 +3716,8 @@ class SimulateRetina(RetinaMath):
         self._stimulate: Any = stimulate
 
     @property
-    def context(self) -> Any:
-        return self._context
+    def config(self) -> Any:
+        return self._config
 
     @property
     def data_io(self) -> Any:
@@ -3711,9 +3757,7 @@ class SimulateRetina(RetinaMath):
         # Create w_coord, z_coord for cortical and visual coordinates, respectively
         z_coord = gcs.df["x_deg"].values + 1j * gcs.df["y_deg"].values
 
-        visual2cortical_params = self.context.retina_parameters[
-            "visual2cortical_params"
-        ]
+        visual2cortical_params = self.config.retina_parameters["visual2cortical_params"]
         a = visual2cortical_params["a"]
         k = visual2cortical_params["k"]
         w_coord = k * np.log(z_coord + a)
@@ -3789,7 +3833,7 @@ class SimulateRetina(RetinaMath):
         if gcs.temporal_model_type == "subunit":
             cone_responses_to_show["cone_signal"] = vs.cone_signal
             cone_responses_to_show["cone_signal_u"] = vs.cone_signal_u
-            cone_responses_to_show["unit"] = self.context.retina_parameters[
+            cone_responses_to_show["unit"] = self.config.retina_parameters[
                 "cone_signal_parameters"
             ]["unit"]
             cone_responses_to_show["photodiode_Rstar_range"] = (
@@ -3809,15 +3853,15 @@ class SimulateRetina(RetinaMath):
         ConeProduct
             Initialized cone photoreceptor object.
         """
-        ret_npz_file = self.context.retina_parameters["ret_file"]
-        ret_npz = self.data_io.get_data(filename=ret_npz_file)
+        ret_npz_file = self.config.retina_parameters["ret_file"]
+        ret_npz = self.data_io.load_data(filename=ret_npz_file)
         target_gc_for_multiple_trials = None  # Option to use only one gc unit
 
         cones = ConeProduct(
-            self.context.retina_parameters,
+            self.config.retina_parameters,
             ret_npz,
-            self.context.device,
-            self.context.visual_stimulus_parameters["ND_filter"],
+            self.config.device,
+            self.config.visual_stimulus_parameters["ND_filter"],
             # RetinaMath methods:
             self.interpolate_data,
             self.lin_interp_and_double_lorenzian,
@@ -3826,7 +3870,7 @@ class SimulateRetina(RetinaMath):
 
         return cones
 
-    def _get_cone_noise_from_file_if_exists(self, vs: Any) -> Any:
+    def _get_cone_noise_from_file_if_exists(self, vs: Any, gcs: Any) -> Any:
         """
         Load cone noise from file if it exists.
 
@@ -3840,16 +3884,29 @@ class SimulateRetina(RetinaMath):
         Any
             Updated visual signal object.
         """
-        filename_stem = (
-            f"cone_noise_{self.context.retina_parameters['cone_noise_hash']}"
-        )
-        noise_filename_full = self.data_io.parse_path("", substring=filename_stem)
 
-        if noise_filename_full is not None:
-            cone_noise_npz = self.data_io.get_data(full_path=noise_filename_full)
+        cone_noise_hash = self.config.retina_parameters["cone_noise_hash"]
+        filename_stem_cone_noise = f"cone_noise_{cone_noise_hash}"
+        cone_noise_filename_full = self.data_io.parse_path(
+            "", substring=filename_stem_cone_noise
+        )
+
+        if cone_noise_filename_full is not None:
+            cone_noise_npz = self.data_io.load_data(full_path=cone_noise_filename_full)
             vs.cone_noise = cone_noise_npz["cone_noise"]
-            vs.cone_noise_u = cone_noise_npz["cone_noise_u"]
-            vs.gc_synaptic_noise = cone_noise_npz["gc_synaptic_noise"]
+
+        gc_type = self.config.retina_parameters["gc_type"]
+        response_type = self.config.retina_parameters["response_type"]
+
+        filename_stem_gc_noise = f"{gc_type}_{response_type}_noise_{cone_noise_hash}"
+        gc_noise_filename_full = self.data_io.parse_path(
+            "", substring=filename_stem_gc_noise
+        )
+
+        if gc_noise_filename_full is not None:
+            gc_noise_npz = self.data_io.load_data(full_path=gc_noise_filename_full)
+
+            vs.gc_synaptic_noise = gc_noise_npz["gc_synaptic_noise"]
 
         return vs
 
@@ -3871,28 +3928,30 @@ class SimulateRetina(RetinaMath):
         cones = self._initialize_cones()
 
         # Abstraction for clarity
-        rfs_npz_file = self.context.retina_parameters["spatial_rfs_file"]
-        rfs_npz = self.data_io.get_data(filename=rfs_npz_file)
-        mosaic_file = self.context.retina_parameters["mosaic_file"]
-        gc_dataframe = self.data_io.get_data(filename=mosaic_file)
-        spike_generator_model = self.context.run_parameters["spike_generator_model"]
-        simulation_dt = self.context.run_parameters["simulation_dt"]
+        rfs_npz_file = self.config.retina_parameters["spatial_rfs_file"]
+        rfs_npz = self.data_io.load_data(filename=rfs_npz_file)
+        mosaic_file = self.config.retina_parameters["mosaic_file"]
+        gc_dataframe = self.data_io.load_data(filename=mosaic_file)
+        spike_generator_model = self.config.simulation_parameters[
+            "spike_generator_model"
+        ]
+        simulation_dt = self.config.simulation_parameters["simulation_dt"]
 
         gcs = GanglionCellProduct(
-            self.context.retina_parameters,
-            self.context.dog_metadata_parameters,
+            self.config.retina_parameters,
+            self.config.experimental_metadata,
             rfs_npz,
             gc_dataframe,
             spike_generator_model,
             self.pol2cart_df,
         )
 
-        ret_npz_file = self.context.retina_parameters["ret_file"]
-        ret_npz = self.data_io.get_data(filename=ret_npz_file)
+        ret_npz_file = self.config.retina_parameters["ret_file"]
+        ret_npz = self.data_io.load_data(filename=ret_npz_file)
 
         if gcs.temporal_model_type == "subunit":
             bipolars = BipolarProduct(
-                self.context.retina_parameters,
+                self.config.retina_parameters,
                 ret_npz,
                 target_gc_for_multiple_trials=None,  # Option to target one gc unit
             )
@@ -3900,22 +3959,60 @@ class SimulateRetina(RetinaMath):
             bipolars = None
 
         vs = VisualSignal(
-            self.context.visual_stimulus_parameters,
-            self.context.retina_parameters["retina_center"],
+            self.config.visual_stimulus_parameters,
+            self.config.retina_parameters["retina_center"],
             self.data_io.load_stimulus_from_videofile,
             simulation_dt,
-            self.context.retina_parameters["deg_per_mm"],
-            self.context.retina_parameters["optical_aberration"],
-            self.context.visual_stimulus_parameters["pix_per_deg"],
+            self.config.retina_parameters["deg_per_mm"],
+            self.config.retina_parameters["optical_aberration"],
+            self.config.visual_stimulus_parameters["pix_per_deg"],
             stimulus_video=stimulus,
         )
 
-        vs = self._get_cone_noise_from_file_if_exists(vs)
+        vs = self._get_cone_noise_from_file_if_exists(vs, gcs)
 
         # Link ganglion cell receptive fields to visual signal. Eg applies rotation
         gcs.link_gcs_to_vs(vs)
 
         return vs, gcs, cones, bipolars
+
+    def _get_construct_metadata_if_missing(self) -> None:
+        """
+        When running without constructing first, get retina parameters from output folder.
+        This populates a subset of config.retina_parameters attributes with values from files
+        in the output folder."""
+
+        if not hasattr(self.config.retina_parameters, "retina_parameters_hash"):
+            print(
+                """
+            No retina_parameters_hash found, assuming running without construct.
+            Getting parameters from output folder...
+            """
+            )
+
+            files_in_output_folder = self.data_io.listdir_loop(
+                self.config.output_folder
+            )
+            for file in files_in_output_folder:
+                if "mosaic.csv" in str(file):
+                    self.config.retina_parameters.mosaic_file = file
+                if "spatial_rfs.npz" in str(file):
+                    self.config.retina_parameters.spatial_rfs_file = file
+                if "ret.npz" in str(file):
+                    self.config.retina_parameters.ret_file = file
+                if "metadata.yaml" in str(file):
+                    self.config.retina_parameters.retina_metadata_file = file
+                if "cone_noise_" in str(file):
+                    # Extract the hash from the filename
+                    hash_part = str(file).split("cone_noise_")[-1].split(".npz")[0]
+                    self.config.retina_parameters.cone_noise_hash = hash_part
+
+            hash_part = (
+                str(self.config.retina_parameters.retina_metadata_file)
+                .split("parasol_on_")[-1]
+                .split("_metadata.yaml")[0]
+            )
+            self.config.retina_parameters.retina_parameters_hash = hash_part
 
     def client(
         self,
@@ -3936,8 +4033,9 @@ class SimulateRetina(RetinaMath):
         unity : bool, optional
             If True, runs uniformity index simulation.
         """
+        self._get_construct_metadata_if_missing()
         vs, gcs, cones, bipolars = self._get_products(stimulus)
-        n_sweeps = self.context.run_parameters["n_sweeps"]
+        n_sweeps = self.config.simulation_parameters["n_sweeps"]
         builder = ConcreteSimulationBuilder(
             vs,
             gcs,
@@ -3951,7 +4049,7 @@ class SimulateRetina(RetinaMath):
 
         director = SimulationDirector(builder)
         if impulse:
-            contrasts = self.context.run_parameters["contrasts_for_impulse"]
+            contrasts = self.config.simulation_parameters["contrasts_for_impulse"]
             director.run_impulse_response(contrasts)
         elif unity:
             director.run_uniformity_index()
@@ -3959,12 +4057,20 @@ class SimulateRetina(RetinaMath):
             if filename is not None:
                 filenames = [filename]
             else:
-                filenames = self.context.run_parameters["gc_response_filenames"]
+                gc_type = self.config.retina_parameters["gc_type"]
+                response_type = self.config.retina_parameters["response_type"]
+                hashstr = self.config.retina_parameters["retina_parameters_hash"]
+                # Generate multiple filenames if n_files > 1
+                filenames = [
+                    f"{gc_type}_{response_type}_{hashstr}_response_{x:02}"
+                    for x in range(self.config.simulation_parameters.n_files)
+                ]
+
             for filename in filenames:
                 director.run_simulation()
                 vs, gcs = director.get_simulation_result()
-                if self.context.run_parameters["save_data"]:
-                    save_variables = self.context.run_parameters["save_variables"]
+                if self.config.simulation_parameters["save_data"]:
+                    save_variables = self.config.simulation_parameters["save_variables"]
                     self.data_io.save_retina_output(vs, gcs, filename, save_variables)
 
             self._get_project_data_for_viz(vs, gcs, n_sweeps)

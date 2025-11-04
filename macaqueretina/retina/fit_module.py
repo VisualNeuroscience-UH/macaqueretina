@@ -12,8 +12,8 @@ from scipy.optimize import curve_fit, minimize
 from tqdm import tqdm
 
 # Local
-from macaqueretina.project.project_utilities_module import Printable
-from macaqueretina.retina.apricot_data_module import ApricotData
+from macaqueretina.project.project_utilities_module import PrintableMixin
+from macaqueretina.retina.experimental_data_module import ExperimentalData
 from macaqueretina.retina.retina_math_module import RetinaMath
 
 
@@ -23,7 +23,7 @@ class ReceptiveFieldSD:
     surround_sd: float
 
 
-class FitDoGTemplate(ABC, RetinaMath, Printable):
+class FitDoGTemplate(ABC, RetinaMath, PrintableMixin):
 
     def fit_spatial_filters_template(
         self,
@@ -31,7 +31,7 @@ class FitDoGTemplate(ABC, RetinaMath, Printable):
         cen_rot_rad_all,
         bad_spatial_idx,
         mark_outliers_bad=False,
-        mask_noise=0,
+        data_noise_threshold=0,
     ):
         """
         Fit difference of Gaussians (DoG) model spatial filters using receptive field image data.
@@ -72,7 +72,7 @@ class FitDoGTemplate(ABC, RetinaMath, Printable):
             If the shape of spat_data_array is not `(n_cells, num_pix_y, num_pix_x)`.
         """
         self.bad_spatial_idx = bad_spatial_idx
-        self.mask_noise = mask_noise
+        self.data_noise_threshold = data_noise_threshold
 
         self.base_spatial_fitting(spat_data_array, cen_rot_rad_all)
         self.base_get_viable_units()
@@ -146,7 +146,7 @@ class FitDoGTemplate(ABC, RetinaMath, Printable):
     def base_flip_negative_spatial_rf(self):
         # RetinaMath method
         self.spat_data_array = self.flip_negative_spatial_rf(
-            self.spat_data_array, self.mask_noise
+            self.spat_data_array, self.data_noise_threshold
         )
 
     @abstractmethod
@@ -243,7 +243,7 @@ class FitDoGTemplate(ABC, RetinaMath, Printable):
         error_df = pd.DataFrame(self.error_all_viable_cells, columns=["spatialfit_mse"])
         good_mask = np.ones(len(self.data_all_viable_cells))
 
-        # Remove hand picked (in apricot data module) bad indices or failed fits
+        # Remove hand picked bad indices or failed fits
         if self.bad_spatial_idx is not None:
             good_mask[self.bad_spatial_idx] = 0
 
@@ -761,7 +761,7 @@ class FitCircular(FitDoGTemplate):
         return ReceptiveFieldSD(center_sd=mean_center_sd, surround_sd=mean_surround_sd)
 
 
-class FitDataTypeTemplate(ABC, Printable):
+class FitDataTypeTemplate(ABC, PrintableMixin):
 
     def fit_data_type_template(self):
 
@@ -1042,17 +1042,19 @@ class FitExperimental(FitDataTypeTemplate):
         )
 
     def require_spatial_fit(self):
-        self.apricot_data = ApricotData(self.metadata, self.gc_type, self.response_type)
-        self.bad_data_idx = self.apricot_data.manually_picked_bad_data_idx
-        self.n_cells = self.apricot_data.n_cells
+        self.experimental_data = ExperimentalData(
+            self.metadata, self.gc_type, self.response_type
+        )
+        self.bad_data_idx = self.experimental_data.known_bad_data_idx
+        self.n_cells = self.experimental_data.n_cells
 
-        # Read Apricot data and manually picked bad data indices
+        # Read experimental data and manually picked bad data indices
         (
             spatial_data,
             cen_rot_rad_all,
-        ) = self.apricot_data.read_spatial_filter_data()
+        ) = self.experimental_data.read_spatial_filter_data()
 
-        # Check that original Apricot data spatial resolution match metadata given in project_conf_module.
+        # Check that original experimental data spatial resolution match metadata given in the yaml files.
         assert (
             spatial_data.shape[1] == self.metadata["data_spatialfilter_height"]
         ), "Spatial data height does not match metadata"
@@ -1069,7 +1071,7 @@ class FitExperimental(FitDataTypeTemplate):
             cen_rot_rad_all,
             self.bad_data_idx,
             mark_outliers_bad=False,
-            mask_noise=self.metadata["mask_noise"],
+            data_noise_threshold=self.metadata["data_noise_threshold"],
         )
 
     def hook_temporal_fit(self):
@@ -1086,7 +1088,9 @@ class FitExperimental(FitDataTypeTemplate):
         """
 
         # shape (n_cells, 15); 15 time points @ 30 Hz (500 ms)
-        temporal_filters = self.apricot_data.read_temporal_filter_data(flip_negs=True)
+        temporal_filters = self.experimental_data.read_temporal_filter_data(
+            flip_negs=True
+        )
 
         data_fps = self.metadata["data_fps"]
         data_n_samples = self.metadata["data_temporalfilter_samples"]
@@ -1152,7 +1156,7 @@ class FitExperimental(FitDataTypeTemplate):
 
     def hook_tonic_drive_fit(self):
         self.tonic_drives_df = pd.DataFrame(
-            self.apricot_data.read_tonic_drive(), columns=["tonic_drive"]
+            self.experimental_data.read_tonic_drive(), columns=["tonic_drive"]
         )
 
     def require_all_data_fits_df(self):
@@ -1402,11 +1406,11 @@ class Fit(RetinaMath):
     a function consisting of cascade of two lowpass filters and for adding the tonic drive.
     """
 
-    def __init__(self, project_data, dog_metadata_parameters):
+    def __init__(self, project_data, experimental_metadata):
         # Dependency injection at ProjectManager construction
         self._project_data = project_data
 
-        self.metadata = dog_metadata_parameters
+        self.metadata = experimental_metadata
 
     @property
     def project_data(self):

@@ -4,7 +4,8 @@ import os
 import pickle
 import types
 import zlib
-from functools import lru_cache
+
+# from functools import lru_cache
 from pathlib import Path
 
 # Third-party
@@ -15,45 +16,34 @@ import pandas as pd
 import scipy.io as sio
 import scipy.sparse as scprs
 import yaml
-
-try:
-    # First-party
-    # used in project_utilities_module.py
-    from cxsystem2.core.tools import load_from_file, write_to_file
-
-    CXSYSTEM_EXISTS = True
-except ImportError:
-    print("cxsystem2 not installed, continuing without...")
-    CXSYSTEM_EXISTS = False
-
-# Local
-from macaqueretina.context.context_module import Context
+from brian2.input.timedarray import TimedArray
 
 
 class DataIO:
-    def __init__(self, context) -> None:
-        self.context = context
-
-        if CXSYSTEM_EXISTS:
-            # Attach cxsystem2 methods
-            self.write_to_file = write_to_file
+    def __init__(self, config) -> None:
+        self.config = config
 
         # Attach other methods/packages
         self.savemat = sio.savemat
         self.csr_matrix = scprs.csr_matrix
 
-    @property
-    def context(self):
-        return self._context
+    def _write_to_file(self, save_path, data):
+        def _remove_timed_arrays(obj):
+            # Timed arrays of brian contain some expressions which cannot be saved by pickle,
+            if not isinstance(obj, dict):
+                return obj
+            keys = list(obj.keys())
+            for key in keys:
+                if isinstance(obj[key], TimedArray):
+                    del obj[key]
+                elif isinstance(obj[key], dict):
+                    obj[key] = _remove_timed_arrays(obj[key])
+            return obj
 
-    @context.setter
-    def context(self, value):
-        if isinstance(value, Context):
-            self._context = value
-        else:
-            raise AttributeError(
-                "Trying to set improper context. Context must be a context object."
-            )
+        save_path = Path(save_path)
+        data = _remove_timed_arrays(data)
+        with open(save_path.as_posix(), "wb") as fb:
+            fb.write(zlib.compress(pickle.dumps(data, pickle.HIGHEST_PROTOCOL), 9))
 
     def _check_candidate_file(self, path, filename):
         candidate_data_fullpath_filename = Path.joinpath(path, filename)
@@ -124,11 +114,11 @@ class DataIO:
         Note that the substring can be timestamp in the filename.
         """
         data_fullpath_filename = None
-        path = self.context.path
-        experiment = self.context.experiment
-        input_folder = self.context.input_folder
-        output_folder = self.context.output_folder
-        stimulus_folder = self.context.stimulus_folder
+        path = self.config.path
+        experiment = self.config.experiment
+        input_folder = self.config.input_folder
+        output_folder = self.config.output_folder
+        stimulus_folder = self.config.stimulus_folder
 
         if output_folder is not None:
             # Check if output folder is absolute path
@@ -202,8 +192,7 @@ class DataIO:
 
         return data_fullpath_filename
 
-    @lru_cache(maxsize=128)
-    def get_data(
+    def load_data(
         self,
         filename=None,
         substring=None,
@@ -281,9 +270,6 @@ class DataIO:
             raise TypeError("U r trying to input unknown filetype, aborting...")
 
         print(f"Loaded file {data_fullpath_filename}")
-        # Check for existing loggers (python builtin, called from other modules, such as the run_script.py)
-        if logging.getLogger().hasHandlers():
-            logging.info(f"Loaded file {data_fullpath_filename}")
 
         if return_filename is True:
             return data, data_fullpath_filename
@@ -548,7 +534,7 @@ class DataIO:
         Create output directory if it does not exist.
         Return full path to output directory.
         """
-        output_path = Path.joinpath(self.context.path, self.context.output_folder)
+        output_path = Path.joinpath(self.config.path, self.config.output_folder)
         if not Path(output_path).exists():
             Path(output_path).mkdir(parents=True)
 
@@ -559,7 +545,7 @@ class DataIO:
         Create output directory if it does not exist.
         Return full path to output directory.
         """
-        stimulus_path = Path.joinpath(self.context.path, self.context.stimulus_folder)
+        stimulus_path = Path.joinpath(self.config.path, self.config.stimulus_folder)
         if not Path(stimulus_path).exists():
             Path(stimulus_path).mkdir(parents=True)
 
@@ -580,8 +566,15 @@ class DataIO:
         Then check if video name has correct extension.
         If not, add correct extension.
 
-        :param filename: video name
-        :return: full path to video name
+        Parameters
+        ----------
+        filename : str
+            The name of the video file.
+
+        Returns
+        -------
+        fullpath_filename : Path
+            The full path to the video file.
         """
 
         parent_path = self._check_stimulus_folder()
@@ -618,23 +611,25 @@ class DataIO:
             The stimulus object to be saved.
         """
 
+        # Get filename stem. Check for mp4 and hdf5 files. If either does not exists, create them.
         fullpath_filename = self.get_video_full_name(filename)
 
-        if fullpath_filename.is_file():
-            return  # If file already exists, do not overwrite
+        filename_mp4 = Path(f"{fullpath_filename.stem}.mp4")
+        fullpath_filename_mp4 = Path.joinpath(fullpath_filename.parent, filename_mp4)
+        if not fullpath_filename_mp4.is_file():
+            self._write_frames_to_mp4_videofile(fullpath_filename_mp4, stimulus)
 
-        # To display to user
-        self._write_frames_to_mp4_videofile(fullpath_filename, stimulus)
+        filename_hdf5 = Path(f"{fullpath_filename.stem}.hdf5")
+        fullpath_filename_hdf5 = Path.joinpath(fullpath_filename.parent, filename_hdf5)
 
-        # save all stimulus object attributes in the same format
-        stimulus_dict = {
-            key: value
-            for key, value in stimulus.__dict__.items()
-            if key not in ["_context", "_data_io", "_cones"]
-        }
+        if not fullpath_filename_hdf5.is_file():
+            stimulus_dict = {
+                key: value
+                for key, value in stimulus.__dict__.items()
+                if key not in ["_config", "_data_io", "_cones"]
+            }
 
-        full_path_out = f"{fullpath_filename}.hdf5"
-        self.save_dict_to_hdf5(full_path_out, stimulus_dict)
+            self.save_dict_to_hdf5(fullpath_filename_hdf5, stimulus_dict)
 
     def load_stimulus_from_videofile(self, filename):
         """
@@ -656,19 +651,16 @@ class DataIO:
         stimulus : DummyVideoClass instance
             An instance of the dummy VideoBaseClass that represents the loaded
             stimulus. Its attributes are populated from the hdf5 file contents.
-
-        Notes
-        -----
-        - If logging handlers are set, an informational log is produced indicating
-        the file that has been loaded.
-        - The function assumes that the file extension is `.hdf5` and appends it to the filename.
         """
 
         fullpath_filename = self.get_video_full_name(filename)
+        filename_hdf5 = Path(f"{fullpath_filename.stem}.hdf5")
+        fullpath_filename_hdf5 = Path.joinpath(fullpath_filename.parent, filename_hdf5)
 
-        # load video from hdf5 file
-        full_path_in = f"{fullpath_filename}.hdf5"
-        data_dict = self.load_dict_from_hdf5(full_path_in)
+        if not fullpath_filename_hdf5.is_file():
+            raise FileNotFoundError(f"No stimulus video at {fullpath_filename_hdf5}")
+        else:
+            data_dict = self.load_dict_from_hdf5(fullpath_filename_hdf5)
 
         # Create a dummy VideoBaseCLass object to create a stimulus object
         class DummyVideoClass:
@@ -684,10 +676,7 @@ class DataIO:
             if isinstance(value, np.ndarray):
                 stimulus.options[key] = tuple(value)
 
-        print(f"Loaded file {full_path_in}")
-        # Check for existing loggers (python builtin, called from other modules, such as the run_script.py)
-        if logging.getLogger().hasHandlers():
-            logging.info(f"Loaded file {full_path_in}")
+        print(f"Loaded file {fullpath_filename_hdf5}")
 
         return stimulus
 
@@ -719,7 +708,7 @@ class DataIO:
         :return: cone response
         """
 
-        parent_path = self.context.output_folder
+        parent_path = self.config.output_folder
 
         filename_stem, filename_suffix = self._get_filename_stem_and_suffix(filename)
         if filename_suffix in ["hdf5"]:
@@ -761,85 +750,10 @@ class DataIO:
             "stimulus_duration_in_seconds": total_duration,
         }
 
-        filename_out_full = self.context.output_folder.joinpath(filename_out)
+        filename_out_full = self.config.output_folder.joinpath(filename_out)
 
         sio.savemat(filename_out_full, mat_out_dict)
         print(f"Duration of stimulus is {total_duration} seconds")
-
-    def load_ray_results_grid(self, most_recent=True, ray_exp=None):
-        """
-        Load Ray Tune results from the `ray_results` folder.
-
-        Parameters
-        ----------
-        most_recent : bool, optional
-            If True, loads the most recent "TrainableVAE_XXX" folder from the `ray_results` folder, by default True.
-        ray_exp : str, optional
-            The name of the Ray Tune experiment folder to load, by default None.
-
-        Returns
-        -------
-        result_grid : ray.tune.result_grid.ResultGrid object
-            The Ray Tune results.
-
-        Raises
-        ------
-        ValueError
-            If the Ray Tune results cannot be found.
-
-        Notes
-        -----
-        The `ray_root_path` attribute of the `context` object is used to find the `ray_results` folder.
-        If `ray_root_path` is None, the `ray_results` folder is expected to be located in the `output_folder` of the `context` object.
-        If `ray_exp` is not provided and `most_recent` is False, a ValueError is raised.
-        """
-
-        def get_ray_dir():
-            if self.context.ray_root_path is None:
-                ray_dir = self.context.output_folder / "ray_results"
-                # Check if the directory exists
-                if ray_dir.exists():
-                    return ray_dir
-
-                ray_dir = self.context.input_folder / "ray_results"
-                if ray_dir.exists():
-                    return ray_dir
-
-            elif self.context.ray_root_path.exists():
-                # Rebuild the path to ray_results
-                ray_dir = (
-                    self.context.ray_root_path
-                    / Path(self.context.project)
-                    / Path(self.context.experiment)
-                    / Path(self.context.output_folder.name)
-                    / "ray_results"
-                )
-                if ray_dir.exists():
-                    return ray_dir
-            else:
-                raise ValueError("Ray tune results cannot be found, aborting...")
-
-        ray_dir = get_ray_dir()
-        if most_recent:
-            ray_exp = sorted(os.listdir(ray_dir))[-1]
-        else:
-            assert (
-                ray_exp is not None
-            ), "ray_exp must be specified if most_recent is False, aborting..."
-
-        experiment_path = f"{ray_dir}/{ray_exp}"
-        print(f"Loading results from {experiment_path}...")
-
-        # Third-party
-        from ray import tune
-
-        # Local
-        from macaqueretina.retina.vae_module import TrainableVAE
-
-        restored_tuner = tune.Tuner.restore(experiment_path, trainable=TrainableVAE)
-        result_grid = restored_tuner.get_results()
-
-        return result_grid
 
     def save_np_dict_to_npz(
         self, data_dict, output_path, filename_stem="", overwrite=True
@@ -890,15 +804,13 @@ class DataIO:
         analog_signal=None,
         dt=None,
     ):
-        # Copied from CxSystem2\cxsystem2\core\stimuli.py The Stimuli class does not support reuse
+
         print(" -  Saving spikes, rgc coordinates and analog signal (if not None)...")
 
         data_to_save = {}
         for ii in range(len(spikearrays)):
             data_to_save["spikes_" + str(ii)] = []
-            # units, i in cxsystem2
             data_to_save["spikes_" + str(ii)].append(spikearrays[ii][0])
-            # times, t in cxsystem2
             data_to_save["spikes_" + str(ii)].append(spikearrays[ii][1])
         data_to_save["w_coord"] = w_coord
         data_to_save["z_coord"] = z_coord
@@ -912,13 +824,13 @@ class DataIO:
             data_to_save["dt"] = dt
 
         if filename is None:
-            save_path = self.context.output_folder.joinpath("most_recent_spikes")
+            save_path = self.config.output_folder.joinpath("most_recent_spikes")
         else:
-            save_path = self.context.output_folder.joinpath(filename)
+            save_path = self.config.output_folder.joinpath(filename)
 
         filename_full = save_path.with_suffix(".gz")
 
-        self.write_to_file(filename_full, data_to_save)
+        self._write_to_file(filename_full, data_to_save)
 
     def _save_spikes_csv(self, simulated_spiketrains, n_cells, filename=None):
         """
@@ -950,9 +862,9 @@ class DataIO:
         spikes_df = spikes_df.sort_values(by="spike_time")
 
         if filename is None:
-            save_path = self.context.output_folder.joinpath("most_recent_spikes")
+            save_path = self.config.output_folder.joinpath("most_recent_spikes")
         else:
-            save_path = self.context.output_folder.joinpath(filename)
+            save_path = self.config.output_folder.joinpath(filename)
         filename_full = save_path.with_suffix(".csv")
 
         spikes_df.to_csv(filename_full, index=False, header=False)
@@ -968,11 +880,9 @@ class DataIO:
             generated automatically.
         """
         if filename is None:
-            save_path = self.context.output_folder.joinpath("most_recent_structure")
+            save_path = self.config.output_folder.joinpath("most_recent_structure")
         else:
-            save_path = self.context.output_folder.joinpath(
-                str(filename) + "_structure"
-            )
+            save_path = self.config.output_folder.joinpath(str(filename) + "_structure")
         filename_full = save_path.with_suffix(".csv")
 
         rgc_coords["z_deg"] = 0.0
@@ -1021,11 +931,10 @@ class DataIO:
             if hasattr(vs, variable):
                 data = getattr(vs, variable)
                 data_dict[variable] = data
-                filename_stem = f"{filename_stem}_{variable[:3]}"
 
         self.save_np_dict_to_npz(
             data_dict,
-            self.context.output_folder,
+            self.config.output_folder,
             filename_stem=filename_stem,
             overwrite=overwrite,
         )
@@ -1037,25 +946,37 @@ class DataIO:
         for this_variable in save_variables:
             match this_variable:
                 case "spikes":
-                    if CXSYSTEM_EXISTS:
-                        self._save_spikes_for_cxsystem(
-                            vs.spikearrays,
-                            vs.n_units,
-                            vs.w_coord,
-                            vs.z_coord,
-                            filename=filename,
-                            dt=vs.simulation_dt,
-                        )
-                    else:
-                        raise ImportError(
-                            "CxSystem2 is not installed, cannot save spikes"
-                        )
+                    self._save_spikes_for_cxsystem(
+                        vs.spikearrays,
+                        vs.n_units,
+                        vs.w_coord,
+                        vs.z_coord,
+                        filename=filename,
+                        dt=vs.simulation_dt,
+                    )
+
                 case "cone_noise":
-                    cone_noise_hash = self.context.retina_parameters["cone_noise_hash"]
+                    cone_noise_hash = self.config.retina_parameters["cone_noise_hash"]
                     self._save_additional_variables(
                         vs,
                         f"cone_noise_{cone_noise_hash}",
-                        ["cone_noise", "cone_noise_u", "gc_synaptic_noise"],
+                        ["cone_noise"],
+                        overwrite=False,
+                    )
+
+                case "gc_synaptic_noise":
+                    cone_noise_hash = self.config.retina_parameters["cone_noise_hash"]
+                    gc_type = self.config.retina_parameters["gc_type"]
+                    response_type = self.config.retina_parameters["response_type"]
+
+                    filename_gc_noise = (
+                        f"{gc_type}_{response_type}_noise_{cone_noise_hash}"
+                    )
+
+                    self._save_additional_variables(
+                        vs,
+                        filename_gc_noise,
+                        ["gc_synaptic_noise"],
                         overwrite=False,
                     )
 
