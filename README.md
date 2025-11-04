@@ -1,6 +1,7 @@
-# MacaqueRetina
+# Macaque Retina Simulator
 
-Python software to build a model of the primate retina and convert various visual stimuli to ganglion cell action potentials. This is software for research, with the intention of providing biologically plausible spike trains for downstream visual cortex simulations.
+This is a Python software to build a model of the primate retina and convert various visual stimuli to ganglion cell action potentials. 
+This is a software for research, with the intention of providing biologically plausible spike trains for downstream visual cortex simulations.
 
 The simulator can be run either directly or imported as a package.
 
@@ -13,12 +14,12 @@ When imported, all parameters are first read from the yaml files, but you have t
 
 We suggest using [Poetry](https://python-poetry.org/docs/main/) for creating and managing the project environment.
 
-Navigate to your local MacaqueRetina git repository root and run `poetry install`.
+Navigate to your local macaqueretina git repository root and run `poetry install`.
 
 
 ## Documentation
 
-For local documentation, run `mkdocs serve` at repo root after installation.
+For local documentation, install the package with `poetry install --with dev` and run `mkdocs serve` at repo root after installation.
 
 
 ## How to cite this project
