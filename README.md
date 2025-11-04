@@ -1,7 +1,7 @@
 # Macaque Retina Simulator
 
 This is a Python software to build a model of the primate retina and convert various visual stimuli to ganglion cell action potentials. 
-This is a software for research, with the intention of providing biologically plausible spike trains for downstream visual cortex simulations.
+The simulator is primarily for research, with the intention of providing biologically plausible spike trains for downstream visual cortex simulations.
 
 The simulator can be run either directly or imported as a package.
 
