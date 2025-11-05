@@ -2,11 +2,15 @@ build-job:
   stage: build
   script:
     - echo "Hello, $GITLAB_USER_LOGIN!"
+  tags:
+    - shared-tag
 
 test-job1:
   stage: test
   script:
     - echo "This job tests something"
+  tags:
+    - shared-tag
 
 test-job2:
   stage: test
@@ -15,9 +19,13 @@ test-job2:
     - echo "After the echo commands complete, it runs the sleep command for 20 seconds"
     - echo "which simulates a test that runs 20 seconds longer than test-job1"
     - sleep 20
+  tags:
+    - shared-tag
 
 deploy-prod:
   stage: deploy
   script:
     - echo "This job deploys something from the $CI_COMMIT_BRANCH branch."
   environment: production
+  tags:
+    - shared-tag
