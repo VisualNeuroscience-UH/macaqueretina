@@ -20,8 +20,8 @@ print(mr.config.retina_parameters)
 print("\nVisual stimulus parameters:")
 print(mr.config.visual_stimulus_parameters)
 
-print("\nRun parameters:")
-print(mr.config.run_parameters)
+print("\nSimulation parameters:")
+print(mr.config.simulation_parameters)
 
 # ################################################################
 # ###  Count lines in codebase, relative to working directory  ###
@@ -121,7 +121,7 @@ print(mr.config.run_parameters)
 # )
 # mr.construct_retina()
 
-# mr.config.run_parameters["contrasts_for_impulse"] = [1.0]
+# mr.config.simulation_parameters["contrasts_for_impulse"] = [1.0]
 # mr.simulate_retina(impulse=True)
 # mr.viz.show_impulse_response(savefigname=None)
 
