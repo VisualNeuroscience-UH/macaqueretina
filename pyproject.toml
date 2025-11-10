@@ -24,7 +24,6 @@ cython = "^3.0.11"
 h5py = "*"
 imageio = "*"
 ipython = "*"
-isort = "*"
 matplotlib = "*"
 numpy = "*"
 opencv-python-headless = "*"
@@ -49,32 +48,39 @@ torchvision = "*"
 tomli = "^2.2.1"
 tqdm = "*"
 
-[tool.poetry.scripts]
-run_macaqueretina = "project.project_manager_module:main"
-
 [tool.poetry.group.dev.dependencies]
 click = "8.2.1"
 mkdocs = "^1.6.1"
 mkdocs-material = "^9.6.21"
 mkdocstrings-python = "^1.18.2"
+ruff = "^0.6.0"  # Add Ruff as a dev dependency
+
+[tool.poetry.scripts]
+run_macaqueretina = "project.project_manager_module:main"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
-[tool.isort]
-profile = "black"
-known_third_party = [
-    "numpy", "pandas", "matplotlib", "scipy", "torch", "torchvision", 
-    "torchmetrics", "torchsummary", "torchaudio", "opencv", "cv2", 
-    "imageio", "seaborn", "scikit-image", "scikit-learn", "PIL", 
-    "Pillow", "h5py", "Shapely", "tqdm", "brian2", "brian2cuda", 
+[tool.ruff]
+line-length = 88 
+select = ["E", "F", "W", "I", "UP"]  # Flake8, isort, and pyupgrade rules
+ignore = []
+
+[tool.ruff.isort]
+known-third-party = [
+    "numpy", "pandas", "matplotlib", "scipy", "torch", "torchvision",
+    "torchmetrics", "torchsummary", "torchaudio", "opencv", "cv2",
+    "imageio", "seaborn", "scikit-image", "scikit-learn", "PIL",
+    "Pillow", "h5py", "Shapely", "tqdm", "brian2", "brian2cuda",
     "ipython", "pyshortcuts", "tomli", "pydantic"
 ]
-known_localfolder = ["macaqueretina", "docs"]
-sections = "FUTURE,STDLIB,THIRDPARTY,FIRSTPARTY,LOCALFOLDER"
-default_section = "THIRDPARTY"
-import_heading_stdlib = "Built-in"
-import_heading_thirdparty = "Third-party"
-import_heading_localfolder = "Local"
-force_single_line = false
+known-local-folder = ["macaqueretina", "docs"]
+section-order = ["future", "standard-library", "third-party", "first-party", "local-folder"]
+import-headings = { stdlib = "Built-in", third-party = "Third-party", local-folder = "Local" }
+force-single-line = false
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
