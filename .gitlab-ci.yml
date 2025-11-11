@@ -1,4 +1,4 @@
-image: alpine:latest
+image: docker:latest
 
 build-job:
   stage: build
