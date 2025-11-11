@@ -28,7 +28,6 @@ class ParamReorganizer:
         pass
 
     def reorganize(self, config: Configuration) -> dict[str, Any]:
-
         self.config = config.as_dict().copy()
         self._create_literature_data_files()
         self.config["retina_parameters"].update(self.config["retina_parameters_extend"])

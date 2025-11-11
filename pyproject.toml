@@ -64,11 +64,11 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.ruff]
 line-length = 88 
-select = ["E", "F", "W", "I", "UP", "B"]  # Flake8, isort, pyupgrade, and bugbear rules
-ignore = []
+lint.select = ["E", "F", "W", "I", "UP", "B"]
+lint.ignore = ["E501","E722", "F811"]
 indent-width = 4
 
-[tool.ruff.isort]
+[tool.ruff.lint.isort]
 known-third-party = [
     "numpy", "pandas", "matplotlib", "scipy", "torch", "torchvision",
     "torchmetrics", "torchsummary", "torchaudio", "opencv", "cv2",

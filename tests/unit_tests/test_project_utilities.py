@@ -57,9 +57,7 @@ def _mock_collect_and_save(data_sampler_instance):
 
 
 class TestDataSampler:
-
     def test_collect_and_save_points(self, data_sampler_instance, mock_data_path):
-
         _mock_collect_and_save(data_sampler_instance)
 
         assert len(data_sampler_instance.calibration_points) == 3
@@ -87,9 +85,7 @@ class TestDataSampler:
 
 
 class TestProjectUtilitiesMixin:
-
     def test_pp_df_full(self, capsys, project_utilities_instance):
-
         np.random.seed(42)
         df = pd.DataFrame(
             np.random.randn(100, 30),

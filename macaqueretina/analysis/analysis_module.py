@@ -852,7 +852,6 @@ class Analysis:
             F_unit_phase_df.to_csv(csv_save_path)
 
     def get_gain_calibration_df(self, threshold, folder_pattern, signal_gain=1.0):
-
         matching_files_or_folders = self.data_io.all_patterns(
             self.config.path, folder_pattern
         )

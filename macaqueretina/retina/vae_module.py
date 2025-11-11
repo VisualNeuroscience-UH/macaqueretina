@@ -64,10 +64,6 @@ class AugmentedDataset(torch.utils.data.Dataset):
 
         self.augmentation_dict = augmentation_dict
 
-        # Calculate mean and std of data
-        data_mean = np.mean(self.data)
-        data_std = np.std(self.data)
-
         # Define transforms
         if self.augmentation_dict is None:
             self.transform = transforms.Compose(
@@ -654,7 +650,6 @@ class RetinaVAE(RetinaMath):
     """
 
     def __init__(self, config) -> None:
-
         self._config = config
         self.vae_run_mode = config.vae_train_parameters["vae_run_mode"]
         self.gc_type = config.retina_parameters["gc_type"]
@@ -672,7 +667,6 @@ class RetinaVAE(RetinaMath):
     def client(
         self,
     ):
-
         self.experimental_metadata = self.config.experimental_metadata
         vae_train_parameters = self.config.vae_train_parameters
         self.epochs = vae_train_parameters["epochs"]
@@ -708,7 +702,6 @@ class RetinaVAE(RetinaMath):
         self.device = self.config.device
 
         match self.vae_run_mode:
-
             case "load_model":
                 model_file_name = self.config.retina_parameters.get(
                     "model_file_name", None
@@ -756,7 +749,7 @@ class RetinaVAE(RetinaMath):
                 self.test_loader = self.augment_and_get_dataloader(
                     data_type="test", shuffle=False
                 )
-                model_path = self._save_model()
+                _model_path = self._save_model()
                 self._save_logging()
                 self._save_latent_stats()
 
@@ -852,14 +845,17 @@ class RetinaVAE(RetinaMath):
                 latent_stats_file_name = f"latent_stats_{self.gc_type}_{self.response_type}_{self.device}_{timestamp}.npy"
             else:
                 # Get the most recent latent data file
-                latent_stats_file_name = max(
+                latent_stats_file_list = list(
                     Path(self.models_folder).glob(
                         f"latent_stats_{self.gc_type}_{self.response_type}_{self.device}_*.npy"
                     )
                 )
+                if not latent_stats_file_list:
+                    raise FileNotFoundError("No latent data files found. Aborting...")
+                latent_stats_file_name = max(latent_stats_file_list)
                 print(f"Most recent latent data file is {latent_stats_file_name}.")
-        except ValueError:
-            raise FileNotFoundError("No latent data files found. Aborting...")
+        except FileNotFoundError:
+            raise
 
         latent_stats_path = self.models_folder / latent_stats_file_name
 
@@ -879,35 +875,38 @@ class RetinaVAE(RetinaMath):
                 )
                 vae_model.load_state_dict(torch.load(model_path, weights_only=True))
             elif Path.exists(model_path) and model_path.is_dir():
-                try:
-                    prefix = f"model_{self.gc_type}_{self.response_type}_{self.device}_"
-                    model_path = max(Path(self.models_folder).glob(f"{prefix}*.pt"))
-                    timestamp = "_".join(model_path.stem.split("_")[-2:])
-                    self.timestamp_for_loading = timestamp
-                    if not model_path.is_file():
-                        raise FileNotFoundError("VAE model not found, aborting...")
-                    try:
-                        vae_model.load_state_dict(
-                            torch.load(model_path, weights_only=True)
-                        )
-                    except ModuleNotFoundError:
-                        raise ModuleNotFoundError(
-                            "Module path changed, you need to train VAE model. Aborting..."
-                        )
-                    print(f"Most recent model is {model_path}.")
-                except ValueError:
+                prefix = f"model_{self.gc_type}_{self.response_type}_{self.device}_"
+                model_files = list(Path(self.models_folder).glob(f"{prefix}*.pt"))
+                if not model_files:
                     raise FileNotFoundError("No model files found. Aborting...")
+
+                model_path = max(model_files)
+                if not model_path.is_file():
+                    raise FileNotFoundError("VAE model not found, aborting...")
+
+                try:
+                    vae_model.load_state_dict(
+                        torch.load(model_path, weights_only=True)
+                    )
+                except ModuleNotFoundError as e:
+                    raise ModuleNotFoundError(
+                        f"Module path changed, you need to train VAE model. Original error: {e}. Aborting..."
+                    ) from e
+
+                timestamp = "_".join(model_path.stem.split("_")[-2:])
+                self.timestamp_for_loading = timestamp
+                print(f"Most recent model is {model_path}.")
 
             else:
                 print(f"Model {model_path} does not exist.")
 
         else:
             # Get the most recent model. Max recognizes the timestamp with the largest value
-            try:
-                model_path = max(Path(self.models_folder).glob("*.pt"))
-                print(f"Most recent model is {model_path}.")
-            except ValueError:
+            model_files = list(Path(self.models_folder).glob("*.pt"))
+            if not model_files:
                 raise FileNotFoundError("No model files found. Aborting...")
+            model_path = max(model_files)
+            print(f"Most recent model is {model_path}.")
             vae_model.load_state_dict(torch.load(model_path, weights_only=True))
 
         vae_model.to(self.device)
@@ -1059,8 +1058,8 @@ class RetinaVAE(RetinaMath):
             else:
                 log_path = max(Path(self.train_log_folder).glob("*.csv"))
                 print(f"Most recent log file is {log_path}.")
-        except ValueError:
-            raise FileNotFoundError("No log files found. Aborting...")
+        except FileNotFoundError as e:
+            raise FileNotFoundError("No log files found. Aborting...") from e
 
         self.log_df = pd.read_csv(log_path)
 
@@ -1181,7 +1180,7 @@ class RetinaVAE(RetinaMath):
             # For every 100th epoch, print the outputs of the autoencoder
             # if epoch == 0 or epoch % 100 == 0:
             print(
-                f""" 
+                f"""
                 EPOCH {epoch + 1}/{self.epochs} \t train_loss {train_loss:.3f} \t val loss {val_loss_epoch:.3f}
                 mse {mse_epoch:.3f} \t ssim {ssim_epoch:.3f} \t kid mean {kid_mean_epoch:.3f} \t kid std {kid_std_epoch:.3f}
                 Learning rate: {self.optim.param_groups[0]['lr']:.3e}

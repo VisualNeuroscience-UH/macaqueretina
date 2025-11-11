@@ -71,9 +71,7 @@ class ProjectUtilitiesMixin:
                                 str(startpath), ""
                             )
 
-                        print(
-                            f"{newlines:>10} |{lines:>10} | {reldir_of_thing:<20}"
-                        )
+                        print(f"{newlines:>10} |{lines:>10} | {reldir_of_thing:<20}")
 
         for thing in Path.iterdir(startpath):
             thing = Path.joinpath(startpath, thing)
@@ -268,7 +266,7 @@ class DataSampler:
         ax.imshow(imagedata, cmap="gray")
 
         # Set the cursor to a crosshair
-        cursor = widgets.Cursor(ax, useblit=True, color="red", linewidth=0.5)
+        cursor = widgets.Cursor(ax, useblit=True, color="red", linewidth=0.5)  # noqa: F841
 
         print("Calibrate 1. origo, 2. y max, 3. x max")
         calib_points = plt.ginput(3, timeout=0)
