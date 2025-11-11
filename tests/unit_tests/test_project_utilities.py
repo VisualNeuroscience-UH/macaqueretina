@@ -3,7 +3,6 @@ import unittest.mock as mock
 from pathlib import Path
 
 # Third-party
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import pytest
@@ -11,7 +10,6 @@ import pytest
 # Local
 from macaqueretina.project.project_utilities_module import (
     DataSampler,
-    PrintableMixin,
     ProjectUtilitiesMixin,
 )
 

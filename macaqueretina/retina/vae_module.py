@@ -4,10 +4,8 @@ from copy import deepcopy
 from datetime import datetime
 from itertools import product
 from pathlib import Path
-from sys import exit
 
 # Third-party
-import matplotlib.pyplot as plt  # plotting library
 import numpy as np  # this module is useful to work with numerical arrays
 import pandas as pd
 import torch

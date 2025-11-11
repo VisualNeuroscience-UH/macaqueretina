@@ -4,7 +4,6 @@ from pathlib import Path
 # Third-party
 import numpy as np
 import pandas as pd
-import yaml
 
 # Local
 from macaqueretina.stimuli.visual_stimulus_module import VideoBaseClass

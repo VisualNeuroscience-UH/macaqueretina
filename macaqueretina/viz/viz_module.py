@@ -1,16 +1,14 @@
 # Built-in
 import copy
 import math
-import os
-import time
 from functools import reduce
 from pathlib import Path
 from typing import Optional
 
 # Third-party
 import brian2.units as b2u
-import matplotlib.colors as mcolors
 import matplotlib.colors as colors
+import matplotlib.colors as mcolors
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 import matplotlib.widgets as widgets
@@ -20,14 +18,12 @@ import scipy.optimize as opt
 import scipy.stats as stats
 import seaborn as sns
 import torch
-import torchvision.transforms.functional as TF
 from matplotlib import cm
 from matplotlib.patches import Circle, Ellipse, Polygon
 from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
 from sklearn.manifold import TSNE
 
 # Local
-from macaqueretina.retina.vae_module import AugmentedDataset
 
 
 class Viz:
@@ -722,9 +718,7 @@ class Viz:
                 model_function = model_parameters[distrs[idx]]["distribution"]
 
                 ax.annotate(
-                    "shape = {0:.2f}\nloc = {1:.2f}\nscale = {2:.2f}\nmedian = {3:.2f}".format(
-                        shape, loc, scale, median
-                    ),
+                    f"shape = {shape:.2f}\nloc = {loc:.2f}\nscale = {scale:.2f}\nmedian = {median:.2f}",
                     xy=(1, 1),  # Point at the right upper corner of the axis
                     xycoords="axes fraction",
                     xytext=(-10, -10),  # Offset from the corner, adjust as needed
@@ -732,7 +726,7 @@ class Viz:
                     horizontalalignment="right",  # Right align text
                     verticalalignment="top",  # Top align text
                 )
-                ax.set_title("{0} fit for {1}".format(model_function, distrs[idx]))
+                ax.set_title(f"{model_function} fit for {distrs[idx]}")
 
                 # Rescale y axis if model fit goes high. Shows histogram better
                 if y_model_fit[:, this_distr].max() > 1.5 * bin_values.max():
@@ -773,7 +767,7 @@ class Viz:
                 data_all_x.sort()
                 ax2.plot(data_all_x, intercept + slope * data_all_x, "b-")
                 ax2.annotate(
-                    "\nr={0:.2g},\np={1:.2g}".format(r, p),
+                    f"\nr={r:.2g},\np={p:.2g}",
                     xy=(1, 1),
                     xycoords="axes fraction",
                     xytext=(-10, -10),
@@ -782,9 +776,7 @@ class Viz:
                     verticalalignment="top",
                 )
                 ax2.set_title(
-                    "Correlation between {0} and {1}".format(
-                        distrs[distr_tuple_idx], distrs[idx]
-                    )
+                    f"Correlation between {distrs[distr_tuple_idx]} and {distrs[idx]}"
                 )
 
             self._delete_extra_axes(fig2, axes2, n_distributions, n_ax_rows, n_ax_cols)
@@ -809,7 +801,7 @@ class Viz:
             fig3, axes3 = plt.subplots(n_ax_rows, n_ax_cols, figsize=(13, 4))
 
             fig3.suptitle(
-                f"Multivariate statistics with Gaussian distributions",
+                "Multivariate statistics with Gaussian distributions",
                 fontsize=16,
                 fontweight="bold",
             )
@@ -841,7 +833,7 @@ class Viz:
                 mean = multivariate_statistics["means"][this_distr]
                 std = multivariate_statistics["std_devs"][this_distr]
                 ax3.annotate(
-                    "mean = {0:.2f}\nstd = {1:.2f}".format(mean, std),
+                    f"mean = {mean:.2f}\nstd = {std:.2f}",
                     xy=(1, 1),  # Point at the right upper corner of the axis
                     xycoords="axes fraction",
                     xytext=(-10, -10),  # Offset from the corner, adjust as needed
@@ -851,7 +843,7 @@ class Viz:
                 )
 
                 ax3.set_title(
-                    "Gaussian fit for {0}".format(distrs[idx]),
+                    f"Gaussian fit for {distrs[idx]}",
                 )
 
             if savefigname:
@@ -1467,7 +1459,7 @@ class Viz:
             scatter2 = fig_args["scatter2"]
 
             scatter1.set_offsets(original_positions)
-            ax1.set_title(f"orig pos")
+            ax1.set_title("orig pos")
 
             scatter2.set_offsets(positions)
             ax2.set_title(f"new pos iteration {iteration}")
@@ -2934,9 +2926,9 @@ class Viz:
         # Annotate the delta value
         match unit:
             case "mV":
-                anno_text = r"$\Delta Vm$: {:.2f} mV".format(delta_val)
+                anno_text = rf"$\Delta Vm$: {delta_val:.2f} mV"
             case "pA":
-                anno_text = r"$\Delta I$: {:.2f} pA".format(delta_val)
+                anno_text = rf"$\Delta I$: {delta_val:.2f} pA"
         ax[2].annotate(
             anno_text,
             xy=(tvec_mean[r_argmax], cone_signal_peak),
@@ -4780,7 +4772,7 @@ class Viz:
         y_fitted = y_fitted[~mask]
 
         fig, ax = plt.subplots()
-        ax.scatter(x_data, y_data, label=f"Data points")
+        ax.scatter(x_data, y_data, label="Data points")
         ax.plot(x_dense, y_fitted, color="red", label="Fitted Curve")
         ax.legend()
         ax.set_title(savefigname if savefigname else "Data and Fit")

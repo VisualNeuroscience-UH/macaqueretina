@@ -1,5 +1,4 @@
 # Third-party
-import matplotlib.pyplot as plt
 import numpy as np
 from brian2 import units as b2u
 from scipy.interpolate import interp1d

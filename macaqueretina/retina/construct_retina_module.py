@@ -1,15 +1,10 @@
 # Built-in
 import math
-import time
-import traceback
 from abc import ABC, abstractmethod
 from copy import deepcopy
-from dataclasses import dataclass
-from pathlib import Path
-from typing import Any, Callable, Dict, List, Tuple, Union
+from typing import Any, Callable, Dict, List, Tuple
 
 # Third-party
-import matplotlib.path as mplPath
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -17,7 +12,6 @@ import scipy.optimize as opt
 import scipy.stats as stats
 import torch
 from scipy import ndimage
-from scipy.interpolate import griddata
 from scipy.spatial import Voronoi
 from shapely.geometry import Polygon as ShapelyPolygon
 from tqdm import tqdm
@@ -3853,7 +3847,7 @@ class ConcreteRetinaBuilder(RetinaBuilder):
             intersected_polygons = []
 
             for region, original_seed in zip(vor.regions, original_positions):
-                if not -1 in region and len(region) > 0:
+                if -1 not in region and len(region) > 0:
                     polygon = np.array([vor.vertices[i] for i in region])
                     voronoi_cell_shape = ShapelyPolygon(polygon)
 
@@ -4036,7 +4030,7 @@ class ConcreteRetinaBuilder(RetinaBuilder):
 
         # Get rf diameter vs eccentricity
         # dd_regr_model is 'linear'  'quadratic' or cubic
-        dict_key = "{0}_{1}".format(ret.gc_type, dd_regr_model)
+        dict_key = f"{ret.gc_type}_{dd_regr_model}"
 
         if dd_regr_model == "linear":
             polynomial_order = 1
@@ -4145,7 +4139,7 @@ class ConcreteRetinaBuilder(RetinaBuilder):
         exp_pix_per_side = experimental_metadata["data_spatialfilter_height"]
 
         # Get rf diameter vs eccentricity
-        dict_key = "{0}_{1}".format(ret.gc_type, ret.dd_regr_model)
+        dict_key = f"{ret.gc_type}_{ret.dd_regr_model}"
         parameters = ecc2dd_params[dict_key]
 
         match ret.dd_regr_model:

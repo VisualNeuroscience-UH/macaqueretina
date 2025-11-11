@@ -88,7 +88,7 @@ class RetinaParameters(BaseConfigModel):
     model_density: float = Field(
         le=1.0,
         default=1.0,
-        description="1.0 for 100% \of the literature density of ganglion cells",
+        description=r"1.0 for 100% \of the literature density of ganglion cells",
     )
     retina_center: complex = Field(
         default=complex(5.0 + 0j),

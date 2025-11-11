@@ -1,10 +1,5 @@
 # Built-in
-import copy
 import inspect
-import pdb
-import sys
-import time
-from argparse import ArgumentError
 from pathlib import Path
 
 # Third-party
@@ -62,7 +57,7 @@ class ProjectUtilitiesMixin:
             thing = Path.joinpath(startpath, thing)
             if thing.is_file():
                 if str(thing).endswith(".py"):
-                    with open(thing, "r") as f:
+                    with open(thing) as f:
                         newlines = f.readlines()
                         newlines = len(newlines)
                         lines += newlines
@@ -77,9 +72,7 @@ class ProjectUtilitiesMixin:
                             )
 
                         print(
-                            "{:>10} |{:>10} | {:<20}".format(
-                                newlines, lines, reldir_of_thing
-                            )
+                            f"{newlines:>10} |{lines:>10} | {reldir_of_thing:<20}"
                         )
 
         for thing in Path.iterdir(startpath):

@@ -1,6 +1,5 @@
 # Built-in
 import shutil
-import sys
 import tempfile
 import time
 from abc import ABC, abstractmethod
@@ -10,8 +9,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 # Third-party
 import brian2 as b2
 import brian2.units as b2u
-import brian2cuda
-import matplotlib.pyplot as plt
+import brian2cuda  # noqa: F401 # flag for ruff to ignore "unused" import
 import numpy as np
 import pandas as pd
 import scipy.fftpack as fftpack

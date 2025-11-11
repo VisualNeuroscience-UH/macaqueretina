@@ -1,5 +1,4 @@
 # Built-in
-import logging
 import os
 import pickle
 import types
@@ -350,7 +349,7 @@ class DataIO:
         dict
             The dictionary loaded from the yaml file.
         """
-        with open(filename, "r") as file:
+        with open(filename) as file:
             data = yaml.safe_load(file)
         return data
 

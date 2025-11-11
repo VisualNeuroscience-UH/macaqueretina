@@ -3,7 +3,6 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
 # Third-party
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import scipy.optimize as opt
@@ -82,7 +81,7 @@ class FitDoGTemplate(ABC, RetinaMath, PrintableMixin):
         self.require_initial_guess()
         self.base_flip_negative_spatial_rf()
 
-        print(("Fitting DoG model, surround is {0}".format(self.surround_status)))
+        print(f"Fitting DoG model, surround is {self.surround_status}")
         self.require_fit()
         self.require_relative_surround_volume()
         self.base_append_data_to_spat_filt()
@@ -271,7 +270,7 @@ class FitDoGTemplate(ABC, RetinaMath, PrintableMixin):
             self.nan_idx = fits_df[fits_df.isna().any(axis=1)].index.values
             if len(self.nan_idx) > 0:
                 good_mask[self.nan_idx] = 0
-                print(f"\Marked cells {self.nan_idx} with failed fits")
+                print(rf"\Marked cells {self.nan_idx} with failed fits")
 
         good_mask_df = pd.DataFrame(good_mask, columns=["good_filter_data"])
 
@@ -356,7 +355,7 @@ class FitEllipseFixed(FitDoGTemplate):
 
             try:
                 if np.sum(this_rf) < 0:
-                    print(("Negative sum for cell {0}".format(str(cell_idx))))
+                    print(f"Negative sum for cell {str(cell_idx)}")
                     self.data_all_viable_cells[cell_idx, :] = np.nan
                     self.bad_spatial_idx.append(cell_idx)
                     continue
@@ -371,7 +370,7 @@ class FitEllipseFixed(FitDoGTemplate):
                 )
                 self.data_all_viable_cells[cell_idx, :] = popt
             except:
-                print(("Fitting failed for cell {0}".format(str(cell_idx))))
+                print(f"Fitting failed for cell {str(cell_idx)}")
                 self.data_all_viable_cells[cell_idx, :] = np.nan
                 self.bad_spatial_idx.append(cell_idx)
                 continue
@@ -540,7 +539,7 @@ class FitEllipseIndependent(FitDoGTemplate):
 
             try:
                 if np.sum(this_rf) < 0:
-                    print(("Negative sum for cell {0}".format(str(cell_idx))))
+                    print(f"Negative sum for cell {str(cell_idx)}")
                     self.data_all_viable_cells[cell_idx, :] = np.nan
                     self.bad_spatial_idx.append(cell_idx)
                     continue
@@ -557,7 +556,7 @@ class FitEllipseIndependent(FitDoGTemplate):
                 )
                 self.data_all_viable_cells[cell_idx, :] = popt
             except:
-                print(("Fitting failed for cell {0}".format(str(cell_idx))))
+                print(f"Fitting failed for cell {str(cell_idx)}")
                 self.data_all_viable_cells[cell_idx, :] = np.nan
                 self.bad_spatial_idx.append(cell_idx)
                 continue
@@ -680,7 +679,7 @@ class FitCircular(FitDoGTemplate):
 
             try:
                 if np.sum(this_rf) < 0:
-                    print(("Negative sum for cell {0}".format(str(cell_idx))))
+                    print(f"Negative sum for cell {str(cell_idx)}")
                     self.data_all_viable_cells[cell_idx, :] = np.nan
                     self.bad_spatial_idx.append(cell_idx)
                     continue
@@ -693,7 +692,7 @@ class FitCircular(FitDoGTemplate):
                 )
                 self.data_all_viable_cells[cell_idx, :] = popt
             except:
-                print(("Fitting failed for cell {0}".format(str(cell_idx))))
+                print(f"Fitting failed for cell {str(cell_idx)}")
                 self.data_all_viable_cells[cell_idx, :] = np.nan
                 self.bad_spatial_idx.append(cell_idx)
                 continue

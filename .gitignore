@@ -14,11 +14,8 @@
 .vscode/
 *__pycache__
 *.pytest_cache
-*.ipynb_checkpoints
-*.virtual_documents
-.coverage
+.ruff_cache/
 
 *.pyc
-*.rst~
 docs/html/
 

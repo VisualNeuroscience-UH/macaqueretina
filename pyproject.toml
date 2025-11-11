@@ -64,8 +64,9 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.ruff]
 line-length = 88 
-select = ["E", "F", "W", "I", "UP"]  # Flake8, isort, and pyupgrade rules
+select = ["E", "F", "W", "I", "UP", "B"]  # Flake8, isort, pyupgrade, and bugbear rules
 ignore = []
+indent-width = 4
 
 [tool.ruff.isort]
 known-third-party = [
@@ -77,10 +78,11 @@ known-third-party = [
 ]
 known-local-folder = ["macaqueretina", "docs"]
 section-order = ["future", "standard-library", "third-party", "first-party", "local-folder"]
-import-headings = { stdlib = "Built-in", third-party = "Third-party", local-folder = "Local" }
 force-single-line = false
+
 
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
 skip-magic-trailing-comma = false
+line-ending = "auto"

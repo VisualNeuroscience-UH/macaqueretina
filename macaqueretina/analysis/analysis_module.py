@@ -4,10 +4,8 @@ from pathlib import Path
 
 # Third-party
 import brian2.units as b2u
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from scipy.interpolate import interp1d
 from scipy.signal import correlate
 from scipy.stats import pearsonr
 

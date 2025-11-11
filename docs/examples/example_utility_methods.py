@@ -1,11 +1,9 @@
 """Example usage of MacaqueRetina."""
 
 # Built-in
-from pathlib import Path
 
 # Third-party
 import matplotlib.pyplot as plt
-import numpy as np
 
 # Local
 import macaqueretina as mr
