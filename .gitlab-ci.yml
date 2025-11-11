@@ -1,15 +1,19 @@
+image: alpine:latest
+
 build-job:
   stage: build
   script:
     - echo "Hello, $GITLAB_USER_LOGIN!"
   tags:
     - shared-runner
+
 test-job1:
   stage: test
   script:
     - echo "This job tests something"
   tags:
     - shared-runner
+
 test-job2:
   stage: test
   script:
@@ -19,6 +23,7 @@ test-job2:
     - sleep 20
   tags:
     - shared-runner
+
 deploy-prod:
   stage: deploy
   script:
