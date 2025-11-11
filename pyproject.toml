@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "macaqueretina"
-version = "1.0.1"
+version = "1.0.2"
 description = "Python software to build a model of macaque retina and convert visual stimuli to cortical input"
 authors = ["Henri Hokkanen", "Simo Vanni <simo.vanni@helsinki.fi>", "Francescangelo Vedele <francescangelo.vedele@helsinki.fi>"]
 license = "MIT"
@@ -53,7 +53,7 @@ click = "8.2.1"
 mkdocs = "^1.6.1"
 mkdocs-material = "^9.6.21"
 mkdocstrings-python = "^1.18.2"
-ruff = "^0.6.0"  # Add Ruff as a dev dependency
+ruff = "^0.6.0"
 
 [tool.poetry.scripts]
 run_macaqueretina = "project.project_manager_module:main"
@@ -79,7 +79,6 @@ known-third-party = [
 known-local-folder = ["macaqueretina", "docs"]
 section-order = ["future", "standard-library", "third-party", "first-party", "local-folder"]
 force-single-line = false
-
 
 [tool.ruff.format]
 quote-style = "double"
