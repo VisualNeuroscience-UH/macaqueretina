@@ -1,22 +1,24 @@
 image: python:3.11-slim
 
+before_script:
+  - pip install poetry
+  - poetry config virtualenvs.in-project true  # Creates the virtualenv inside the project directory
+
 build-job:
   stage: build
   script:
-    - echo "Building the project..."
-    - pip install .
+    - poetry install
   tags:
     - shared-runner
 
 test-job:
   stage: test
   script:
-    - echo "Running unit tests..."
+    - source .venv/bin/activate  # Activate the virtualenv
     - pytest tests/unit_tests/test_project_utilities.py
   tags:
     - shared-runner
-
-
+       
 deploy-prod:
   stage: deploy
   script:
