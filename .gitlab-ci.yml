@@ -1,5 +1,3 @@
-image: python:3.11-slim
-
 stages:
   - build
   - test
@@ -7,6 +5,7 @@ stages:
 
 build-job:
   stage: build
+  image: python:3.11-slim
   script:
     - echo "Building job..."
   tags:
@@ -14,11 +13,13 @@ build-job:
 
 test-job1:
   stage: test
+  image: python:3.11-slim
   script:
     - echo "Running test 1..."
   tags:
     - shared-runner
 test-job2:
+  image: python:3.11-slim
   stage: test
   script:
     - echo "Running test 2..."
