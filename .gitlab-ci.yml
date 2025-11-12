@@ -1,5 +1,4 @@
-default:
-  image: python:3.11-slim
+image: python:3.11-slim
 
 stages:
   - build
@@ -9,21 +8,40 @@ stages:
 build-job:
   stage: build
   script:
-    - pip install poetry
-    - poetry install
-  cache:
-    key: $CI_COMMIT_REF_SLUG
+    - echo "Building job..."
   tags:
-    - macaqueretina
+    - shared-runner
 
-test-job:
+test-job1:
   stage: test
   script:
-    - echo "Running tests..."
-  cache:
-    key: $CI_COMMIT_REF_SLUG
+    - echo "Running test 1..."
   tags:
-    - macaqueretina
+    - shared-runner
+test-job2:
+  stage: test
+  script:
+    - echo "Running test 2..."
+  tags:
+    - shared-runner
+test-job3:
+  stage: test
+  script:
+    - echo "Running test 3..."
+  tags:
+    - shared-runner
+test-job4:
+  stage: test
+  script:
+    - echo "Running test 4..."
+  tags:
+    - shared-runner 
+test-job5:
+  stage: test
+  script:
+    - echo "Running test 5..."
+  tags:
+    - shared-runner
 
 deploy-prod:
   stage: deploy
@@ -31,4 +49,4 @@ deploy-prod:
     - echo "This job deploys something from the $CI_COMMIT_BRANCH branch."
   environment: production
   tags:
-    - macaqueretina
+    - shared-runner
