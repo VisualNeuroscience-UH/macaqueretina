@@ -1,5 +1,10 @@
 image: python:3.11-slim
 
+stages:
+  - build
+  - test
+  - deploy
+
 build-job:
   stage: build
   script:
