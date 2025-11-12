@@ -1,56 +1,21 @@
 # Consider shell executor for deployment. Runs commands directly onhost machine.
 # Consider docker executor for build and test jobs. Runs commands in isolated containers.
-
-image: python:3.11-slim
-
-stages: # stages contain jobs
-  - build
-  - test
-  - deploy
-
-install-dependencies:
-  stage: build
-  script:
-    - echo "Building job..."
+default:
+  image: python:3.11-slim
+  before_script:
     - pip install poetry
     - poetry install
-  tags:
-    - shared-runner # This is necessary to pick up an available runner (green dot)
+    - source `poetry env info --path`/bin/activate
+
+stages: # stages contain jobs
+  - test
+  - deploy
 
 test-job1:
   stage: test
   script:
     - echo "Running test 1..."
-  tags:
-    - shared-runner
-  dependencies:
-    - install-dependencies
-
-test-job2:
-  stage: test
-  script:
-    - echo "Running test 2..."
-  tags:
-    - shared-runner
-
-test-job3:
-  stage: test
-  script:
-    - echo "Running test 3..."
-  tags:
-    - shared-runner
-
-test-job4:
-  stage: test
-  script:
-    - echo "Running test 4..."
-  tags:
-    - shared-runner 
-
-test-job5:
-  stage: test
-  script:
-    - echo "Running test 5..."
+    - pytest tests/unit_tests/test_project_utilities.py
   tags:
     - shared-runner
 
