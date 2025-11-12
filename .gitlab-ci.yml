@@ -4,7 +4,6 @@ build-job:
   stage: build
   script:
     - pip install poetry
-    - poetry config virtualenvs.in-project true  # Creates the virtualenv inside the project directory
     - poetry install
   tags:
     - shared-runner
