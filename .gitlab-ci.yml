@@ -1,19 +1,15 @@
-image:  python:3.11
+image: python:3.11-slim
 
-cache:
-  paths:
-    - .cache/pip
-    - .venv
+before_script:
+  - pip install poetry
 
 build-job:
   stage: build
   script:
-    - pip install poetry
-    - poetry config virtualenvs.in-project true
     - poetry install
   tags:
     - shared-runner
-    
+
 test-job:
   stage: test
   script:
