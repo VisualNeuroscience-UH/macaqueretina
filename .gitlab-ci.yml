@@ -19,6 +19,8 @@ test-job:
   stage: test
   script:
     - echo "Running tests..."
+  cache:
+    key: $CI_COMMIT_REF_SLUG
   tags:
     - shared-runner
 
