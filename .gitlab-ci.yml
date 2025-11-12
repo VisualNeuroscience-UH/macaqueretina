@@ -4,7 +4,9 @@ build-job:
   stage: build
   script:
     - pip install .
-
+  tags:
+    - shared-runner
+    
 test-job:
   stage: test
   script:
