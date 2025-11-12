@@ -9,6 +9,7 @@ build-job:
   stage: build
   script:
     - echo "Building job..."
+    - pip install .
   tags:
     - shared-runner
 
