@@ -1,12 +1,19 @@
-image: docker:latest
+image:  python:3.11
+
+cache:
+  paths:
+    - .cache/pip
+    - .venv
 
 build-job:
   stage: build
   script:
+    - pip install poetry
+    - poetry config virtualenvs.in-project true
     - poetry install
   tags:
     - shared-runner
-
+    
 test-job:
   stage: test
   script:
