@@ -5,6 +5,8 @@ build-job:
   script:
     - pip install poetry
     - poetry install
+  cache:
+    key: $CI_COMMIT_REF_SLUG
   tags:
     - shared-runner
 
