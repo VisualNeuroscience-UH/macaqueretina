@@ -14,7 +14,7 @@ build-job:
   cache:
     key: $CI_COMMIT_REF_SLUG
   tags:
-    - shared-runner
+    - macaqueretina
 
 test-job:
   stage: test
@@ -23,7 +23,7 @@ test-job:
   cache:
     key: $CI_COMMIT_REF_SLUG
   tags:
-    - shared-runner
+    - macaqueretina
 
 deploy-prod:
   stage: deploy
@@ -31,4 +31,4 @@ deploy-prod:
     - echo "This job deploys something from the $CI_COMMIT_BRANCH branch."
   environment: production
   tags:
-    - shared-runner
+    - macaqueretina
