@@ -9,7 +9,7 @@ build-job:
   stage: build
   script:
     - echo "Building job..."
-    - pip install .
+    - pip install poetry
   tags:
     - shared-runner
 
