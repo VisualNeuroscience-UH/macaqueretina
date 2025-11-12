@@ -1,3 +1,5 @@
+image: python:3.11-slim
+
 stages: # stages contain jobs
   - build
   - test
@@ -5,7 +7,6 @@ stages: # stages contain jobs
 
 install-dependencies:
   stage: build
-  image: python:3.11-slim
   script:
     - echo "Building job..."
     - pip install poetry
