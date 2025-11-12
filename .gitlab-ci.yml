@@ -1,11 +1,13 @@
 image: python:3.11-slim
 
+build-job:
+  stage: build
+  script:
+    - pip install .
+
 test-job:
   stage: test
   script:
-    - pip install poetry
-    - poetry install
-    - source $(poetry env list --full-path)/bin/activate
     - pytest tests/unit_tests/test_project_utilities.py
   tags:
     - shared-runner
