@@ -5,16 +5,8 @@ default:
   before_script:
     - export PATH=/tmp/.local/bin:$PATH
     - pip install poetry
-    - poetry config cache-dir .cache/pypoetry
-    - poetry config virtualenvs.in-project true
     - poetry install
-    - source .venv/bin/activate
-  cache:
-    key: ${CI_COMMIT_REF_SLUG}
-    paths:
-      - .venv/
-      - .cache/pypoetry/
-    policy: pull-push
+    - source `poetry env info --path`/bin/activate
 
 stages: # stages contain jobs
   - test

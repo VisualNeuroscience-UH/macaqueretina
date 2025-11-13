@@ -1616,6 +1616,8 @@ class ConcreteSimulationBuilder(SimulationBuildInterface):
 
     @property
     def device(self):
+        print(f"KUKKUU3 {self._device=}")
+
         return self._device
 
     @property
@@ -2196,7 +2198,7 @@ class ConcreteSimulationBuilder(SimulationBuildInterface):
 
         # Convert NumPy arrays to PyTorch tensors
         device = self.device
-        print(f"{device=}")
+        print(f"KUKKUU4 {device=}")
         video_copy_tensor = torch.tensor(video_copy, dtype=torch.float32, device=device)
         r_matrix_tensor = torch.tensor(r_matrix, dtype=torch.long, device=device)
         q_matrix_tensor = torch.tensor(q_matrix, dtype=torch.long, device=device)
@@ -4014,11 +4016,12 @@ class SimulateRetina(RetinaMath):
         unity : bool, optional
             If True, runs uniformity index simulation.
         """
-        print(f"KUKKUU2 {self.config.device=}; {filename=}")
+        print(f"KUKKUU {self.config.device=}; {filename=}")
 
         self._get_construct_metadata_if_missing()
         vs, gcs, cones, bipolars = self._get_products(stimulus)
         n_sweeps = self.config.simulation_parameters["n_sweeps"]
+        print(f"KUKKUU2 {self.config.device=}; {filename=}")
         builder = ConcreteSimulationBuilder(
             vs,
             gcs,

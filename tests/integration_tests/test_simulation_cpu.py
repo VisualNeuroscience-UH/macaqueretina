@@ -99,7 +99,6 @@ def test_simulation_client(
     response_type = mr.config.retina_parameters["response_type"]
     hashstr = mr.config.retina_parameters["retina_parameters_hash"]
     filename = f"{gc_type}_{response_type}_{hashstr}_response_testing"
-    print(f"KUKKUU {mr.config.device=}; {filename=}")
 
     mr.simulate_retina(filename=filename)
 
