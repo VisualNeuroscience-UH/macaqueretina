@@ -18,7 +18,7 @@ unit_tests:
     - echo "Running unit tests..."
     - pytest tests/unit_tests
   tags:
-    - shared-runner
+    - openshift
 
 integration_tests1:
   stage: test
@@ -26,7 +26,7 @@ integration_tests1:
     - echo "Running integration tests..."
     - pytest tests/integration_tests/test_construct_retina_cpu.py
   tags:
-    - shared-runner
+    - openshift
 
 integration_tests2:
   stage: test
@@ -35,7 +35,7 @@ integration_tests2:
     - pytest tests/integration_tests/test_simulation_cpu.py
     - pytest tests/integration_tests/test_visual_stimulus.py
   tags:
-    - shared-runner
+    - openshift
 
 deploy-prod:
   stage: deploy
@@ -51,4 +51,4 @@ deploy-prod:
   rules:
     - if: $CI_COMMIT_REF_NAME == "main"
   tags:
-    - shared-runner
+    - openshift
