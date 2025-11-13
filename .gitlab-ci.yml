@@ -11,10 +11,10 @@ stages: # stages contain jobs
   - test
   - deploy
 
-test-job1:
+test-job:
   stage: test
   script:
-    - echo "Running test 1..."
+    - echo "Running tests..."
     - pytest
   tags:
     - shared-runner
