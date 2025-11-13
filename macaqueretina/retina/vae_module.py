@@ -770,11 +770,9 @@ class RetinaVAE(RetinaMath):
     def _set_models_folder(self, config=None):
         """Set the folder where models are saved"""
 
-        # If input_folder is Path instance or string, use it as models_folder
-        if isinstance(self.config.input_folder, Path) or isinstance(
-            self.config.input_folder, str
-        ):
-            models_folder = self.config.input_folder
+        # Check if the gen_rf_stat_folder folder exists using pathlib methods
+        if self.config.vae_train_parameters.gen_rf_stat_folder.is_dir():
+            models_folder = self.config.vae_train_parameters.gen_rf_stat_folder
         else:
             models_folder = self.config.output_folder / "models"
         Path(models_folder).mkdir(parents=True, exist_ok=True)
@@ -885,9 +883,7 @@ class RetinaVAE(RetinaMath):
                     raise FileNotFoundError("VAE model not found, aborting...")
 
                 try:
-                    vae_model.load_state_dict(
-                        torch.load(model_path, weights_only=True)
-                    )
+                    vae_model.load_state_dict(torch.load(model_path, weights_only=True))
                 except ModuleNotFoundError as e:
                     raise ModuleNotFoundError(
                         f"Module path changed, you need to train VAE model. Original error: {e}. Aborting..."
