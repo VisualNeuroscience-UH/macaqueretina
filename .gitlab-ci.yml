@@ -15,7 +15,7 @@ test-job1:
   stage: test
   script:
     - echo "Running test 1..."
-    - pytest tests/unit_tests/test_project_utilities.py
+    - pytest
   tags:
     - shared-runner
 
