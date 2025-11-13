@@ -4,18 +4,17 @@ default:
   image: python:3.11-slim
   before_script:
     - pip install poetry
-    - export PATH=/tmp/.local/bin:$PATH
-    - poetry config virtualenvs.in-project true  # Create the virtualenv inside the project
+    - poetry config cache-dir .cache/pypoetry
+    - poetry config virtualenvs.in-project true
     - poetry install
-    - source .venv/bin/activate  # Activate the in-project virtualenv
+    - source .venv/bin/activate
   cache:
     key: ${CI_COMMIT_REF_SLUG}
     paths:
-      - .venv/  # Cache the virtualenv
-      - ~/.cache/pypoetry/  # Cache Poetry's cache
-      - ~/.local/share/pypoetry/venv/  # Cache global Poetry venvs (if any)
-    policy: pull-push  # Pull cache at start, push at end
-
+      - .venv/
+      - .cache/pypoetry/
+    policy: pull-push
+    
 stages: # stages contain jobs
   - test
   - deploy
@@ -25,7 +24,7 @@ unit_tests:
   stage: test
   script:
     - echo "Running unit tests..."
-    - pytest tests/unit_tests
+    - pytest tests/unit_tests -v
   tags:
     - openshift
   variables:
@@ -35,7 +34,7 @@ integration_tests1:
   stage: test
   script:
     - echo "Running integration tests..."
-    - pytest tests/integration_tests/test_construct_retina_cpu.py
+    - pytest tests/integration_tests/test_construct_retina_cpu.py -v
   tags:
     - openshift
   variables:
@@ -45,8 +44,8 @@ integration_tests2:
   stage: test
   script:
     - echo "Running integration tests..."
-    - pytest tests/integration_tests/test_simulation_cpu.py
-    - pytest tests/integration_tests/test_visual_stimulus.py
+    - pytest tests/integration_tests/test_simulation_cpu.py -v
+    - pytest tests/integration_tests/test_visual_stimulus.py -v
   tags:
     - openshift
   variables:
