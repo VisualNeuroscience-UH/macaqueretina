@@ -186,7 +186,7 @@ class ProjectManager(ProjectUtilitiesMixin):
             VisualSignal,
         )
 
-        self._apply_variable_config()
+        self.apply_changed_config()
 
         self.viz.construct_retina = self.construct_retina
 
@@ -202,7 +202,7 @@ class ProjectManager(ProjectUtilitiesMixin):
 
         self.data_sampler = DataSampler
 
-    def _apply_variable_config(self):
+    def apply_changed_config(self):
         fit = Fit(self.project_data, self.config.experimental_metadata)
 
         retina_vae = RetinaVAE(self.config)
