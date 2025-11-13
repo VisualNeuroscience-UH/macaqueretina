@@ -4,10 +4,8 @@ from pathlib import Path
 
 # Third-party
 import brian2.units as b2u
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from scipy.interpolate import interp1d
 from scipy.signal import correlate
 from scipy.stats import pearsonr
 
@@ -854,7 +852,6 @@ class Analysis:
             F_unit_phase_df.to_csv(csv_save_path)
 
     def get_gain_calibration_df(self, threshold, folder_pattern, signal_gain=1.0):
-
         matching_files_or_folders = self.data_io.all_patterns(
             self.config.path, folder_pattern
         )

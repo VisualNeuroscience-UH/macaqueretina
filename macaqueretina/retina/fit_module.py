@@ -3,7 +3,6 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
 # Third-party
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import scipy.optimize as opt
@@ -24,7 +23,6 @@ class ReceptiveFieldSD:
 
 
 class FitDoGTemplate(ABC, RetinaMath, PrintableMixin):
-
     def fit_spatial_filters_template(
         self,
         spat_data_array,
@@ -82,7 +80,7 @@ class FitDoGTemplate(ABC, RetinaMath, PrintableMixin):
         self.require_initial_guess()
         self.base_flip_negative_spatial_rf()
 
-        print(("Fitting DoG model, surround is {0}".format(self.surround_status)))
+        print(f"Fitting DoG model, surround is {self.surround_status}")
         self.require_fit()
         self.require_relative_surround_volume()
         self.base_append_data_to_spat_filt()
@@ -93,7 +91,6 @@ class FitDoGTemplate(ABC, RetinaMath, PrintableMixin):
         return data_df, self.spat_filt, self.parameter_names
 
     def base_spatial_fitting(self, spat_data_array, cen_rot_rad_all):
-
         self.rot = 0.0
         self.spat_data_array = spat_data_array
         self.cen_rot_rad_all = cen_rot_rad_all
@@ -158,7 +155,6 @@ class FitDoGTemplate(ABC, RetinaMath, PrintableMixin):
         pass
 
     def _base_rotate_center(self, cell_idx):
-
         data = self.data_all_viable_cells
 
         # Set rotation angle between 0 and pi
@@ -177,7 +173,6 @@ class FitDoGTemplate(ABC, RetinaMath, PrintableMixin):
         self.data_all_viable_cells = data
 
     def _base_rotate_surround(self, cell_idx):
-
         data = self.data_all_viable_cells
         if data[cell_idx, 9] < data[cell_idx, 10]:
             sd_x_sur = data[cell_idx, 9]
@@ -201,7 +196,6 @@ class FitDoGTemplate(ABC, RetinaMath, PrintableMixin):
         self.data_all_viable_cells = data
 
     def _base_set_aspect_ratios(self, cell_idx):
-
         # Check position of semi_xc_pix and semi_yc_pix in parameter array
         semi_xc_idx = self.parameter_names.index("semi_xc_pix")
         semi_yc_idx = self.parameter_names.index("semi_yc_pix")
@@ -247,7 +241,7 @@ class FitDoGTemplate(ABC, RetinaMath, PrintableMixin):
         if self.bad_spatial_idx is not None:
             good_mask[self.bad_spatial_idx] = 0
 
-        if mark_outliers_bad == True:
+        if mark_outliers_bad is True:
             print(
                 f"Previously removed {len(self.bad_spatial_idx)} outliers: {', '.join(map(str, self.bad_spatial_idx))}"
             )
@@ -266,12 +260,12 @@ class FitDoGTemplate(ABC, RetinaMath, PrintableMixin):
             for i in diff_idx:
                 good_mask[i] = 0
 
-        elif mark_outliers_bad == False:
+        elif mark_outliers_bad is False:
             # We need to mark failed fits even if we don't mark outliers
             self.nan_idx = fits_df[fits_df.isna().any(axis=1)].index.values
             if len(self.nan_idx) > 0:
                 good_mask[self.nan_idx] = 0
-                print(f"\Marked cells {self.nan_idx} with failed fits")
+                print(rf"\Marked cells {self.nan_idx} with failed fits")
 
         good_mask_df = pd.DataFrame(good_mask, columns=["good_filter_data"])
 
@@ -356,7 +350,7 @@ class FitEllipseFixed(FitDoGTemplate):
 
             try:
                 if np.sum(this_rf) < 0:
-                    print(("Negative sum for cell {0}".format(str(cell_idx))))
+                    print(f"Negative sum for cell {str(cell_idx)}")
                     self.data_all_viable_cells[cell_idx, :] = np.nan
                     self.bad_spatial_idx.append(cell_idx)
                     continue
@@ -371,7 +365,7 @@ class FitEllipseFixed(FitDoGTemplate):
                 )
                 self.data_all_viable_cells[cell_idx, :] = popt
             except:
-                print(("Fitting failed for cell {0}".format(str(cell_idx))))
+                print(f"Fitting failed for cell {str(cell_idx)}")
                 self.data_all_viable_cells[cell_idx, :] = np.nan
                 self.bad_spatial_idx.append(cell_idx)
                 continue
@@ -540,7 +534,7 @@ class FitEllipseIndependent(FitDoGTemplate):
 
             try:
                 if np.sum(this_rf) < 0:
-                    print(("Negative sum for cell {0}".format(str(cell_idx))))
+                    print(f"Negative sum for cell {str(cell_idx)}")
                     self.data_all_viable_cells[cell_idx, :] = np.nan
                     self.bad_spatial_idx.append(cell_idx)
                     continue
@@ -557,7 +551,7 @@ class FitEllipseIndependent(FitDoGTemplate):
                 )
                 self.data_all_viable_cells[cell_idx, :] = popt
             except:
-                print(("Fitting failed for cell {0}".format(str(cell_idx))))
+                print(f"Fitting failed for cell {str(cell_idx)}")
                 self.data_all_viable_cells[cell_idx, :] = np.nan
                 self.bad_spatial_idx.append(cell_idx)
                 continue
@@ -680,7 +674,7 @@ class FitCircular(FitDoGTemplate):
 
             try:
                 if np.sum(this_rf) < 0:
-                    print(("Negative sum for cell {0}".format(str(cell_idx))))
+                    print(f"Negative sum for cell {str(cell_idx)}")
                     self.data_all_viable_cells[cell_idx, :] = np.nan
                     self.bad_spatial_idx.append(cell_idx)
                     continue
@@ -693,7 +687,7 @@ class FitCircular(FitDoGTemplate):
                 )
                 self.data_all_viable_cells[cell_idx, :] = popt
             except:
-                print(("Fitting failed for cell {0}".format(str(cell_idx))))
+                print(f"Fitting failed for cell {str(cell_idx)}")
                 self.data_all_viable_cells[cell_idx, :] = np.nan
                 self.bad_spatial_idx.append(cell_idx)
                 continue
@@ -762,9 +756,7 @@ class FitCircular(FitDoGTemplate):
 
 
 class FitDataTypeTemplate(ABC, PrintableMixin):
-
     def fit_data_type_template(self):
-
         self.require_spatial_fit()
         self.base_good_idx()
         self.hook_temporal_fit()
@@ -1024,7 +1016,6 @@ class FitExperimental(FitDataTypeTemplate):
         return self.DoG_model.calculate_center_surround_sd(df, data_mm_per_pix)
 
     def get_experimental_statistics(self):
-
         # Collect everything into one big dataframe
         experimental_univariate_stat = pd.concat(
             [
@@ -1351,7 +1342,6 @@ class FitGenerated(FitDataTypeTemplate):
         return self.DoG_model.calculate_center_surround_sd(df, data_mm_per_pix)
 
     def get_generated_DoG_fits(self):
-
         (
             experimental_data,
             model_parameters,
@@ -1417,7 +1407,6 @@ class Fit(RetinaMath):
         return self._project_data
 
     def _get_concrete_components(self) -> None:
-
         match self.dog_model_type:
             case "ellipse_fixed":
                 DoG_model = FitEllipseFixed()
@@ -1506,7 +1495,6 @@ class Fit(RetinaMath):
         self.receptive_field_sd = self.fit_data_type.get_center_surround_sd()
 
     def get_experimental_statistics(self):
-
         self.project_data.fit["exp_spat_filt"] = self.fit_data_type.spat_filt
         self.project_data.fit["spatial_data_and_model"] = (
             self.fit_data_type.spatial_data_and_model

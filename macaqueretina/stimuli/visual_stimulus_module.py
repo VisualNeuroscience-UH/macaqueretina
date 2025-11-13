@@ -23,7 +23,7 @@ Formats .avi .mov .mp4 ?
 """
 
 
-class VideoBaseClass(object):
+class VideoBaseClass:
     def __init__(self):
         """
         Initialize standard video stimulus

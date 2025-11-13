@@ -67,7 +67,7 @@ class _YamlLoader:
             if not path.exists():
                 raise FileNotFoundError(f"YAML file not found: {path!s}")
 
-            with open(path, "r", encoding="utf-8") as file:
+            with open(path, encoding="utf-8") as file:
                 try:
                     yaml_contents = safe_load(file)
                     if yaml_contents is None:

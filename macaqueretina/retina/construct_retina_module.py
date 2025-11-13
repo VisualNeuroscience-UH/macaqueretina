@@ -1,15 +1,10 @@
 # Built-in
 import math
-import time
-import traceback
 from abc import ABC, abstractmethod
 from copy import deepcopy
-from dataclasses import dataclass
-from pathlib import Path
-from typing import Any, Callable, Dict, List, Tuple, Union
+from typing import Any, Callable, Dict, List, Tuple
 
 # Third-party
-import matplotlib.path as mplPath
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -17,7 +12,6 @@ import scipy.optimize as opt
 import scipy.stats as stats
 import torch
 from scipy import ndimage
-from scipy.interpolate import griddata
 from scipy.spatial import Voronoi
 from shapely.geometry import Polygon as ShapelyPolygon
 from tqdm import tqdm
@@ -268,7 +262,6 @@ class DistributionSampler:
         return random_samples
 
     def sample_multivariate(self, df, n_cells):
-
         means = df["means"].values
         cov_column_names = df.columns[df.columns.str.startswith("cov_")]
 
@@ -1675,7 +1668,6 @@ class SpatialModelDOG(SpatialModelBase):
         n_units = gc.n_units
         pix_per_side = gc.pix_per_side
         exp_pix_per_side = gc.exp_pix_per_side
-        pix_scaler = pix_per_side / exp_pix_per_side
         mm_per_pix = gc.um_per_pix / 1000
         grid_indices = np.linspace(0, pix_per_side - 1, pix_per_side)
         y_grid, x_grid = np.meshgrid(grid_indices, grid_indices, indexing="ij")
@@ -2353,7 +2345,6 @@ class TemporalModelBase(ABC):
         # Process in batches
         for i in range(0, n_cones, batch_size):
             batch_end = min(i + batch_size, n_cones)
-            batch_indices = torch.arange(i, batch_end).to(device)
             batch_cone_pos = cone_pos_mm[i:batch_end]
 
             # Vectorize the distance calculation for the current batch
@@ -2786,7 +2777,6 @@ class TemporalModelSubunit(TemporalModelBase):
             The updated retina model instance with fitted bipolar nonlinearity parameters.
         """
         unit_type: str = ret.gc_type
-        response_type: str = ret.response_type
 
         # Load the parasol data, but set target_RI_values to 0 for midgets (always linear).
         g_sur_values: np.ndarray = ret.experimental_archive["g_sur_values"]
@@ -3173,7 +3163,6 @@ class ConcreteRetinaBuilder(RetinaBuilder):
     """
 
     def __init__(self, retina, retina_math, fit, retina_vae, device, viz) -> None:
-
         self._retina = retina
         self._ganglion_cell = None
         self._retina_math = retina_math
@@ -3853,7 +3842,7 @@ class ConcreteRetinaBuilder(RetinaBuilder):
             intersected_polygons = []
 
             for region, original_seed in zip(vor.regions, original_positions):
-                if not -1 in region and len(region) > 0:
+                if -1 not in region and len(region) > 0:
                     polygon = np.array([vor.vertices[i] for i in region])
                     voronoi_cell_shape = ShapelyPolygon(polygon)
 
@@ -3951,7 +3940,7 @@ class ConcreteRetinaBuilder(RetinaBuilder):
         # Optimize positions for ganglion cells
         optim_algorithm = unit_placement_params["algorithm"]
 
-        if optim_algorithm == None:
+        if optim_algorithm is None:
             # Initial random placement.
             # Use this for testing/speed/nonvarying placements.
             optimized_positions = all_positions
@@ -4036,7 +4025,7 @@ class ConcreteRetinaBuilder(RetinaBuilder):
 
         # Get rf diameter vs eccentricity
         # dd_regr_model is 'linear'  'quadratic' or cubic
-        dict_key = "{0}_{1}".format(ret.gc_type, dd_regr_model)
+        dict_key = f"{ret.gc_type}_{dd_regr_model}"
 
         if dd_regr_model == "linear":
             polynomial_order = 1
@@ -4145,7 +4134,7 @@ class ConcreteRetinaBuilder(RetinaBuilder):
         exp_pix_per_side = experimental_metadata["data_spatialfilter_height"]
 
         # Get rf diameter vs eccentricity
-        dict_key = "{0}_{1}".format(ret.gc_type, ret.dd_regr_model)
+        dict_key = f"{ret.gc_type}_{ret.dd_regr_model}"
         parameters = ecc2dd_params[dict_key]
 
         match ret.dd_regr_model:
@@ -4976,27 +4965,27 @@ class ConstructRetina(PrintableMixin):
         literature["cone_eccentricity"] = cone_eccentricity
         literature["cone_density"] = cone_density
 
-        bipolar_df = self.data_io.load_data(files["bipolar_table_path"])
+        bipolar_df = data_io.load_data(files["bipolar_table_path"])
         literature["bipolar_df"] = bipolar_df
 
         # Get dendritic diameter data
-        dendr_diam1 = self.data_io.load_data(files["dendr_diam1_path"])
+        dendr_diam1 = data_io.load_data(files["dendr_diam1_path"])
         literature["dendr_diam1"] = dendr_diam1
 
-        dendr_diam2 = self.data_io.load_data(files["dendr_diam2_path"])
+        dendr_diam2 = data_io.load_data(files["dendr_diam2_path"])
         literature["dendr_diam2"] = dendr_diam2
 
-        dendr_diam3 = self.data_io.load_data(files["dendr_diam3_path"])
+        dendr_diam3 = data_io.load_data(files["dendr_diam3_path"])
         literature["dendr_diam3"] = dendr_diam3
 
         literature["dendr_diam_units"] = files["dendr_diam_units"]
 
         # Get Benardete & Kaplan model parameters
-        temporal_params_BK = self.data_io.load_data(files["temporal_BK_model_path"])
+        temporal_params_BK = data_io.load_data(files["temporal_BK_model_path"])
         literature["temporal_parameters_BK"] = temporal_params_BK
 
         # Get cone response and noise data
-        cone_response = self.data_io.load_data(
+        cone_response = data_io.load_data(
             self.config.literature_data_files["cone_response_path"]
         )
         cone_frequency_data, cone_power_data = self.get_xy_from_npz(cone_response)
@@ -5008,7 +4997,7 @@ class ConstructRetina(PrintableMixin):
         ]
         literature["cone_noise_wc"] = cone_noise_wc
 
-        cone_noise = self.data_io.load_data(
+        cone_noise = data_io.load_data(
             self.config.literature_data_files["cone_noise_path"]
         )
         noise_frequency_data, noise_power_data = self.get_xy_from_npz(cone_noise)
@@ -5017,7 +5006,7 @@ class ConstructRetina(PrintableMixin):
 
         # Get bipolar rectification index data
         response_type = self.config.retina_parameters["response_type"]
-        RI_values_npz = self.data_io.load_data(
+        RI_values_npz = data_io.load_data(
             self.config.literature_data_files[f"parasol_{response_type}_RI_values_path"]
         )
         g_sur_values, target_RI_values = self.get_xy_from_npz(RI_values_npz)
@@ -5050,7 +5039,6 @@ class ConstructRetina(PrintableMixin):
         dog_model_type: str,
         experimental_archive: dict,
     ) -> None:
-
         path = experimental_archive["experimental_metadata"]["exp_rf_stat_folder"]
         filename_stem = f"{gc_type}_{response_type}_{dog_model_type}"
 

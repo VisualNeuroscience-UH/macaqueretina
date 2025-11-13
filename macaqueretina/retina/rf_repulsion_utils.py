@@ -171,7 +171,9 @@ def apply_rf_repulsion(ret: Any, gc: Any, viz: Any) -> Tuple[Any, Any]:
     return ret, gc
 
 
-def _initialize_parameters(ret: Any, gc: Any, viz: Any) -> Tuple[
+def _initialize_parameters(
+    ret: Any, gc: Any, viz: Any
+) -> Tuple[
     Tuple[int, int],
     dict,
     int,

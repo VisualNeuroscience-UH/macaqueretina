@@ -1,6 +1,6 @@
-""" 
-Example implementation for reading data from an experimental dataset. 
-This module is specific to the each dataset and needs to be adjusted 
+"""
+Example implementation for reading data from an experimental dataset.
+This module is specific to the each dataset and needs to be adjusted
 accordingly.
 """
 

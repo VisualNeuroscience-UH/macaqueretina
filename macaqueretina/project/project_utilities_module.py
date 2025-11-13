@@ -1,10 +1,5 @@
 # Built-in
-import copy
 import inspect
-import pdb
-import sys
-import time
-from argparse import ArgumentError
 from pathlib import Path
 
 # Third-party
@@ -62,7 +57,7 @@ class ProjectUtilitiesMixin:
             thing = Path.joinpath(startpath, thing)
             if thing.is_file():
                 if str(thing).endswith(".py"):
-                    with open(thing, "r") as f:
+                    with open(thing) as f:
                         newlines = f.readlines()
                         newlines = len(newlines)
                         lines += newlines
@@ -76,11 +71,7 @@ class ProjectUtilitiesMixin:
                                 str(startpath), ""
                             )
 
-                        print(
-                            "{:>10} |{:>10} | {:<20}".format(
-                                newlines, lines, reldir_of_thing
-                            )
-                        )
+                        print(f"{newlines:>10} |{lines:>10} | {reldir_of_thing:<20}")
 
         for thing in Path.iterdir(startpath):
             thing = Path.joinpath(startpath, thing)
@@ -275,7 +266,7 @@ class DataSampler:
         ax.imshow(imagedata, cmap="gray")
 
         # Set the cursor to a crosshair
-        cursor = widgets.Cursor(ax, useblit=True, color="red", linewidth=0.5)
+        cursor = widgets.Cursor(ax, useblit=True, color="red", linewidth=0.5)  # noqa: F841
 
         print("Calibrate 1. origo, 2. y max, 3. x max")
         calib_points = plt.ginput(3, timeout=0)

@@ -1,5 +1,4 @@
 # Built-in
-import logging
 import os
 import pickle
 import types
@@ -350,7 +349,7 @@ class DataIO:
         dict
             The dictionary loaded from the yaml file.
         """
-        with open(filename, "r") as file:
+        with open(filename) as file:
             data = yaml.safe_load(file)
         return data
 
@@ -429,7 +428,7 @@ class DataIO:
                 elif isinstance(item, types.MethodType):
                     continue
                 else:
-                    raise ValueError("Cannot save %s type" % type(item))
+                    raise ValueError(f"Cannot save {type(item)} type")
 
     def load_dict_from_hdf5(self, filename):
         """
@@ -483,7 +482,7 @@ class DataIO:
         assert isinstance(array, np.ndarray), f"Cannot save {type(array)} type"
         with h5py.File(filename, "w") as hdf5_file_handle:
             # highest compression as default
-            dset = hdf5_file_handle.create_dataset(
+            _dset = hdf5_file_handle.create_dataset(
                 "array", data=array, compression="gzip", compression_opts=6
             )
 
@@ -804,7 +803,6 @@ class DataIO:
         analog_signal=None,
         dt=None,
     ):
-
         print(" -  Saving spikes, rgc coordinates and analog signal (if not None)...")
 
         data_to_save = {}
@@ -940,7 +938,6 @@ class DataIO:
         )
 
     def save_retina_output(self, vs, gcs, filename, save_variables=None):
-
         vs.w_coord, vs.z_coord = self._get_w_z_coords(gcs)
 
         for this_variable in save_variables:

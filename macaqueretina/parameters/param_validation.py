@@ -66,7 +66,6 @@ class BaseInternalConfigModel(BaseModel):
     """
 
     def __init__(self, **data: dict):
-        provided_fields = set(data.keys())
         super().__init__(**data)
 
     model_config = ConfigDict(extra="allow")
@@ -88,7 +87,7 @@ class RetinaParameters(BaseConfigModel):
     model_density: float = Field(
         le=1.0,
         default=1.0,
-        description="1.0 for 100% \of the literature density of ganglion cells",
+        description=r"1.0 for 100% \of the literature density of ganglion cells",
     )
     retina_center: complex = Field(
         default=complex(5.0 + 0j),
@@ -723,7 +722,6 @@ class ConfigParams(BaseConfigModel):
 
 
 class ConfigInternalParams(BaseInternalConfigModel):
-
     experimental_metadata: ExperimentalMetadata | None = ExperimentalMetadata()
     vae_train_parameters: VaeTrainParameters | None = VaeTrainParameters()
 
@@ -747,7 +745,6 @@ class ConfigInternalParams(BaseInternalConfigModel):
 
 
 def _create_and_validate_core_paths(config):
-
     # Create new root/project/experiment path if it doesn't exist
     if not config.path.is_dir():
         config.path.mkdir(parents=True, exist_ok=True)

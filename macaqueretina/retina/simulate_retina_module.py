@@ -1,6 +1,5 @@
 # Built-in
 import shutil
-import sys
 import tempfile
 import time
 from abc import ABC, abstractmethod
@@ -10,8 +9,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 # Third-party
 import brian2 as b2
 import brian2.units as b2u
-import brian2cuda
-import matplotlib.pyplot as plt
+import brian2cuda  # noqa: F401
 import numpy as np
 import pandas as pd
 import scipy.fftpack as fftpack
@@ -321,7 +319,7 @@ class GanglionCellParasol(GanglionCellBase):
             x_vec[this_unit, :] = fftconvolve(
                 svec_padded[this_unit, :], h[this_unit, :], mode="valid"
             )
-        x_input = b2.TimedArray(x_vec.T, dt=_dt)
+        x_input = b2.TimedArray(x_vec.T, dt=_dt)  # noqa: F841
 
         # Define and run the high-pass stage. x_input is precalculated, thus "manual" derivative.
         eqs = """
@@ -340,7 +338,7 @@ class GanglionCellParasol(GanglionCellBase):
             """
         else:
             eqs += """
-            dc/dt = (abs(y) - c) / Tc : 1 
+            dc/dt = (abs(y) - c) / Tc : 1
             """
 
         # TODO: For efficiency vs integration stability, consider lower-freq video, but upsampling for Brian2
@@ -584,7 +582,6 @@ class GanglionCellMidget(GanglionCellBase):
 
 
 class ResponseTypeBase(ABC, PrintableMixin):
-
     @abstractmethod
     def get_contrast_by_response_type(
         self, visual_signal: int | float | np.ndarray
@@ -607,7 +604,6 @@ class ResponseTypeOFF(ResponseTypeBase):
 
 
 class DoGModelBase(ABC):
-
     def __init__(self, retina_math: object) -> None:
         self._retina_math = retina_math
 
@@ -803,13 +799,11 @@ class SpatialModelBase(ABC):
 
 
 class SpatialModelDOG(SpatialModelBase):
-
     def __init__(self, DoG_model: object) -> None:
         super().__init__(DoG_model)
 
 
 class SpatialModelVAE(SpatialModelBase):
-
     def __init__(self, DoG_model: object) -> None:
         super().__init__(DoG_model)
 
@@ -1128,7 +1122,6 @@ class TemporalModelFixed(TemporalModelBase):
             filter_batch = spatiotemporal_filter_flipped[batch_indices]
             # Perform convolution for the current batch
             for idx, this_unit in enumerate(batch_indices):
-
                 # Perform convolution on the current batch
                 output[this_unit] = torch.nn.functional.conv1d(
                     stimulus_batch_padded[idx].unsqueeze(0),
@@ -1359,7 +1352,6 @@ class TemporalModelSubunit(TemporalModelBase):
         bipolars: Any,
         stimulate: Any,
     ) -> None:
-
         super().__init__(retina_math, ganglion_cell, response_type, device)
         self.cones = cones
         self.bipolars = bipolars
@@ -1463,7 +1455,6 @@ class TemporalModelSubunit(TemporalModelBase):
 
 
 class SimulationBuildInterface(ABC):
-
     @property
     @abstractmethod
     def vs(self):
@@ -1581,7 +1572,6 @@ class ConcreteSimulationBuilder(SimulationBuildInterface):
         n_sweeps: int,
         stimulate: Any,
     ) -> None:
-
         self._vs = vs
         self._gcs = gcs
         self._cones = cones
@@ -1849,17 +1839,16 @@ class ConcreteSimulationBuilder(SimulationBuildInterface):
         """
 
         # Set inst_rates to locals() for Brian equation access
-        inst_rates = eval("inst_rates")
+        inst_rates = eval("inst_rates")  # noqa: F841
 
         # units in parallel (NG), trial iterations (repeated runs)
 
         if spike_generator_model == "refractory":
-            abs_refractory = refractory_parameters["abs_refractory"] * b2u.ms
-            rel_refractory = refractory_parameters["rel_refractory"] * b2u.ms
-            p_exp = refractory_parameters["p_exp"]
-            clip_start = refractory_parameters["clip_start"] * b2u.ms
-            clip_end = refractory_parameters["clip_end"] * b2u.ms
-
+            abs_refractory = refractory_parameters["abs_refractory"] * b2u.ms  # noqa: F841
+            rel_refractory = refractory_parameters["rel_refractory"] * b2u.ms  # noqa: F841
+            p_exp = refractory_parameters["p_exp"]  # noqa: F841
+            clip_start = refractory_parameters["clip_start"] * b2u.ms  # noqa: F841
+            clip_end = refractory_parameters["clip_end"] * b2u.ms  # noqa: F841
             neuron_group = b2.NeuronGroup(
                 n_units,
                 model="""
@@ -2719,7 +2708,7 @@ class ConeProduct(ReceptiveFieldsBase):
         n_y = p["n_y"]
         tau_z = p["tau_z"]
         n_z = p["n_z"]
-        tau_r = p["tau_r"]  # Goes into Brian which uses seconds for timed arrays
+        tau_r = p["tau_r"]  # Goes into Brian # noqa: F841
         filter_limit_time = p["filter_limit_time"]
         input_gain = p["input_gain"]
         max_response = p["max_response"]
@@ -2777,8 +2766,8 @@ class ConeProduct(ReceptiveFieldsBase):
         z_mtx_u = z_mtx * b2u.second**-1
 
         print("\nRunning Brian code for cones...")
-        y_mtx_ta = b2.TimedArray(y_mtx_u.T, dt=dt)
-        z_mtx_ta = b2.TimedArray(z_mtx_u.T, dt=dt)
+        y_mtx_ta = b2.TimedArray(y_mtx_u.T, dt=dt)  # noqa: F841
+        z_mtx_ta = b2.TimedArray(z_mtx_u.T, dt=dt)  # noqa: F841
         # In original Clark model, the response is defined as r(t) = V(t) - Vrest
         # r(t) is the photoreceptor response (mV), V(t) is the photoreceptor membrane potential
         # Vrest is the depolarized cone membrane potential in the dark.
@@ -2999,7 +2988,7 @@ class ConeProduct(ReceptiveFieldsBase):
         # Make independent cone noise for multiple trials
         # The variables cone_noise_XXX may become a memory issue for long trials or big retinas.
         trials_noise = np.empty((vs.tvec.size, n_cones, 0))
-        for trial in range(n_sweeps):
+        for _trial in range(n_sweeps):
             cone_noise = self._create_cone_noise(vs.tvec, n_cones, *params)
             cone_noise_expanded = np.expand_dims(cone_noise, axis=2)
             trials_noise = np.concatenate((trials_noise, cone_noise_expanded), axis=2)
@@ -3009,12 +2998,7 @@ class ConeProduct(ReceptiveFieldsBase):
         # Normalize noise to have one mean and unit sd at the noise data frequencies
         cone_noise_norm = (cone_noise - cone_noise.mean()) / np.std(cone_noise, axis=0)
 
-        magn = self.retina_parameters["noise_gain"]
-
         # Transpose cone_noise_norm for shape (n_cones, n_timepoints)
-        params_dict = self.retina_parameters["cone_signal_parameters"]
-        max_response = params_dict["max_response"]
-
         cone_noise_norm_T = np.moveaxis(cone_noise_norm, 0, 1)
         vs.cone_noise = cone_noise_norm_T
 
@@ -3023,7 +3007,6 @@ class ConeProduct(ReceptiveFieldsBase):
     def connect_cone_noise_to_gcs(
         self, vs: "VisualSignal", n_sweeps: int
     ) -> "VisualSignal":
-
         # Calculate the synaptic noise for ganglion cells
         print("\nUsing PyTorch for connecting cone noise to ganglion cells...")
 
@@ -3053,7 +3036,6 @@ class ConeProduct(ReceptiveFieldsBase):
         )
 
         for trial in range(n_sweeps):
-
             noise_this_trial = magn_tensor * torch.matmul(
                 cone_noise_norm_tensor[:, :, trial], weights_norm_tensor
             )
@@ -3473,7 +3455,6 @@ class GanglionCellProduct(ReceptiveFieldsBase):
             df_stimpix["orient_cen_rad"] = 0.0
 
         df_stimpix = pd.concat([df_stimpix, pixspace_coords], axis=1)
-        pix_df = deepcopy(df_stimpix)
 
         # Fixed spatial filter sidelength according to RF pixel resolution
         # at given eccentricity (calculated at construction)

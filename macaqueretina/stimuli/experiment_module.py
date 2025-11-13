@@ -4,7 +4,6 @@ from pathlib import Path
 # Third-party
 import numpy as np
 import pandas as pd
-import yaml
 
 # Local
 from macaqueretina.stimuli.visual_stimulus_module import VideoBaseClass
@@ -323,7 +322,7 @@ class Experiment(VideoBaseClass):
         # Some options contain a tuple of values
         # Collate expanded tuples back for each tuple option and condition
         cond_options_collated = [{} for _ in range(len(cond_options))]
-        for idx, option in enumerate(exp_variables):
+        for option in exp_variables:
             assert (
                 option in self.options.keys()
             ), f"Missing {option} in visual_stimulus_parameters, check exp_variables name..."
@@ -426,11 +425,11 @@ class Experiment(VideoBaseClass):
         cond_names = df.index.tolist()
         cond_options = []
 
-        for col in cond_names:
+        for _col in cond_names:
             cond_options.append({})
 
         for row_idx, row in enumerate(cond_names):
-            for col_idx, key in enumerate(exp_variables):
+            for key in exp_variables:
                 val = df.loc[row, key]
                 cond_options[row_idx][key] = val
 
@@ -472,7 +471,6 @@ class Experiment(VideoBaseClass):
         build_without_run=False,
         show_histogram=False,
     ):
-
         exp_variables = self.config.experiment_parameters["exp_variables"]
         cond_names_string = "_".join(exp_variables)
         experiment_hash = self.config.experiment_parameters.hash()
@@ -538,7 +536,6 @@ class Experiment(VideoBaseClass):
                 )
 
         if not save_exp_metadata_path.is_file():
-
             self.options["logarithmic"] = tuple(
                 self.config.experiment_parameters["logarithmic"]
             )

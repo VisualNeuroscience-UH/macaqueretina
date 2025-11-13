@@ -1,16 +1,14 @@
 # Built-in
 import copy
 import math
-import os
-import time
 from functools import reduce
 from pathlib import Path
 from typing import Optional
 
 # Third-party
 import brian2.units as b2u
-import matplotlib.colors as mcolors
 import matplotlib.colors as colors
+import matplotlib.colors as mcolors
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 import matplotlib.widgets as widgets
@@ -20,14 +18,12 @@ import scipy.optimize as opt
 import scipy.stats as stats
 import seaborn as sns
 import torch
-import torchvision.transforms.functional as TF
 from matplotlib import cm
 from matplotlib.patches import Circle, Ellipse, Polygon
 from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
 from sklearn.manifold import TSNE
 
 # Local
-from macaqueretina.retina.vae_module import AugmentedDataset
 
 
 class Viz:
@@ -74,7 +70,7 @@ class Viz:
         except:
             pass
 
-        if accept_empty == True:
+        if accept_empty is True:
             is_valid = isinstance(data, np.ndarray)
         else:
             is_valid = isinstance(data, np.ndarray) and data.size > 0
@@ -144,7 +140,6 @@ class Viz:
 
         # Construct full save path
         path = self.config.path
-        project_manager_module_file_path = self.config.project_manager_module_file_path
         full_subfolderpath = Path.joinpath(path, subfolderpath)
         save_path = Path.joinpath(full_subfolderpath, final_filename)
 
@@ -406,7 +401,6 @@ class Viz:
 
         ecc_mm = self.construct_retina.gc_df["pos_ecc_mm"].to_numpy()
         pol_deg = self.construct_retina.gc_df["pos_polar_deg"].to_numpy()
-        gc_density_params = self.construct_retina.gc_density_params
 
         # to cartesian
         xcoord, ycoord = self.pol2cart(ecc_mm, pol_deg)
@@ -698,7 +692,7 @@ class Viz:
             ax.set_ylabel("Count")
             median = np.median(experimental_data[:, this_distr])
 
-            if model_fit_curves != None:  # Assumes tuple of arrays
+            if model_fit_curves is not None:  # Assumes tuple of arrays
                 x_this_distr = x_model_fit[:, this_distr]
                 y_this_distr = y_model_fit[:, this_distr]
 
@@ -722,9 +716,7 @@ class Viz:
                 model_function = model_parameters[distrs[idx]]["distribution"]
 
                 ax.annotate(
-                    "shape = {0:.2f}\nloc = {1:.2f}\nscale = {2:.2f}\nmedian = {3:.2f}".format(
-                        shape, loc, scale, median
-                    ),
+                    f"shape = {shape:.2f}\nloc = {loc:.2f}\nscale = {scale:.2f}\nmedian = {median:.2f}",
                     xy=(1, 1),  # Point at the right upper corner of the axis
                     xycoords="axes fraction",
                     xytext=(-10, -10),  # Offset from the corner, adjust as needed
@@ -732,7 +724,7 @@ class Viz:
                     horizontalalignment="right",  # Right align text
                     verticalalignment="top",  # Top align text
                 )
-                ax.set_title("{0} fit for {1}".format(model_function, distrs[idx]))
+                ax.set_title(f"{model_function} fit for {distrs[idx]}")
 
                 # Rescale y axis if model fit goes high. Shows histogram better
                 if y_model_fit[:, this_distr].max() > 1.5 * bin_values.max():
@@ -773,7 +765,7 @@ class Viz:
                 data_all_x.sort()
                 ax2.plot(data_all_x, intercept + slope * data_all_x, "b-")
                 ax2.annotate(
-                    "\nr={0:.2g},\np={1:.2g}".format(r, p),
+                    f"\nr={r:.2g},\np={p:.2g}",
                     xy=(1, 1),
                     xycoords="axes fraction",
                     xytext=(-10, -10),
@@ -782,9 +774,7 @@ class Viz:
                     verticalalignment="top",
                 )
                 ax2.set_title(
-                    "Correlation between {0} and {1}".format(
-                        distrs[distr_tuple_idx], distrs[idx]
-                    )
+                    f"Correlation between {distrs[distr_tuple_idx]} and {distrs[idx]}"
                 )
 
             self._delete_extra_axes(fig2, axes2, n_distributions, n_ax_rows, n_ax_cols)
@@ -793,7 +783,6 @@ class Viz:
             self._figsave(figurename=savefigname, suffix="_corr")
 
         if include_multivariate:
-
             x_model_fits = np.linspace(
                 multivariate_statistics["means"]
                 - 3 * multivariate_statistics["std_devs"],
@@ -809,7 +798,7 @@ class Viz:
             fig3, axes3 = plt.subplots(n_ax_rows, n_ax_cols, figsize=(13, 4))
 
             fig3.suptitle(
-                f"Multivariate statistics with Gaussian distributions",
+                "Multivariate statistics with Gaussian distributions",
                 fontsize=16,
                 fontweight="bold",
             )
@@ -841,7 +830,7 @@ class Viz:
                 mean = multivariate_statistics["means"][this_distr]
                 std = multivariate_statistics["std_devs"][this_distr]
                 ax3.annotate(
-                    "mean = {0:.2f}\nstd = {1:.2f}".format(mean, std),
+                    f"mean = {mean:.2f}\nstd = {std:.2f}",
                     xy=(1, 1),  # Point at the right upper corner of the axis
                     xycoords="axes fraction",
                     xytext=(-10, -10),  # Offset from the corner, adjust as needed
@@ -851,7 +840,7 @@ class Viz:
                 )
 
                 ax3.set_title(
-                    "Gaussian fit for {0}".format(distrs[idx]),
+                    f"Gaussian fit for {distrs[idx]}",
                 )
 
             if savefigname:
@@ -1467,7 +1456,7 @@ class Viz:
             scatter2 = fig_args["scatter2"]
 
             scatter1.set_offsets(original_positions)
-            ax1.set_title(f"orig pos")
+            ax1.set_title("orig pos")
 
             scatter2.set_offsets(positions)
             ax2.set_title(f"new pos iteration {iteration}")
@@ -1695,7 +1684,6 @@ class Viz:
                 "ellipse_independent",
                 "ellipse_fixed",
             ]:
-
                 # Create ellipse patch for visualizing the RF
                 DoG_patch = Ellipse(
                     xy=gc_position,
@@ -1951,7 +1939,7 @@ class Viz:
                 0.1, 0.9, zero_annots[key], transform=ax[0, i].transAxes, fontsize=10
             )
 
-        for i, (key, w) in enumerate(weights.items()):
+        for i, (_key, w) in enumerate(weights.items()):
             ax[1, i].imshow(w, aspect="auto", interpolation="none")
 
         if savefigname:
@@ -1984,7 +1972,7 @@ class Viz:
 
         fig, axes = plt.subplots(4, 4, figsize=(12, 12))
 
-        for i, (key, w) in enumerate(weights.items()):
+        for i, (key, _w) in enumerate(weights.items()):
             # Fan-In histograms and violin plots
             sns.histplot(fan_in[key], bins=30, kde=False, ax=axes[i, 0])
             axes[i, 0].set_title(f"{key.replace('_', ' ')} Fan-In Histogram")
@@ -2184,14 +2172,12 @@ class Viz:
             self._figsave(figurename=savefigname)
 
     def show_bipolar_nonlinearity(self, savefigname=None):
-
         ret_file_npz = self.data_io.load_data(self.config.retina_parameters["ret_file"])
         popt = ret_file_npz["bipolar_nonlinearity_parameters"]
         bipolar_g_sur_scaled = ret_file_npz["bipolar_g_sur_scaled"]
         bipolar_RI_values = ret_file_npz["bipolar_RI_values"]
         bipolar_nonlinearity_fit = ret_file_npz["bipolar_nonlinearity_fit"]
 
-        x = np.linspace(-1, 1, 100)
         y = bipolar_nonlinearity_fit
 
         plt.plot(bipolar_g_sur_scaled, bipolar_RI_values, "o")
@@ -2290,7 +2276,6 @@ class Viz:
         locs = locs[locs < stimulus_height_pix]
         locs = locs[locs > 0]
 
-        left_y_labels = locs.astype(int)
         plt.yticks(ticks=locs)
         ax.set_ylabel("pix")
 
@@ -2645,7 +2630,6 @@ class Viz:
 
         for_histogram = np.concatenate(spiketrains)
         firing_rate_mean = np.nanmean(firing_rates, axis=0)
-        sample_name = "unit #"
 
         # Calculate and print mean firing rate across all units
         spike_count = 0
@@ -2655,8 +2639,6 @@ class Viz:
 
         gc_type = self.config.retina_parameters.gc_type
         response_type = self.config.retina_parameters.response_type
-        sample_name = f" ({gc_type}, {response_type})"
-        # breakpoint()
 
         # Create subplots
         fig, ax = plt.subplots(3, 1, sharex=True)
@@ -2725,14 +2707,11 @@ class Viz:
     def show_all_generator_potentials(self, savefigname=None):
         """ """
         gc_responses_to_show = self.project_data.simulate_retina["gc_responses_to_show"]
-        n_sweeps = gc_responses_to_show["n_sweeps"]
-        n_units = gc_responses_to_show["n_units"]
 
         duration = gc_responses_to_show["duration"]
         # requested firing_rates before spike generation.
         generator_potentials = gc_responses_to_show["generator_potentials"]
         video_dt = gc_responses_to_show["video_dt"]
-        tvec_new = gc_responses_to_show["tvec_new"]
 
         cone_responses_to_show = self.project_data.simulate_retina[
             "cone_responses_to_show"
@@ -2934,9 +2913,9 @@ class Viz:
         # Annotate the delta value
         match unit:
             case "mV":
-                anno_text = r"$\Delta Vm$: {:.2f} mV".format(delta_val)
+                anno_text = rf"$\Delta Vm$: {delta_val:.2f} mV"
             case "pA":
-                anno_text = r"$\Delta I$: {:.2f} pA".format(delta_val)
+                anno_text = rf"$\Delta I$: {delta_val:.2f} pA"
         ax[2].annotate(
             anno_text,
             xy=(tvec_mean[r_argmax], cone_signal_peak),
@@ -3143,15 +3122,11 @@ class Viz:
         ]
         spatial_filters = spat_temp_filter_to_show["spatial_filters"]
         temporal_filters = spat_temp_filter_to_show["temporal_filters"]
-        gc_type = spat_temp_filter_to_show["gc_type"]
-        response_type = spat_temp_filter_to_show["response_type"]
-        temporal_filter_len = spat_temp_filter_to_show["temporal_filter_len"]
-        spatial_filter_sidelen = spat_temp_filter_to_show["spatial_filter_sidelen"]
 
         fig, ax = plt.subplots(1, 2, figsize=(10, 4))
 
         plt.subplot(121)
-        im = ax[0].plot(spatial_filters.sum(axis=1), ".")
+        ax[0].plot(spatial_filters.sum(axis=1), ".")
         ax[0].grid(True)
         ax[0].set_title("Spatial filter sums")
         ax[0].set_xlabel("Unit #")
@@ -3678,7 +3653,7 @@ class Viz:
         if savefigname:
             self._figsave(figurename=savefigname)
 
-    def spike_raster_response(self, filename, sweeps_to_show=[0], savefigname=None):
+    def spike_raster_response(self, filename, sweeps_to_show=None, savefigname=None):
         """
         Show spikes from a results file.
 
@@ -3690,6 +3665,8 @@ class Viz:
             If not empty, the figure is saved to this filename.
         """
 
+        if sweeps_to_show is None:
+            sweeps_to_show = [0]
         experiment_df = self.data_io.load_data(filename=filename)
         cond_names = experiment_df.index.values
         exp_variables = self._get_exp_variables(experiment_df)
@@ -3793,7 +3770,6 @@ class Viz:
         """
         cond_names_string = "_".join(exp_variables)
         experiment_df = self.data_io.load_data(filename=filename)
-        cond_names = experiment_df.index.values
         gc_type = self.config.retina_parameters["gc_type"]
         response_type = self.config.retina_parameters["response_type"]
         data_folder = self.config.output_folder
@@ -3843,7 +3819,6 @@ class Viz:
             return a * np.exp(-b * x) + c
 
         cond_names_string = "_".join(exp_variables)
-        experiment_df = self.data_io.load_data(filename=filename)
         data_folder = self.config.output_folder
 
         # Load results
@@ -3860,8 +3835,6 @@ class Viz:
             lags = lags[idx_start:idx_end]
             ccf_mtx_mean = ccf_mtx_mean[:, :, idx_start:idx_end]
             ccf_mtx_SEM = ccf_mtx_SEM[:, :, idx_start:idx_end]
-
-        unit_vec = npz_file["unit_vec"]
 
         filename_in = f"{cond_names_string}_correlation_neighbors.csv"
         neighbor_unique_df = pd.read_csv(data_folder / filename_in)
@@ -4206,8 +4179,6 @@ class Viz:
             )
 
             all_data_fits_df = fit.all_data_fits_df
-            gen_spat_filt = fit.gen_spat_filt
-            good_idx_rings = fit.good_idx_rings
         else:
             raise ValueError(
                 "Only VAE spatial_model_type is supported for validate_gc_rf_size, it shows DOG values, too."
@@ -4383,10 +4354,12 @@ class Viz:
 
                 # Drop the out_fr_idx from the data_list
                 data_list = [
-                    l for idx, l in enumerate(data_list) if idx not in out_fr_idx
+                    li for idx, li in enumerate(data_list) if idx not in out_fr_idx
                 ]
                 outer_name_list = [
-                    l for idx, l in enumerate(outer_name_list) if idx not in out_fr_idx
+                    li
+                    for idx, li in enumerate(outer_name_list)
+                    if idx not in out_fr_idx
                 ]
 
                 # Divide the values by the frequencies
@@ -4482,8 +4455,8 @@ class Viz:
                     ):
                         # Apply bin edges to sub data
                         inner_df_id_vars_idx = sub_df_coll.apply(
-                            lambda x: (x > this_bin_limits[0])
-                            & (x < this_bin_limits[1]),
+                            lambda x: (x > this_bin_limits[0])  # noqa: B023
+                            & (x < this_bin_limits[1]),  # noqa: B023
                             raw=True,
                         )
                         inner_df_id_vars[inner_df_id_vars_idx] = this_bin_idx
@@ -4642,7 +4615,7 @@ class Viz:
 
                     # Find the column with largest median value, excluding nans
                     median_list = []
-                    for this_idx, this_column in enumerate(inner_df_coll.columns):
+                    for this_idx, _this_column in enumerate(inner_df_coll.columns):
                         median_list.append(
                             np.nanmedian(inner_df_coll.values[:, this_idx])
                         )
@@ -4780,7 +4753,7 @@ class Viz:
         y_fitted = y_fitted[~mask]
 
         fig, ax = plt.subplots()
-        ax.scatter(x_data, y_data, label=f"Data points")
+        ax.scatter(x_data, y_data, label="Data points")
         ax.plot(x_dense, y_fitted, color="red", label="Fitted Curve")
         ax.legend()
         ax.set_title(savefigname if savefigname else "Data and Fit")

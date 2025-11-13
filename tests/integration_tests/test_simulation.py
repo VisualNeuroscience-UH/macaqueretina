@@ -1,11 +1,7 @@
 # Built-in
-import tempfile
-from pathlib import Path
 
 # Third-party
-import numpy as np
 import pytest
-import scipy.optimize
 
 # Local
 import macaqueretina as mr

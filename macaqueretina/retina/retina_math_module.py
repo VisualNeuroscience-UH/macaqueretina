@@ -1,5 +1,4 @@
 # Third-party
-import matplotlib.pyplot as plt
 import numpy as np
 from brian2 import units as b2u
 from scipy.interpolate import interp1d
@@ -34,7 +33,7 @@ class RetinaMath:
         Generalized Gaussian distribution function with variable kurtosis.
         """
         coeff = beta / (2 * alpha * gamma(1 / beta))
-        return a * coeff * np.exp(-np.abs((x - x0) / alpha) ** beta)
+        return a * coeff * np.exp(-(np.abs((x - x0) / alpha) ** beta))
 
     def sector2area_mm2(self, radius, angle):
         """
@@ -100,7 +99,7 @@ class RetinaMath:
         adjustment_needed = average - current_mean
         total_adjustment = int(round(adjustment_needed * sample_size))
 
-        for i in range(abs(total_adjustment)):
+        for _i in range(abs(total_adjustment)):
             if total_adjustment > 0:
                 idx = np.argmin(sample)
                 if sample[idx] < max_range:
@@ -190,10 +189,6 @@ class RetinaMath:
             The ellipse mask.
         """
 
-        # Create a grid of x and y coordinates
-        x = np.arange(0, s)
-        y = np.arange(0, s)
-        # x, y = np.meshgrid(x, y)
         Y, X = np.meshgrid(
             np.arange(0, s),
             np.arange(0, s),
@@ -340,7 +335,7 @@ class RetinaMath:
         L = L_td / A_pupil
 
         # Strip seconds if I_cone has been given without units
-        if type(L) == b2u.Quantity:
+        if type(L) is b2u.Quantity:
             L = L / L.get_best_unit()
 
         return L
@@ -732,7 +727,6 @@ class RetinaMath:
         spatial_rf = np.copy(spatial_rf_unflipped)
 
         for i in range(spatial_rf.shape[0]):
-
             # Find indices for the max_pixels number of absolute strongest pixels
             max_pixels_indices = np.argsort(np.abs(spatial_rf[i].ravel()))[-max_pixels:]
 
