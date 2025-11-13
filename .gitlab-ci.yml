@@ -4,9 +4,9 @@ default:
   image: python:3.11-slim
   before_script:
     - pip install poetry
+    - export PATH=/tmp/.local/bin:$PATH
     - poetry install
     - source `poetry env info --path`/bin/activate
-    - export PATH=/tmp/.local/bin:$PATH
 
 stages: # stages contain jobs
   - test
