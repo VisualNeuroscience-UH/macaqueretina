@@ -4,6 +4,7 @@ default:
   image: python:3.11-slim
   before_script:
     - pip install --target /tmp poetry
+    - export PYTHONPATH="/tmp:$PYTHONPATH" 
     - poetry install
     - source `poetry env info --path`/bin/activate
 
