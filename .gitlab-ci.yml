@@ -20,11 +20,18 @@ unit_tests:
   tags:
     - shared-runner
 
-integration_tests:
+integration_tests1:
   stage: test
   script:
     - echo "Running integration tests..."
     - pytest tests/integration_tests/test_construct_retina_cpu.py
+  tags:
+    - shared-runner
+
+integration_tests2:
+  stage: test
+  script:
+    - echo "Running integration tests..."
     - pytest tests/integration_tests/test_simulation.py
     - pytest tests/integration_tests/test_visual_stimulus.py
   tags:
