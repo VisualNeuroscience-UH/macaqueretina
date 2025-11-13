@@ -186,19 +186,13 @@ class ProjectManager(ProjectUtilitiesMixin):
             VisualSignal,
         )
 
-        self.construct_retina = self._apply_variable_config()
+        self._apply_variable_config()
 
         self.viz.construct_retina = self.construct_retina
 
-        experiment = Experiment(
-            self.config, self.data_io, self.stimulate, self.simulate_retina
-        )
-
-        self.experiment = experiment
-
         analog_input = AnalogInput(
             self.config,
-            self.data_io,
+            data_io,
             viz,
             ReceptiveFields=ReceptiveFieldsBase,
             pol2cart_df=self.simulate_retina.pol2cart_df,
@@ -208,13 +202,8 @@ class ProjectManager(ProjectUtilitiesMixin):
 
         self.data_sampler = DataSampler
 
-        # Set numpy random seed
-        np.random.seed(self.config.numpy_seed)
-
     def _apply_variable_config(self):
-        project_data = ProjectData()
-
-        fit = Fit(project_data, self.config.experimental_metadata)
+        fit = Fit(self.project_data, self.config.experimental_metadata)
 
         retina_vae = RetinaVAE(self.config)
 
@@ -225,7 +214,7 @@ class ProjectManager(ProjectUtilitiesMixin):
             fit,
             retina_vae,
             self.retina_math,
-            project_data,
+            self.project_data,
             self.get_xy_from_npz,
         )
 
@@ -239,6 +228,13 @@ class ProjectManager(ProjectUtilitiesMixin):
             self.config.device,
             self.stimulate,
         )
+
+        self.experiment = Experiment(
+            self.config, self.data_io, self.stimulate, self.simulate_retina
+        )
+
+        # Set numpy random seed
+        np.random.seed(self.config.numpy_seed)
 
     @property
     def data_io(self):
