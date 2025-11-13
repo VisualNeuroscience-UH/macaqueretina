@@ -4027,7 +4027,7 @@ class SimulateRetina(RetinaMath):
             n_sweeps,
             self.stimulate,
         )
-
+        print(f"KUKKUU {self.device=}")
         director = SimulationDirector(builder)
         if impulse:
             contrasts = self.config.simulation_parameters["contrasts_for_impulse"]
