@@ -1,4 +1,5 @@
 # Built-in
+import random
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
@@ -845,6 +846,15 @@ class FitDataTypeTemplate(ABC, PrintableMixin):
         pass
 
     # Helper methods
+    def _fit_with_retry(self, fit_func, data, max_retries=5, **kwargs):
+        for _ in range(max_retries):
+            try:
+                return fit_func(data, **kwargs)
+            except Exception:
+                np.random.seed(random.randint(0, 1000000))
+                continue
+        raise RuntimeError(f"Failed to fit after {max_retries} retries")
+
     def _fit_univariate_statistics(self, param_distribution_dict, data_df):
         n_distributions = len(param_distribution_dict)
         loc = np.zeros([n_distributions])
@@ -861,8 +871,8 @@ class FitDataTypeTemplate(ABC, PrintableMixin):
 
             match dist:
                 case "gamma":
-                    shape, loc[index], scale[index] = stats.gamma.fit(
-                        experimental_data[:, index], loc=0
+                    shape, loc[index], scale[index] = self._fit_with_retry(
+                        stats.gamma.fit, experimental_data[:, index], loc=0
                     )
                     x_model_fit[:, index] = np.linspace(
                         stats.gamma.ppf(
@@ -889,8 +899,8 @@ class FitDataTypeTemplate(ABC, PrintableMixin):
                     }
 
                 case "skewnorm":
-                    shape, loc[index], scale[index] = stats.skewnorm.fit(
-                        experimental_data[:, index], loc=0
+                    shape, loc[index], scale[index] = self._fit_with_retry(
+                        stats.skewnorm.fit, experimental_data[:, index], loc=0
                     )
                     x_model_fit[:, index] = np.linspace(
                         stats.skewnorm.ppf(
@@ -940,6 +950,7 @@ class FitDataTypeTemplate(ABC, PrintableMixin):
                         ),
                         100,
                     )
+
                     y_model_fit[:, index] = stats.vonmises.pdf(
                         x=x_model_fit[:, index],
                         kappa=kappa,

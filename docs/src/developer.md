@@ -10,6 +10,8 @@ You can make any class pretty printable by inheriting from PrintableMixin in pro
 
 The retina buildup and simulation become memory-heavy with larger retina patches. 
 
+The numpy seed is a legacy function but still used in our code. The seed will be overridden in fit_module, _fit_with_retry method, in case the fit fails.
+
 ### Abbreviations in the code
 ana : analysis  
 cen : center  

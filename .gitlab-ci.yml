@@ -11,11 +11,22 @@ stages: # stages contain jobs
   - test
   - deploy
 
-test-job:
+# Share tests to distinct jobs
+unit_tests:
   stage: test
   script:
-    - echo "Running tests..."
-    - pytest
+    - echo "Running unit tests..."
+    - pytest tests/unit_tests
+  tags:
+    - shared-runner
+
+integration_tests:
+  stage: test
+  script:
+    - echo "Running integration tests..."
+    - pytest tests/integration_tests/test_construct_retina_cpu.py
+    - pytest tests/integration_tests/test_simulation.py
+    - pytest tests/integration_tests/test_visual_stimulus.py
   tags:
     - shared-runner
 

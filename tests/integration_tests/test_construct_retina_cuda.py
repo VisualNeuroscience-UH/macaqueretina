@@ -14,14 +14,16 @@ def retina_config():
     Fixture to reset and provide the retina configuration.
     While returned as retina_config, this will keep the reference to mr.config.
     """
+    mr.config.retina_parameters.ecc_limits_deg = [4.4, 5.6]
+    mr.config.retina_parameters.pol_limits_deg = [-1.6, 1.6]
     mr.config.retina_parameters.force_retina_build = True
     mr.config.retina_parameters.gc_type = "parasol"
     mr.config.retina_parameters.response_type = "on"
     mr.config.retina_parameters.spatial_model_type = "DOG"
     mr.config.retina_parameters.temporal_model_type = "fixed"
     mr.config.retina_parameters.dog_model_type = "ellipse_fixed"
-    mr.config.numpy_seed = 41
-    mr.config.device = "cpu"
+    mr.config.device = "cuda"
+    mr.config.numpy_seed = 42
     return mr.config
 
 
@@ -31,19 +33,17 @@ RESPONSE_TYPES = ["on", "off"]
 SPATIAL_MODEL_TYPES = ["DOG", "VAE"]
 TEMPORAL_MODEL_TYPES = ["fixed", "dynamic", "subunit"]
 DOG_MODEL_TYPES = ["ellipse_fixed", "circular"]
-DEVICE = ["cpu", "cuda"]
 
 
 @pytest.mark.parametrize(
-    "gc_type,response_type,spatial_model_type,temporal_model_type,dog_model_type,device",
+    "gc_type,response_type,spatial_model_type,temporal_model_type,dog_model_type",
     [
-        (gc, resp, spatial, temporal, dog, device)
+        (gc, resp, spatial, temporal, dog)
         for gc in GC_TYPES
         for resp in RESPONSE_TYPES
         for spatial in SPATIAL_MODEL_TYPES
         for temporal in TEMPORAL_MODEL_TYPES
         for dog in DOG_MODEL_TYPES
-        for device in DEVICE
     ],
 )
 @pytest.mark.filterwarnings("ignore::UserWarning")
@@ -56,7 +56,6 @@ def test_retina_construction(
     spatial_model_type,
     temporal_model_type,
     dog_model_type,
-    device,
 ):
     # Set parameters
     retina_config.retina_parameters.gc_type = gc_type
@@ -64,11 +63,9 @@ def test_retina_construction(
     retina_config.retina_parameters.spatial_model_type = spatial_model_type
     retina_config.retina_parameters.temporal_model_type = temporal_model_type
     retina_config.retina_parameters.dog_model_type = dog_model_type
-    mr.config.device = device
 
     mr.config.output_folder = Path(tmp_path)
-    mr.config.retina_parameters.model_density = 0.7
-    mr.config.numpy_seed = 42
+    mr.config.retina_parameters.model_density = 0.8
     ret, gc = mr.construct_retina(return_objects_do_not_save=True)
 
     assert hasattr(ret, "gc_type")
