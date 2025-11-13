@@ -186,7 +186,7 @@ class ProjectManager(ProjectUtilitiesMixin):
             VisualSignal,
         )
 
-        self.construct_retina = self.build_retina_instance()
+        self.construct_retina = self._apply_variable_config()
 
         self.viz.construct_retina = self.construct_retina
 
@@ -211,14 +211,14 @@ class ProjectManager(ProjectUtilitiesMixin):
         # Set numpy random seed
         np.random.seed(self.config.numpy_seed)
 
-    def build_retina_instance(self):
+    def _apply_variable_config(self):
         project_data = ProjectData()
 
         fit = Fit(project_data, self.config.experimental_metadata)
 
         retina_vae = RetinaVAE(self.config)
 
-        construct_retina = ConstructRetina(
+        self.construct_retina = ConstructRetina(
             self.config,
             self.data_io,
             self.viz,
@@ -228,20 +228,17 @@ class ProjectManager(ProjectUtilitiesMixin):
             project_data,
             self.get_xy_from_npz,
         )
-        return construct_retina
 
-        stimulate = VisualStimulus(self.config, self.data_io, self.get_xy_from_npz)
-        self.stimulate = stimulate
+        self.stimulate = VisualStimulus(self.config, self.data_io, self.get_xy_from_npz)
 
-        simulate_retina = SimulateRetina(
+        self.simulate_retina = SimulateRetina(
             self.config,
             self.data_io,
             self.project_data,
             self.retina_math,
             self.config.device,
-            stimulate,
+            self.stimulate,
         )
-        self.simulate_retina = simulate_retina
 
     @property
     def data_io(self):
