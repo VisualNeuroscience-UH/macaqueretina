@@ -10,7 +10,6 @@ import macaqueretina as mr
 GC_TYPES = ["parasol", "midget"]
 RESPONSE_TYPES = ["on", "off"]
 TEMPORAL_MODEL_TYPES = ["fixed", "dynamic", "subunit"]
-DEVICE = ["cpu", "cuda"]
 SPIKE_GENERATOR_MODELS = ["refractory", "poisson"]
 
 
@@ -30,8 +29,8 @@ def simulation_config(tmp_path_factory):
     mr.config.retina_parameters.response_type = "on"
     mr.config.retina_parameters.spatial_model_type = "DOG"
     mr.config.retina_parameters.dog_model_type = "ellipse_fixed"
-    mr.config.retina_parameters.model_density = 0.7
-    mr.config.numpy_seed = 42
+    mr.config.retina_parameters.model_density = 0.8
+    mr.config.numpy_seed = 1
 
     # Stimulus config
     mr.config.visual_stimulus_parameters.pattern = "sine_grating"
@@ -51,7 +50,7 @@ def simulation_config(tmp_path_factory):
     mr.config.output_folder = output_dir
     mr.config.stimulus_folder = stimulus_dir
 
-    mr.config.device = "cuda"
+    mr.config.device = "cpu"
 
     return mr.config
 
@@ -65,13 +64,12 @@ def stimulus_video(simulation_config):
 
 
 @pytest.mark.parametrize(
-    "gc_type,response_type,temporal_model_type,device,spike_generator_model",
+    "gc_type,response_type,temporal_model_type,spike_generator_model",
     [
-        (gc_type, response_type, temporal, device, spike_model)
+        (gc_type, response_type, temporal, spike_model)
         for gc_type in GC_TYPES
         for response_type in RESPONSE_TYPES
         for temporal in TEMPORAL_MODEL_TYPES
-        for device in DEVICE
         for spike_model in SPIKE_GENERATOR_MODELS
     ],
 )
@@ -83,14 +81,12 @@ def test_simulation_client(
     gc_type,
     response_type,
     temporal_model_type,
-    device,
     spike_generator_model,
 ):
     # Set parameters
     simulation_config.retina_parameters.gc_type = gc_type
     simulation_config.retina_parameters.response_type = response_type
     simulation_config.retina_parameters.temporal_model_type = temporal_model_type
-    mr.config.device = device
     simulation_config.simulation_parameters.spike_generator_model = (
         spike_generator_model
     )
