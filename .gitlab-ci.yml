@@ -19,6 +19,8 @@ unit_tests:
     - pytest tests/unit_tests
   tags:
     - openshift
+  variables:
+    HOME: /tmp
 
 integration_tests1:
   stage: test
@@ -27,6 +29,8 @@ integration_tests1:
     - pytest tests/integration_tests/test_construct_retina_cpu.py
   tags:
     - openshift
+  variables:
+    HOME: /tmp
 
 integration_tests2:
   stage: test
@@ -36,7 +40,9 @@ integration_tests2:
     - pytest tests/integration_tests/test_visual_stimulus.py
   tags:
     - openshift
-
+  variables:
+    HOME: /tmp
+    
 deploy-prod:
   stage: deploy
   script:
