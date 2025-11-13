@@ -3,8 +3,8 @@
 default:
   image: python:3.11-slim
   before_script:
-    - pip install poetry
     - export PATH=/tmp/.local/bin:$PATH
+    - pip install poetry
     - poetry config cache-dir .cache/pypoetry
     - poetry config virtualenvs.in-project true
     - poetry install

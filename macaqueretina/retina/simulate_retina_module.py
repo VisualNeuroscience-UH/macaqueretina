@@ -4014,6 +4014,8 @@ class SimulateRetina(RetinaMath):
         unity : bool, optional
             If True, runs uniformity index simulation.
         """
+        print(f"KUKKUU2 {self.config.device=}; {filename=}")
+
         self._get_construct_metadata_if_missing()
         vs, gcs, cones, bipolars = self._get_products(stimulus)
         n_sweeps = self.config.simulation_parameters["n_sweeps"]
