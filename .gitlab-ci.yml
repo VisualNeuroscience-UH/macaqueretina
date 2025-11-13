@@ -6,6 +6,7 @@ default:
     - pip install poetry
     - poetry install
     - source `poetry env info --path`/bin/activate
+    - export PATH=/tmp/.local/bin:$PATH
 
 stages: # stages contain jobs
   - test
