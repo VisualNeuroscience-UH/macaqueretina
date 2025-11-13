@@ -190,25 +190,15 @@ class ProjectManager(ProjectUtilitiesMixin):
 
         self.viz.construct_retina = self.construct_retina
 
-        stimulate = VisualStimulus(self.config, data_io, self.get_xy_from_npz)
-        self.stimulate = stimulate
-
-        simulate_retina = SimulateRetina(
-            self.config,
-            data_io,
-            self.project_data,
-            self.retina_math,
-            self.config.device,
-            stimulate,
+        experiment = Experiment(
+            self.config, self.data_io, self.stimulate, self.simulate_retina
         )
-        self.simulate_retina = simulate_retina
 
-        experiment = Experiment(self.config, data_io, stimulate, simulate_retina)
         self.experiment = experiment
 
         analog_input = AnalogInput(
             self.config,
-            data_io,
+            self.data_io,
             viz,
             ReceptiveFields=ReceptiveFieldsBase,
             pol2cart_df=self.simulate_retina.pol2cart_df,
@@ -239,6 +229,19 @@ class ProjectManager(ProjectUtilitiesMixin):
             self.get_xy_from_npz,
         )
         return construct_retina
+
+        stimulate = VisualStimulus(self.config, self.data_io, self.get_xy_from_npz)
+        self.stimulate = stimulate
+
+        simulate_retina = SimulateRetina(
+            self.config,
+            self.data_io,
+            self.project_data,
+            self.retina_math,
+            self.config.device,
+            stimulate,
+        )
+        self.simulate_retina = simulate_retina
 
     @property
     def data_io(self):
