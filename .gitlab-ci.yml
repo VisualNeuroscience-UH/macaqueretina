@@ -3,7 +3,7 @@
 default:
   image: python:3.11-slim
   before_script:
-    - pip install poetry
+    - pip install --target /tmp poetry
     - poetry install
     - source `poetry env info --path`/bin/activate
 
@@ -42,7 +42,7 @@ integration_tests2:
     - openshift
   variables:
     HOME: /tmp
-    
+
 deploy-prod:
   stage: deploy
   script:
