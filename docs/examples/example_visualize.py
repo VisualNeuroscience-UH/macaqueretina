@@ -4,10 +4,13 @@ import matplotlib.pyplot as plt
 # Local
 import macaqueretina as mr
 
+mr.config.device = "cpu"
+# mr.PM.apply_changed_config()
+# mr.PM.simulate_retina.device = mr.config.device
+
 mr.construct_retina()
 mr.make_stimulus()
 mr.simulate_retina()
-
 
 ###############################################
 ##   Show multiple units for single trial   ###

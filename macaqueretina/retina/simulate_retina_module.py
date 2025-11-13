@@ -1540,25 +1540,6 @@ class ConcreteSimulationBuilder(SimulationBuildInterface):
         The device on which computations will be performed.
     n_sweeps : int
         Number of simulation trials to run.
-
-    Attributes
-    ----------
-    _vs : VisualSignal
-        The visual signal object.
-    _gcs : GanglionCellProduct
-        The ganglion cell data object.
-    _cones : ConeCells
-        The cone cells object.
-    _bipolars : BipolarCells
-        The bipolar cells object.
-    _retina_math : RetinaMath
-        The retina math utility object.
-    _device : Any
-        The computation device.
-    n_sweeps : int
-        Number of simulation trials.
-    _project_data : Dict[str, Any]
-        Dictionary for storing project-related data.
     """
 
     def __init__(
@@ -1578,7 +1559,8 @@ class ConcreteSimulationBuilder(SimulationBuildInterface):
         self._bipolars = bipolars
 
         self._retina_math = retina_math
-        self._device = device
+        print(f"\nConcreteSimulationBuilder device is {device}")
+        self.device = device
         self.n_sweeps = n_sweeps
         self._stimulate = stimulate
 
@@ -1613,12 +1595,6 @@ class ConcreteSimulationBuilder(SimulationBuildInterface):
     @property
     def retina_math(self):
         return self._retina_math
-
-    @property
-    def device(self):
-        print(f"KUKKUU3 {self._device=}")
-
-        return self._device
 
     @property
     def stimulate(self):
@@ -2198,7 +2174,6 @@ class ConcreteSimulationBuilder(SimulationBuildInterface):
 
         # Convert NumPy arrays to PyTorch tensors
         device = self.device
-        print(f"KUKKUU4 {device=}")
         video_copy_tensor = torch.tensor(video_copy, dtype=torch.float32, device=device)
         r_matrix_tensor = torch.tensor(r_matrix, dtype=torch.long, device=device)
         q_matrix_tensor = torch.tensor(q_matrix, dtype=torch.long, device=device)
@@ -3663,8 +3638,6 @@ class SimulateRetina(RetinaMath):
         Container for project-specific data.
     retina_math : RetinaMath
         Mathematical utilities for retinal calculations.
-    device : str or torch.device
-        Computation device (CPU or GPU).
 
     Attributes
     ----------
@@ -3678,8 +3651,6 @@ class SimulateRetina(RetinaMath):
         Container for project-specific data.
     retina_math : RetinaMath
         Mathematical utilities for retinal calculations.
-    device : str or torch.device
-        Computation device (CPU or GPU).
     """
 
     def __init__(
@@ -3688,15 +3659,13 @@ class SimulateRetina(RetinaMath):
         data_io: Any,
         project_data: Any,
         retina_math: RetinaMath,
-        device: str,
         stimulate: Any,
     ) -> None:
-        self._config: Any = config
-        self._data_io: Any = data_io
-        self._project_data: Any = project_data
-        self._retina_math: RetinaMath = retina_math
-        self._device: str = device
-        self._stimulate: Any = stimulate
+        self._config = config
+        self._data_io = data_io
+        self._project_data = project_data
+        self._retina_math = retina_math
+        self._stimulate = stimulate
 
     @property
     def config(self) -> Any:
@@ -3713,10 +3682,6 @@ class SimulateRetina(RetinaMath):
     @property
     def retina_math(self) -> RetinaMath:
         return self._retina_math
-
-    @property
-    def device(self) -> str:
-        return self._device
 
     @property
     def stimulate(self) -> Any:
@@ -4016,19 +3981,18 @@ class SimulateRetina(RetinaMath):
         unity : bool, optional
             If True, runs uniformity index simulation.
         """
-        print(f"KUKKUU {self.config.device=}; {filename=}")
 
         self._get_construct_metadata_if_missing()
         vs, gcs, cones, bipolars = self._get_products(stimulus)
         n_sweeps = self.config.simulation_parameters["n_sweeps"]
-        print(f"KUKKUU2 {self.config.device=}; {filename=}")
+
         builder = ConcreteSimulationBuilder(
             vs,
             gcs,
             cones,
             bipolars,
             self.retina_math,
-            self.device,
+            self.config.device,
             n_sweeps,
             self.stimulate,
         )

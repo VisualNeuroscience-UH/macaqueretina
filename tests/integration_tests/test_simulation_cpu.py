@@ -51,7 +51,6 @@ def simulation_config(tmp_path_factory):
     mr.config.stimulus_folder = stimulus_dir
 
     mr.config.device = "cpu"
-    mr.PM.apply_changed_config()
 
     return mr.config
 

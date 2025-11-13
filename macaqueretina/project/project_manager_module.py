@@ -219,13 +219,11 @@ class ProjectManager(ProjectUtilitiesMixin):
         )
 
         self.stimulate = VisualStimulus(self.config, self.data_io, self.get_xy_from_npz)
-
         self.simulate_retina = SimulateRetina(
             self.config,
             self.data_io,
             self.project_data,
             self.retina_math,
-            self.config.device,
             self.stimulate,
         )
 
