@@ -38,8 +38,10 @@ class Analysis:
         std = np.std(X, axis=0)
         return (X - mean) / std
 
-    def scaler(self, data, scale_type="standard", feature_range=[-1, 1]):
+    def scaler(self, data, scale_type="standard", feature_range=None):
         # Data is assumed to be [samples or time, features or regressors]
+        if feature_range is None:
+            feature_range = [-1, 1]
         if scale_type == "standard":
             # Standardize data by removing the mean and scaling to unit variance
             data_scaled = self._scale(data)
@@ -79,7 +81,6 @@ class Analysis:
 
     def _analyze_sd_fr(self, data, sweep, t_start, t_end):
         units, times = self._get_spikes_by_interval(data, sweep, t_start, t_end)
-        N_neurons = data["n_units"]
         delta_time = t_end - t_start
         unique, counts = np.unique(units, return_counts=True)
         unitwise_fr = counts / delta_time
@@ -140,7 +141,6 @@ class Analysis:
         )
 
         spike_counts_mean_across_cycles = np.mean(spike_counts_reshaped, axis=0)
-        spike_count__unit_fr = spike_counts_mean_across_cycles / (N_neurons * bin_width)
 
         peak2peak_counts_all = np.max(spike_counts_mean_across_cycles) - np.min(
             spike_counts_mean_across_cycles
@@ -393,7 +393,7 @@ class Analysis:
         )
 
         # Make new columns with conditions' levels
-        for cond_idx, cond in enumerate(exp_variables):
+        for cond in exp_variables:
             levels_s = experiment_df.loc[:, cond]
             levels_s = pd.to_numeric(levels_s)
             levels_s = levels_s.round(decimals=2)
@@ -556,10 +556,10 @@ class Analysis:
         nearest_neighbors = []
 
         # Iterate over each unit in unit_vec.
-        for idx, unit in enumerate(unit_vec):
+        for idx, _unit in enumerate(unit_vec):
             # Filter distance_df to find the rows where the unit index is either yx_idx[0] or yx_idx[1]
             # Note that we are looking at index, not the unit number
-            filtered_df = distance_df[distance_df["yx_idx"].apply(lambda x: idx in x)]
+            filtered_df = distance_df[distance_df["yx_idx"].apply(lambda x: idx in x)]  # noqa: B023
 
             # If the filtered_df is not empty, find the nearest neighbor
             if not filtered_df.empty:
@@ -783,22 +783,39 @@ class Analysis:
                 ) = self._fourier_amplitude_and_phase(
                     data_dict, this_sweep, t_start, t_end, temp_freq, phase_shift
                 )
-
                 F_unit_compiled[:, idx, this_sweep, 0] = ampl_F1
                 F_unit_compiled[:, idx, this_sweep, 1] = ampl_F2
                 F_unit_compiled[:, idx, this_sweep, 2] = phase_F1
                 F_unit_compiled[:, idx, this_sweep, 3] = phase_F2
+
+        # Set unit F1 to dataframe, all sweeps.
+        # F1_data is [N_neurons, n_conditions, n_sweeps]
+        F1_data = F_unit_compiled[:, :, :, 0]
+        F1_data_moved = np.moveaxis(
+            F1_data, 2, 1
+        )  # now [N_neurons, n_sweeps, n_conditions]
+        F1_reshaped = F1_data_moved.reshape(N_neurons * n_sweeps, len(cond_names))
+        sweep_idx = np.tile(np.arange(n_sweeps), N_neurons)
+        unit_idx = np.repeat(np.arange(N_neurons), n_sweeps)
+        F1_unit_df = pd.DataFrame(F1_reshaped, columns=cond_names.tolist())
+        F1_unit_df["sweep"] = sweep_idx
+        F1_unit_df["unit"] = unit_idx
+
+        # Save F1 unit results
+        filename_out = f"{cond_names_string}_F1_unit_ampl_all_sweeps.csv"
+        csv_save_path = data_folder / filename_out
+        F1_unit_df.to_csv(csv_save_path)
 
         # Set unit fr to dataframe, mean over trials
         R_unit_mean = np.mean(R_unit_compiled, axis=2)
         R_unit_df = pd.DataFrame(R_unit_mean, columns=cond_names)
 
         # Save results
-        filename_out = f"{cond_names_string}_population_means.csv"
+        filename_out = f"{cond_names_string}_fr_population_means.csv"
         csv_save_path = data_folder / filename_out
         R_popul_df.to_csv(csv_save_path)
 
-        filename_out = f"{cond_names_string}_unit_means.csv"
+        filename_out = f"{cond_names_string}_fr_unit_means.csv"
         csv_save_path = data_folder / filename_out
         R_unit_df.to_csv(csv_save_path)
 
@@ -929,9 +946,7 @@ class Analysis:
         assert np.all(
             n_sweeps_vec == n_sweeps_vec[0]
         ), "Not equal number of trials, aborting..."
-        n_sweeps = n_sweeps_vec[0]
 
-        columns = cond_names.tolist()
         scalers = {}
         # Loop conditions
         for idx, cond_name in enumerate(cond_names):
@@ -984,9 +999,6 @@ class Analysis:
         df.to_csv(csv_save_path)
 
     def response_vs_background(self, filename, my_analysis_options):
-        """ """
-        exp_variables = my_analysis_options["exp_variables"]
-        cond_names_string = "_".join(exp_variables)
         data_folder = self.config.output_folder
         experiment_df = self.data_io.load_data(filename=filename)
         cond_names = experiment_df.index.values
@@ -1069,10 +1081,12 @@ class Analysis:
                 response = data_npz[this_data]
                 try:
                     r = response[:, tp_idx]
-                except IndexError:
-                    raise IndexError(
-                        "Response data does not match time points, did you forget to redo the stimuli? Aborting..."
+                except IndexError as e:
+                    print(
+                        f"Data shape {response.shape} incompatible with tp_idx {tp_idx}, did you forget to redo the stimuli? Aborting..."
                     )
+                    raise e
+
                 bl_mean = response[:, baseline_ixd].mean(axis=1)[:, np.newaxis]
                 r_abs = np.abs(r - bl_mean)
                 r_argmax = r_abs.argmax(axis=1)
