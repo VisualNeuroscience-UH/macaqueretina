@@ -805,7 +805,6 @@ class Analysis:
         filename_out = f"{cond_names_string}_F1_unit_ampl_all_sweeps.csv"
         csv_save_path = data_folder / filename_out
         F1_unit_df.to_csv(csv_save_path)
-        return
 
         # Set unit fr to dataframe, mean over trials
         R_unit_mean = np.mean(R_unit_compiled, axis=2)
