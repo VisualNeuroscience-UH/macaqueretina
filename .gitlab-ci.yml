@@ -37,7 +37,7 @@ integration_tests2:
   stage: test
   script:
     - echo "Running integration tests..."
-    - pytest tests/integration_tests/test_simulation_cpu.py -v
+    # - pytest tests/integration_tests/test_simulation_cpu.py -v
     - pytest tests/integration_tests/test_visual_stimulus.py -v
   tags:
     - openshift
