@@ -783,22 +783,40 @@ class Analysis:
                 ) = self._fourier_amplitude_and_phase(
                     data_dict, this_sweep, t_start, t_end, temp_freq, phase_shift
                 )
-
                 F_unit_compiled[:, idx, this_sweep, 0] = ampl_F1
                 F_unit_compiled[:, idx, this_sweep, 1] = ampl_F2
                 F_unit_compiled[:, idx, this_sweep, 2] = phase_F1
                 F_unit_compiled[:, idx, this_sweep, 3] = phase_F2
+
+        # Set unit F1 to dataframe, all sweeps.
+        # F1_data is [N_neurons, n_conditions, n_sweeps]
+        F1_data = F_unit_compiled[:, :, :, 0]
+        F1_data_moved = np.moveaxis(
+            F1_data, 2, 1
+        )  # now [N_neurons, n_sweeps, n_conditions]
+        F1_reshaped = F1_data_moved.reshape(N_neurons * n_sweeps, len(cond_names))
+        sweep_idx = np.tile(np.arange(n_sweeps), N_neurons)
+        unit_idx = np.repeat(np.arange(N_neurons), n_sweeps)
+        F1_unit_df = pd.DataFrame(F1_reshaped, columns=cond_names.tolist())
+        F1_unit_df["sweep"] = sweep_idx
+        F1_unit_df["unit"] = unit_idx
+
+        # Save F1 unit results
+        filename_out = f"{cond_names_string}_F1_unit_ampl_all_sweeps.csv"
+        csv_save_path = data_folder / filename_out
+        F1_unit_df.to_csv(csv_save_path)
+        return
 
         # Set unit fr to dataframe, mean over trials
         R_unit_mean = np.mean(R_unit_compiled, axis=2)
         R_unit_df = pd.DataFrame(R_unit_mean, columns=cond_names)
 
         # Save results
-        filename_out = f"{cond_names_string}_population_means.csv"
+        filename_out = f"{cond_names_string}_fr_population_means.csv"
         csv_save_path = data_folder / filename_out
         R_popul_df.to_csv(csv_save_path)
 
-        filename_out = f"{cond_names_string}_unit_means.csv"
+        filename_out = f"{cond_names_string}_fr_unit_means.csv"
         csv_save_path = data_folder / filename_out
         R_unit_df.to_csv(csv_save_path)
 
