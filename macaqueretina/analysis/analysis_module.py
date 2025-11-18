@@ -38,8 +38,10 @@ class Analysis:
         std = np.std(X, axis=0)
         return (X - mean) / std
 
-    def scaler(self, data, scale_type="standard", feature_range=[-1, 1]):
+    def scaler(self, data, scale_type="standard", feature_range=None):
         # Data is assumed to be [samples or time, features or regressors]
+        if feature_range is None:
+            feature_range = [-1, 1]
         if scale_type == "standard":
             # Standardize data by removing the mean and scaling to unit variance
             data_scaled = self._scale(data)
@@ -79,7 +81,6 @@ class Analysis:
 
     def _analyze_sd_fr(self, data, sweep, t_start, t_end):
         units, times = self._get_spikes_by_interval(data, sweep, t_start, t_end)
-        N_neurons = data["n_units"]
         delta_time = t_end - t_start
         unique, counts = np.unique(units, return_counts=True)
         unitwise_fr = counts / delta_time
@@ -140,7 +141,6 @@ class Analysis:
         )
 
         spike_counts_mean_across_cycles = np.mean(spike_counts_reshaped, axis=0)
-        spike_count__unit_fr = spike_counts_mean_across_cycles / (N_neurons * bin_width)
 
         peak2peak_counts_all = np.max(spike_counts_mean_across_cycles) - np.min(
             spike_counts_mean_across_cycles
@@ -393,7 +393,7 @@ class Analysis:
         )
 
         # Make new columns with conditions' levels
-        for cond_idx, cond in enumerate(exp_variables):
+        for cond in exp_variables:
             levels_s = experiment_df.loc[:, cond]
             levels_s = pd.to_numeric(levels_s)
             levels_s = levels_s.round(decimals=2)
@@ -556,10 +556,10 @@ class Analysis:
         nearest_neighbors = []
 
         # Iterate over each unit in unit_vec.
-        for idx, unit in enumerate(unit_vec):
+        for idx, _unit in enumerate(unit_vec):
             # Filter distance_df to find the rows where the unit index is either yx_idx[0] or yx_idx[1]
             # Note that we are looking at index, not the unit number
-            filtered_df = distance_df[distance_df["yx_idx"].apply(lambda x: idx in x)]
+            filtered_df = distance_df[distance_df["yx_idx"].apply(lambda x: idx in x)]  # noqa: B023
 
             # If the filtered_df is not empty, find the nearest neighbor
             if not filtered_df.empty:
@@ -946,9 +946,7 @@ class Analysis:
         assert np.all(
             n_sweeps_vec == n_sweeps_vec[0]
         ), "Not equal number of trials, aborting..."
-        n_sweeps = n_sweeps_vec[0]
 
-        columns = cond_names.tolist()
         scalers = {}
         # Loop conditions
         for idx, cond_name in enumerate(cond_names):
@@ -1001,9 +999,6 @@ class Analysis:
         df.to_csv(csv_save_path)
 
     def response_vs_background(self, filename, my_analysis_options):
-        """ """
-        exp_variables = my_analysis_options["exp_variables"]
-        cond_names_string = "_".join(exp_variables)
         data_folder = self.config.output_folder
         experiment_df = self.data_io.load_data(filename=filename)
         cond_names = experiment_df.index.values
@@ -1086,10 +1081,12 @@ class Analysis:
                 response = data_npz[this_data]
                 try:
                     r = response[:, tp_idx]
-                except IndexError:
-                    raise IndexError(
-                        "Response data does not match time points, did you forget to redo the stimuli? Aborting..."
+                except IndexError as e:
+                    print(
+                        f"Data shape {response.shape} incompatible with tp_idx {tp_idx}, did you forget to redo the stimuli? Aborting..."
                     )
+                    raise e
+
                 bl_mean = response[:, baseline_ixd].mean(axis=1)[:, np.newaxis]
                 r_abs = np.abs(r - bl_mean)
                 r_argmax = r_abs.argmax(axis=1)
