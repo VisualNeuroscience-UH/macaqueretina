@@ -1,8 +1,7 @@
 # Consider shell executor for deployment. Runs commands directly onhost machine.
 # Consider docker executor for build and test jobs. Runs commands in isolated containers.
 default:
-  # image: python:3.11-slim
-  image: pytorch/pytorch:2.9.1-cuda12.6-cudnn9-runtime
+  image: python:3.11-slim
   before_script:
     - export PATH=/tmp/.local/bin:$PATH
     - pip install poetry
