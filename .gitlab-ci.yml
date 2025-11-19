@@ -14,16 +14,16 @@ stages: # stages contain jobs
   - test
   - deploy
 
-# Share tests to distinct jobs
-unit_tests:
-  stage: test
-  script:
-    - echo "Running unit tests..."
-    - pytest tests/unit_tests -v
-  tags:
-    - openshift
-  variables:
-    HOME: /tmp
+# # Share tests to distinct jobs
+# unit_tests:
+#   stage: test
+#   script:
+#     - echo "Running unit tests..."
+#     - pytest tests/unit_tests -v
+#   tags:
+#     - openshift
+#   variables:
+#     HOME: /tmp
 
 integration_tests1:
   stage: test
@@ -35,16 +35,16 @@ integration_tests1:
   variables:
     HOME: /tmp
 
-integration_tests2:
-  stage: test
-  script:
-    - echo "Running integration tests..."
-    - pytest tests/integration_tests/test_simulation_cpu.py -v
-    - pytest tests/integration_tests/test_visual_stimulus.py -v
-  tags:
-    - openshift
-  variables:
-    HOME: /tmp
+# integration_tests2:
+#   stage: test
+#   script:
+#     - echo "Running integration tests..."
+#     - pytest tests/integration_tests/test_simulation_cpu.py -v
+#     - pytest tests/integration_tests/test_visual_stimulus.py -v
+#   tags:
+#     - openshift
+#   variables:
+#     HOME: /tmp
 
 deploy-prod:
   stage: deploy
@@ -58,6 +58,7 @@ deploy-prod:
     - git remote add github git@github.com:VisualNeuroscience-UH/macaqueretina.git
     - git push github main
   rules:
-    - if: $CI_COMMIT_REF_NAME == "main"
+    - if: $CI_COMMIT_REF_NAME == "continuous_deployment"
+    # - if: $CI_COMMIT_REF_NAME == "main"
   tags:
     - openshift

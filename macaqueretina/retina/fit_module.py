@@ -846,7 +846,7 @@ class FitDataTypeTemplate(ABC, PrintableMixin):
         pass
 
     # Helper methods
-    def _fit_with_retry(self, fit_func, data, max_retries=15, **kwargs):
+    def _fit_with_retry(self, fit_func, data, max_retries=1, **kwargs):
         for _ in range(max_retries):
             try:
                 return fit_func(data, **kwargs)
