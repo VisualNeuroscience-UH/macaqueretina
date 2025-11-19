@@ -8,8 +8,7 @@ stages:
 list_tmp_dir:
   stage: test
   script:
-    - pip install pyyaml
     - echo "Listing contents of ~/tmp/"
-    - ls -la /home/sivanni/tmp/
+    - ls -la /home/sivanni/
   tags:
     - openshift
