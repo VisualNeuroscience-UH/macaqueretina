@@ -1,61 +1,10 @@
-# Consider shell executor for deployment. Runs commands directly onhost machine.
-# Consider docker executor for build and test jobs. Runs commands in isolated containers.
-default:
-  image: python:3.11-slim
-  before_script:
-    - export PATH=/tmp/.local/bin:$PATH
-    - pip install poetry
-    - poetry install --without dev
-    - source `poetry env info --path`/bin/activate
-
-stages: # stages contain jobs
+stages:
   - test
-  - deploy
 
-# Share tests to distinct jobs
-unit_tests:
+list_tmp_dir:
   stage: test
   script:
-    - echo "Running unit tests..."
-    - pytest tests/unit_tests -v
-  tags:
-    - openshift
-  variables:
-    HOME: /tmp
-
-integration_tests1:
-  stage: test
-  script:
-    - echo "Running integration tests..."
-    - pytest tests/integration_tests/test_construct_retina_cpu.py -v
-  tags:
-    - openshift
-  variables:
-    HOME: /tmp
-
-integration_tests2:
-  stage: test
-  script:
-    - echo "Running integration tests..."
-    - pytest tests/integration_tests/test_simulation_cpu.py -v
-    - pytest tests/integration_tests/test_visual_stimulus.py -v
-  tags:
-    - openshift
-  variables:
-    HOME: /tmp
-
-deploy-prod:
-  stage: deploy
-  script:
-    - echo "Deploying to GitHub..."
-    - apt-get update && apt-get install -y git openssh-client
-    - mkdir -p ~/.ssh
-    - echo "$GITHUB_DEPLOY_KEY" > ~/.ssh/id_ed25519
-    - chmod 600 ~/.ssh/id_ed25519
-    - ssh-keyscan github.com >> ~/.ssh/known_hosts
-    - git remote add github git@github.com:VisualNeuroscience-UH/macaqueretina.git
-    - git push github main
-  rules:
-    - if: $CI_COMMIT_REF_NAME == "main"
+    - echo "Listing contents of ~/tmp/"
+    - ls -la ~/tmp/
   tags:
     - openshift
