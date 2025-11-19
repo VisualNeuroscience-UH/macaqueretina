@@ -4,10 +4,9 @@ default:
   image: python:3.12-slim
   before_script:
     - export PATH=/tmp/.local/bin:$PATH
-    - pip install poetry
+    - poetry install --without dev
     - VENV_PATH=$(poetry env info --path)
     - echo $VENV_PATH
-    - poetry install --without dev
     - source "$VENV_PATH/bin/activate"
     - pip install pyyaml
   cache:
