@@ -5,9 +5,18 @@ default:
   before_script:
     - export PATH=/tmp/.local/bin:$PATH
     - pip install poetry
+    - VENV_PATH=$(poetry env info --path)
+    - echo "Virtual environment location $VENV_PATH"
     - poetry install --without dev
-    - source `poetry env info --path`/bin/activate
+    - source "$VENV_PATH/bin/activate"
     - pip install pyyaml
+  cache:
+    key:
+      files:
+        - poetry.lock
+    paths:
+      - /tmp/.local
+      # - $VENV_PATH/  
 
 stages: # stages contain jobs
   - test
