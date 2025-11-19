@@ -1,3 +1,8 @@
+# Consider shell executor for deployment. Runs commands directly onhost machine.
+# Consider docker executor for build and test jobs. Runs commands in isolated containers.
+default:
+  image: python:3.11-slim
+
 stages:
   - test
 
