@@ -6,6 +6,7 @@ default:
     - export PATH=/tmp/.local/bin:$PATH
     - poetry install --without dev
     - VENV_PATH=$(poetry env info --path)
+    - echo "KUKKUU"
     - echo $VENV_PATH
     - source "$VENV_PATH/bin/activate"
     - pip install pyyaml
