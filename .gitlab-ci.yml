@@ -10,6 +10,6 @@ list_tmp_dir:
   script:
     - pip install pyyaml
     - echo "Listing contents of ~/tmp/"
-    - ls -la ~/tmp/
+    - ls -la /home/sivanni/tmp/
   tags:
     - openshift
