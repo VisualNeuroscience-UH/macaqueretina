@@ -62,7 +62,8 @@ class GanglionCellBase(ABC):
             case "cuda":
                 self._device = "cuda_standalone"
             case "cpu":
-                self._device = "cpp_standalone"
+                self._device = "runtime"
+                # self._device = "cpp_standalone"
         return self._device
 
     @abstractmethod
@@ -312,6 +313,7 @@ class GanglionCellParasol(GanglionCellBase):
         simulation_duration = n_timepoints * _dt
 
         self._set_brian_standalone_device(build_on_run=False)
+        # b2.set_device("runtime") # Vanilla Python
 
         # Low-pass stage by convolution
         x_vec = np.empty((n_units, n_timepoints))
