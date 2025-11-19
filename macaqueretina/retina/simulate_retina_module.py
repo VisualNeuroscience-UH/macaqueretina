@@ -120,7 +120,7 @@ class GanglionCellBase(ABC):
         b2.set_device(
             self.device, directory=self.standalone_tmp_dir, build_on_run=build_on_run
         )
-        if b2.get_device().has_been_run:
+        if not self._device == "runtime" and b2.get_device().has_been_run:
             b2.device.reinit()
             b2.device.activate(build_on_run=build_on_run)
 
@@ -551,7 +551,9 @@ class GanglionCellMidget(GanglionCellBase):
         state_monitor = b2.StateMonitor(neuron_group, ["y"], record=True)
 
         b2.run(simulation_duration)
-        b2.device.build(directory=self.standalone_tmp_dir, compile=True, run=False)
+        b2.device.build(
+            directory=self.standalone_tmp_dir, compile=True, run=False
+        )  # run=True?
 
         # Separate run for the center and surround domains
         for domain_idx in range(2):
