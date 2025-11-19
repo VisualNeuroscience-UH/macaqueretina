@@ -5,9 +5,9 @@ default:
   before_script:
     - export PATH=/tmp/.local/bin:$PATH
     - pip install poetry
+    - poetry config virtualenvs.in-project true
     - poetry install --without dev
     - VENV_PATH=$(poetry env info --path)
-    - echo "KUKKUU"
     - echo $VENV_PATH
     - source "$VENV_PATH/bin/activate"
     - pip install pyyaml
@@ -17,7 +17,8 @@ default:
         - poetry.lock
     paths:
       - /tmp/.local
-      # - $VENV_PATH/  
+      - .venv
+      # - /tmp/.cache/pypoetry/virtualenvs/
 
 stages: # stages contain jobs
   - test
