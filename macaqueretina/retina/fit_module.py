@@ -846,13 +846,10 @@ class FitDataTypeTemplate(ABC, PrintableMixin):
         pass
 
     # Helper methods
-    def _fit_with_retry(self, fit_func, data, max_retries=5, **kwargs):
+    def _fit_with_retry(self, fit_func, data, max_retries=15, **kwargs):
         for _ in range(max_retries):
             try:
-                # breakpoint()
-                shape, loc, scale = fit_func(data, **kwargs)
-                print(f"Fitted parameters: shape={shape}, loc={loc}, scale={scale}")
-                return shape, loc, scale
+                return fit_func(data, **kwargs)
             except Exception:
                 np.random.seed(random.randint(0, 1000000))
                 continue

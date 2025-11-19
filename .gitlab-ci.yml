@@ -5,58 +5,46 @@ default:
   before_script:
     - export PATH=/tmp/.local/bin:$PATH
     - pip install poetry
-    - poetry config virtualenvs.in-project true
     - poetry install --without dev
     - VENV_PATH=$(poetry env info --path)
-    - echo $VENV_PATH
     - source "$VENV_PATH/bin/activate"
     - pip install pyyaml
-  cache:
-    key:
-      files:
-        - poetry.lock
-    paths:
-      - /tmp/.local
-      - .venv
-      # - /tmp/.cache/pypoetry/virtualenvs/
-      # - /builds/sivanni/macaqueretina/.venv
 
 stages: # stages contain jobs
   - test
   - deploy
 
-# # Share tests to distinct jobs
-# unit_tests:
-#   stage: test
-#   script:
-#     - echo "Running unit tests..."
-#     - pytest tests/unit_tests -v
-#   tags:
-#     - openshift
-#   variables:
-#     HOME: /tmp
+# Share tests to distinct jobs
+unit_tests:
+  stage: test
+  script:
+    - echo "Running unit tests..."
+    - pytest tests/unit_tests -v
+  tags:
+    - openshift
+  variables:
+    HOME: /tmp
 
 integration_tests1:
   stage: test
   script:
     - echo "Running integration tests..."
-    # - pytest tests/integration_tests/test_construct_retina_cpu.py::test_retina_construction[parasol-off-VAE-fixed-circular] -s
     - pytest tests/integration_tests/test_construct_retina_cpu.py -v
   tags:
     - openshift
   variables:
     HOME: /tmp
 
-# integration_tests2:
-#   stage: test
-#   script:
-#     - echo "Running integration tests..."
-#     - pytest tests/integration_tests/test_simulation_cpu.py -v
-#     - pytest tests/integration_tests/test_visual_stimulus.py -v
-#   tags:
-#     - openshift
-#   variables:
-#     HOME: /tmp
+integration_tests2:
+  stage: test
+  script:
+    - echo "Running integration tests..."
+    - pytest tests/integration_tests/test_simulation_cpu.py -v
+    - pytest tests/integration_tests/test_visual_stimulus.py -v
+  tags:
+    - openshift
+  variables:
+    HOME: /tmp
 
 deploy-prod:
   stage: deploy
