@@ -849,7 +849,10 @@ class FitDataTypeTemplate(ABC, PrintableMixin):
     def _fit_with_retry(self, fit_func, data, max_retries=5, **kwargs):
         for _ in range(max_retries):
             try:
-                return fit_func(data, **kwargs)
+                # breakpoint()
+                shape, loc, scale = fit_func(data, **kwargs)
+                print(f"Fitted parameters: shape={shape}, loc={loc}, scale={scale}")
+                return shape, loc, scale
             except Exception:
                 np.random.seed(random.randint(0, 1000000))
                 continue
@@ -872,7 +875,7 @@ class FitDataTypeTemplate(ABC, PrintableMixin):
             match dist:
                 case "gamma":
                     shape, loc[index], scale[index] = self._fit_with_retry(
-                        stats.gamma.fit, experimental_data[:, index], loc=0
+                        stats.gamma.fit, experimental_data[:, index], loc=1
                     )
                     x_model_fit[:, index] = np.linspace(
                         stats.gamma.ppf(

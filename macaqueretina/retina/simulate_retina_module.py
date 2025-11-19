@@ -63,7 +63,7 @@ class GanglionCellBase(ABC):
                 self._device = "cuda_standalone"
             case "cpu":
                 self._device = "runtime"
-                # self._device = "cpp_standalone"
+                # self._device = "cpp_standalone" Consider for long/memory intensive runs in workstations
         return self._device
 
     @abstractmethod
