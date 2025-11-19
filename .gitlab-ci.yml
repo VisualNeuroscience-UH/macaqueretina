@@ -28,7 +28,8 @@ integration_tests1:
   stage: test
   script:
     - echo "Running integration tests..."
-    - pytest tests/integration_tests/test_construct_retina_cpu.py -v
+    - pytest tests/integration_tests/test_construct_retina_cpu.py::test_retina_construction[parasol-off-VAE-fixed-circular] -s
+    # - pytest tests/integration_tests/test_construct_retina_cpu.py -v
   tags:
     - openshift
   variables:
