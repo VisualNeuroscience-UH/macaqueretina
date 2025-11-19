@@ -2,13 +2,13 @@
 # Consider docker executor for build and test jobs. Runs commands in isolated containers.
 default:
   image: python:3.11-slim
-
 stages:
   - test
 
 list_tmp_dir:
   stage: test
   script:
+    - pip install pyyaml
     - echo "Listing contents of ~/tmp/"
     - ls -la ~/tmp/
   tags:
