@@ -49,17 +49,14 @@ deploy-prod:
   stage: deploy
   image: bitnami/git:latest
   before_script:
-    - mkdir -p ~/.ssh
-    - ssh-keyscan version.helsinki.fi >> ~/.ssh/known_hosts
-    - chmod 644 ~/.ssh/known_hosts
     - echo "Configuring Git for HTTPS + PAT..."
     - git config --global user.name "sivanni"
     - git config --global user.email "simo.vanni@helsinki.fi"
+
     # Disable LFS during CI
     - git config --global lfs.skipSmudge 1
     - export GIT_LFS_SKIP_SMUDGE=1
-    # Disable SSL verification for LFS (temporary workaround for CI)
-    - git config --global http.sslVerify false
+
     # Add GitHub remote using PAT
     - git remote add github https://$GITHUB_PAT@github.com/VisualNeuroscience-UH/macaqueretina.git
     - git remote -v
