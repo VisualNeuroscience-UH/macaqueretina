@@ -46,9 +46,7 @@ stages: # stages contain jobs
 
 deploy-prod:
   stage: deploy
-  image: alpine/git  # or python:3.12-slim with git/ssh pre-installed
-  before_script:
-    - apk add --no-cache openssh-client  # Only needed if using alpine/git
+  image: bitnami/git:latest  # This image has git and ssh
   script:
     - mkdir -p ~/.ssh
     - echo "$GITHUB_DEPLOY_KEY" > ~/.ssh/id_ed25519
@@ -62,3 +60,4 @@ deploy-prod:
     - if: $CI_COMMIT_REF_NAME == "continuous_deployment"
   tags:
     - openshift
+
