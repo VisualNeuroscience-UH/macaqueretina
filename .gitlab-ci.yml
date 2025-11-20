@@ -68,7 +68,7 @@ deploy-prod:
     - git push --dry-run github "+$CI_COMMIT_SHA:continuous_deployment"
     - echo "Dry run successful. Proceeding with actual deployment..."
     - git push github "+$CI_COMMIT_SHA:continuous_deployment"
-    # Or force push specific commit:
+    # Or force push specific commit: 
     # - git push github +$CI_COMMIT_SHA:continuous_deployment
 
   variables:
