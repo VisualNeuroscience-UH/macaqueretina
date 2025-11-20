@@ -47,10 +47,9 @@ stages: # stages contain jobs
 
 deploy-prod:
   stage: deploy
-  image: debian:bookworm-slim
-  # image: bitnami/git:latest  # This image has git and ssh
-  before_script: 
-    - apt-get update && apt-get install -y git openssh-client
+  # image: debian:bookworm-slim
+  image: bitnami/git:latest  # This image has git and ssh
+  before_script: []  # Override the default before_script
   script:
     - eval $(ssh-agent -s)
     - mkdir -p ~/.ssh
