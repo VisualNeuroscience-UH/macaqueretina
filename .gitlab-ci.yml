@@ -59,7 +59,7 @@ deploy-prod:
     - git remote -v
     - echo "Deploying to production..."
     - git fetch --dry-run github
-    - git push --dry-run github continuous_deployment:continuous_deployment
+    - git push --dry-run github "$CI_COMMIT_SHA:continuous_deployment"
     - echo "Dry run successful. Proceeding with actual deployment..."
     - git push github "$CI_COMMIT_SHA:continuous_deployment"
     # Or force push specific commit:
