@@ -63,8 +63,6 @@ deploy-prod:
     - git fetch --dry-run
     - git push --dry-run github continuous_deployment:continuous_deployment
     - echo "Dry run successful. Proceeding with actual deployment..."
-    # List repo files
-    # - git push github continuous_deployment:continuous_deployment
     # - git push github +$CI_COMMIT_SHA:continuous_deployment
   variables:
     HOME: /tmp
