@@ -52,9 +52,10 @@ deploy-prod:
   script:
     - eval $(ssh-agent -s)
     - mkdir -p ~/.ssh
-    - echo "echo $GITHUB_DEPLOY_KEY" > ~/.ssh/id_ed25519
+    - echo "$GITHUB_DEPLOY_KEY" | tr -d '\r' > ~/.ssh/id_ed25519
     - chmod 700 ~/.ssh/id_ed25519
     - ssh-keyscan github.com >> ~/.ssh/known_hosts
+    - chmod 644 ~/.ssh/known_hosts
     - git remote add github git@github.com:VisualNeuroscience-UH/macaqueretina.git
     - git remote -v
     - ssh -Tv git@github.com
