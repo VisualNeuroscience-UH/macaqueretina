@@ -58,6 +58,8 @@ deploy-prod:
     # Disable LFS during CI
     - git config --global lfs.skipSmudge 1
     - export GIT_LFS_SKIP_SMUDGE=1
+    # Disable SSL verification for LFS (temporary workaround for CI)
+    - git config --global http.sslVerify false
     # Add GitHub remote using PAT
     - git remote add github https://$GITHUB_PAT@github.com/VisualNeuroscience-UH/macaqueretina.git
     - git remote -v
@@ -74,5 +76,3 @@ deploy-prod:
     - if: $CI_COMMIT_REF_NAME == "continuous_deployment"
   tags:
     - openshift
-
-
