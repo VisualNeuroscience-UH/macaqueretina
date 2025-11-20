@@ -56,7 +56,7 @@ deploy-prod:
 
 
     # Disable LFS during CI
-    - git config --global lfs.skipSmudge 1
+    - export GIT_LFS_SKIP_SMUDGE=1
 
 
     # Add GitHub remote using PAT
