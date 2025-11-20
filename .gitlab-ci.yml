@@ -44,6 +44,7 @@ stages: # stages contain jobs
 #   variables:
 #     HOME: /tmp
 
+
 deploy-prod:
   stage: deploy
   image: bitnami/git:latest  # This image has git and ssh
