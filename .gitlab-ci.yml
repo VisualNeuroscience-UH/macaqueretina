@@ -57,7 +57,6 @@ deploy-prod:
     # Add GitHub remote using PAT
     - git remote add github https://$GITHUB_PAT@github.com/VisualNeuroscience-UH/macaqueretina.git
     - git remote -v
-
     - echo "Deploying to production..."
     - git fetch --dry-run github
     - git push --dry-run github continuous_deployment:continuous_deployment
