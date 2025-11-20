@@ -48,18 +48,19 @@ stages: # stages contain jobs
 deploy-prod:
   stage: deploy
   image: bitnami/git:latest
-  before_script:
+  before_script: []
+  script:
+    # Completely disable LFS for this job
+    - git lfs uninstall
+
     - echo "Configuring Git for HTTPS + PAT..."
     - git config --global user.name "sivanni"
     - git config --global user.email "simo.vanni@helsinki.fi"
 
-    # Completely disable LFS for this job
-    - git lfs uninstall
-    
+
     # Add GitHub remote using PAT
     - git remote add github https://$GITHUB_PAT@github.com/VisualNeuroscience-UH/macaqueretina.git
     - git remote -v
-  script:
     - echo "Deploying to production..."
     # Dry run to verify
     - git push --dry-run github "+$CI_COMMIT_SHA:continuous_deployment"
