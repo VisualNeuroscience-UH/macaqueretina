@@ -59,7 +59,7 @@ deploy-prod:
     - export GIT_LFS_SKIP_SMUDGE=1
 
     # Add GitHub remote using PAT
-    - git remote add github "https://${GITHUB_PAT}@github.com/VisualNeuroscience-UH/macaqueretina.git"
+    - git remote add github "https://$GITHUB_PAT@github.com/VisualNeuroscience-UH/macaqueretina.git"
     - git remote -v
 
     # Push only pointers to GitHub
