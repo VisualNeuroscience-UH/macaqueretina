@@ -65,8 +65,12 @@ def test_retina_construction(
     retina_config.retina_parameters.temporal_model_type = temporal_model_type
     retina_config.retina_parameters.dog_model_type = dog_model_type
 
+    if gc_type == "parasol":
+        mr.config.retina_parameters.model_density = 1.2
+    else:
+        mr.config.retina_parameters.model_density = 0.8
+
     mr.config.output_folder = Path(tmp_path)
-    mr.config.retina_parameters.model_density = 1.0
     ret, gc = mr.construct_retina(return_objects_do_not_save=True)
 
     assert hasattr(ret, "gc_type")
