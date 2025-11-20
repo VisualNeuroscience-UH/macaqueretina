@@ -58,11 +58,10 @@ deploy-prod:
     - git remote add github https://$GITHUB_PAT@github.com/VisualNeuroscience-UH/macaqueretina.git
     - git remote -v
     - echo "Deploying to production..."
-    - git pull github continuous_deployment
     # Dry run to verify
-    - git push --dry-run github "$CI_COMMIT_SHA:continuous_deployment"
+    - git push --dry-run github "+$CI_COMMIT_SHA:continuous_deployment"
     - echo "Dry run successful. Proceeding with actual deployment..."
-    - git push github "$CI_COMMIT_SHA:continuous_deployment"
+    - git push github "+$CI_COMMIT_SHA:continuous_deployment"
     # Or force push specific commit:
     # - git push github +$CI_COMMIT_SHA:continuous_deployment
 
