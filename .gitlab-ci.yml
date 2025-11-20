@@ -46,15 +46,18 @@ stages: # stages contain jobs
 
 deploy-prod:
   stage: deploy
-  image: bitnami/git:latest  # This image has git and ssh
-  before_script: []  # Override the default before_script
+  image: bitnami/git:latest
+  before_script: []
   script:
     - mkdir -p ~/.ssh
     - echo "$GITHUB_DEPLOY_KEY" > ~/.ssh/id_ed25519
     - chmod 600 ~/.ssh/id_ed25519
     - ssh-keyscan github.com >> ~/.ssh/known_hosts
+    - eval $(ssh-agent -s)
+    - ssh-add ~/.ssh/id_ed25519
+    - ssh -T git@github.com  # Debug: Test connection
     - git remote add github git@github.com:VisualNeuroscience-UH/macaqueretina.git
-    - git push github $CI_COMMIT_SHA:main --force
+    - git push github $CI_COMMIT_SHA:main
   variables:
     HOME: /tmp
   rules:
