@@ -47,26 +47,27 @@ stages: # stages contain jobs
 
 deploy-prod:
   stage: deploy
-  # image: debian:bookworm-slim
-  image: bitnami/git:latest  # This image has git and ssh
-  before_script: []  # Override the default before_script
+  image: bitnami/git:latest
+  before_script: []  # Override default before_script
   script:
-    - eval $(ssh-agent -s)
-    - mkdir -p ~/.ssh
-    - echo "$GITHUB_DEPLOY_KEY_BASE64" | base64 -d > ~/.ssh/id_ed25519
-    - chmod 600 ~/.ssh/id_ed25519
-    - ssh-add ~/.ssh/id_ed25519
-    - ssh-keyscan github.com >> ~/.ssh/known_hosts
-    - chmod 644 ~/.ssh/known_hosts
-    - git remote add github git@github.com:VisualNeuroscience-UH/macaqueretina.git
+    - echo "Configuring Git for HTTPS + PAT..."
+    - git config --global user.name "GitLab CI"
+    - git config --global user.email "ci@example.com"
+
+    # Add GitHub remote using PAT
+    - git remote add github https://$GITHUB_PAT@github.com/VisualNeuroscience-UH/macaqueretina.git
     - git remote -v
-    - ssh -Tv git@github.com
+
     - echo "Deploying to production..."
-    - git fetch --dry-run
+    - git fetch --dry-run github
     - git push --dry-run github continuous_deployment:continuous_deployment
     - echo "Dry run successful. Proceeding with actual deployment..."
+    - git push github continuous_deployment:continuous_deployment
+    # Or force push specific commit:
     # - git push github +$CI_COMMIT_SHA:continuous_deployment
+
   variables:
+    GIT_STRATEGY: fetch
     HOME: /tmp
   rules:
     - if: $CI_COMMIT_REF_NAME == "continuous_deployment"
