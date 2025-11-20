@@ -48,32 +48,25 @@ stages: # stages contain jobs
 deploy-prod:
   stage: deploy
   image: bitnami/git:latest
-  before_script: []  # Override default before_script
+  before_script: []
   script:
     - echo "Configuring Git for HTTPS + PAT..."
     - git config --global user.name "sivanni"
     - git config --global user.email "simo.vanni@helsinki.fi"
 
-
-    # Disable LFS during CI
+    # Disable LFS upload for GitHub push
+    - git config --global lfs.skipSmudge 1
     - export GIT_LFS_SKIP_SMUDGE=1
 
-
     # Add GitHub remote using PAT
-    - git remote add github https://$GITHUB_PAT@github.com/VisualNeuroscience-UH/macaqueretina.git
+    - git remote add github "https://${GITHUB_PAT}@github.com/VisualNeuroscience-UH/macaqueretina.git"
     - git remote -v
-    - echo "Deploying to production..."
-    # Dry run to verify
-    - git push --dry-run github "+$CI_COMMIT_SHA:continuous_deployment"
-    - echo "Dry run successful. Proceeding with actual deployment..."
-    - git push github "+$CI_COMMIT_SHA:continuous_deployment"
-    # Or force push specific commit:
-    # - git push github +$CI_COMMIT_SHA:continuous_deployment
 
+    # Push only pointers to GitHub
+    - echo "Deploying to production..."
+    - git push --force github "+$CI_COMMIT_SHA:continuous_deployment"
   variables:
-    GIT_STRATEGY: fetch
     HOME: /tmp
+    GIT_STRATEGY: fetch
   rules:
     - if: $CI_COMMIT_REF_NAME == "continuous_deployment"
-  tags:
-    - openshift
