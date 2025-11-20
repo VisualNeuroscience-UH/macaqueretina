@@ -56,7 +56,7 @@ deploy-prod:
     - ssh-keyscan github.com >> ~/.ssh/known_hosts
     - git remote add github git@github.com:VisualNeuroscience-UH/macaqueretina.git
     - git remote -v
-    - ssh -T git@github.com
+    - ssh -Tv git@github.com
     - echo "Deploying to production..."
     - git fetch --dry-run
     - git push --dry-run github continuous_deployment:continuous_deployment
