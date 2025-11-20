@@ -50,8 +50,8 @@ deploy-prod:
   image: bitnami/git:latest
   before_script: []
   script:
-    # Completely disable LFS for this job
-    - git lfs uninstall
+    # # Completely disable LFS for this job
+    # - git lfs uninstall
 
     - echo "Configuring Git for HTTPS + PAT..."
     - git config --global user.name "sivanni"
