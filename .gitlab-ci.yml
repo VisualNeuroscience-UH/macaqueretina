@@ -52,6 +52,8 @@ deploy-prod:
   script:
     # # Completely disable LFS for this job
     # - git lfs uninstall
+    # TÄHÄN JÄIT: NO NYT SE YRITTÄÄ TYÖNTÄÄ LFS OBJEKTIT GITHUBIIN JOKA YSTÄVÄLLISESTI KIELTÄYTYY.
+    # TUTKI GIT LFS DOC: MITEN LAITTAA ETÄREFERENSSI?
 
     - echo "Configuring Git for HTTPS + PAT..."
     - git config --global user.name "sivanni"
