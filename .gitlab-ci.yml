@@ -9,40 +9,40 @@ default:
     - pip install pyyaml
 
 stages: # stages contain jobs
-  # - test
+  - test
   - deploy
 
-# # Share tests to distinct jobs
-# unit_tests:
-#   stage: test
-#   script:
-#     - echo "Running unit tests..."
-#     - pytest tests/unit_tests -v
-#   tags:
-#     - openshift
-#   variables:
-#     HOME: /tmp
+# Share tests to distinct jobs
+unit_tests:
+  stage: test
+  script:
+    - echo "Running unit tests..."
+    - pytest tests/unit_tests
+  tags:
+    - openshift
+  variables:
+    HOME: /tmp
 
-# integration_tests1:
-#   stage: test
-#   script:
-#     - echo "Running integration tests..."
-#     - pytest tests/integration_tests/test_construct_retina_cpu.py -v
-#   tags:
-#     - openshift
-#   variables:
-#     HOME: /tmp
+integration_tests1:
+  stage: test
+  script:
+    - echo "Running integration tests..."
+    - pytest tests/integration_tests/test_construct_retina_cpu.py
+  tags:
+    - openshift
+  variables:
+    HOME: /tmp
 
-# integration_tests2:
-#   stage: test
-#   script:
-#     - echo "Running integration tests..."
-#     - pytest tests/integration_tests/test_simulation_cpu.py -v
-#     - pytest tests/integration_tests/test_visual_stimulus.py -v
-#   tags:
-#     - openshift
-#   variables:
-#     HOME: /tmp
+integration_tests2:
+  stage: test
+  script:
+    - echo "Running integration tests..."
+    - pytest tests/integration_tests/test_simulation_cpu.py
+    - pytest tests/integration_tests/test_visual_stimulus.py
+  tags:
+    - openshift
+  variables:
+    HOME: /tmp
 
 
 deploy-prod:
@@ -51,7 +51,6 @@ deploy-prod:
   before_script: []
   script:
     - git remote add github https://$GITHUB_PAT@github.com/VisualNeuroscience-UH/macaqueretina.git
-    # - git fetch github  # Fetch all objects from GitHub
     - git push github "+$CI_COMMIT_SHA:continuous_deployment"
   variables:
     HOME: /tmp
