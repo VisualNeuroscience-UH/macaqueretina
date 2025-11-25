@@ -50,26 +50,13 @@ deploy-prod:
   image: bitnami/git:latest
   before_script: []
   script:
-    # # Completely disable LFS for this job
-    # - git lfs uninstall
-    # TÄHÄN JÄIT: NO NYT SE YRITTÄÄ TYÖNTÄÄ LFS OBJEKTIT GITHUBIIN JOKA YSTÄVÄLLISESTI KIELTÄYTYY.
-    # TUTKI GIT LFS DOC: MITEN LAITTAA ETÄREFERENSSI?
-
-    - echo "Configuring Git for HTTPS + PAT..."
-    - git config --global user.name "sivanni"
-    - git config --global user.email "simo.vanni@helsinki.fi"
-
-
-    # Add GitHub remote using PAT
-    - git remote add github https://$GITHUB_PAT@github.com/VisualNeuroscience-UH/macaqueretina.git
-    - git remote -v
-    - echo "Deploying to production..."
-    # Dry run to verify
-    - git push --dry-run github "+$CI_COMMIT_SHA:continuous_deployment"
-    - echo "Dry run successful. Proceeding with actual deployment..."
-    - git push github "+$CI_COMMIT_SHA:continuous_deployment"
+    - mkdir -p ~/.ssh
+    - echo "$GITHUB_DEPLOY_KEY" > ~/.ssh/id_ed25519
+    - chmod 600 ~/.ssh/id_ed25519
+    - ssh-keyscan github.com >> ~/.ssh/known_hosts
+    - git remote add github git@github.com:VisualNeuroscience-UH/macaqueretina.git
+    - git push github "$CI_COMMIT_SHA:continuous_deployment" --force
   variables:
-    GIT_STRATEGY: fetch
     HOME: /tmp
   rules:
     - if: $CI_COMMIT_REF_NAME == "continuous_deployment"
