@@ -7,7 +7,7 @@ default:
     - VENV_PATH=$(poetry env info --path)
     - source "$VENV_PATH/bin/activate"
     - pip install pyyaml
-    - ./get_vae_models.sh
+    - ./get_vae_model.sh -y
 
 stages: # stages contain jobs
   - test
@@ -49,7 +49,7 @@ integration_tests2:
 deploy-prod:
   stage: deploy
   image: bitnami/git:latest
-  before_script: [rm -rf .macaquretina/retina/vae_statistics/*]
+  before_script: []
   script:
     - git remote add github https://$GITHUB_PAT@github.com/VisualNeuroscience-UH/macaqueretina.git
     - git push github "+$CI_COMMIT_SHA:continuous_deployment"

@@ -1,19 +1,40 @@
 #!/bin/bash
 
-# Prompt user for confirmation
-echo "You are about to download about 800MB of data to your ./macaqueretina/retina/vae_statistics directory."
-read -p "Continue? [y/n] " -n 1 -r
-echo
-if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-    echo "Download cancelled."
+# Function to display usage information
+usage() {
+    echo "Usage: $0 [-y|--yes] [--help]"
+    echo "  -y, --yes   Bypass confirmation prompt and proceed with download."
+    echo "  --help      Display this help message."
     exit 0
+}
+
+# Parse command-line options
+BYPASS_PROMPT=false
+while [[ "$#" -gt 0 ]]; do
+    case $1 in
+        -y|--yes) BYPASS_PROMPT=true ;;
+        --help) usage ;;
+        *) echo "Unknown parameter passed: $1"; usage ;;
+    esac
+    shift
+done
+
+# Prompt user for confirmation unless bypassed
+if [ "$BYPASS_PROMPT" = false ]; then
+    echo "You are about to download about 800MB of data to your ./macaqueretina/retina/vae_statistics directory."
+    read -p "Continue? [y/n] " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        echo "Download cancelled."
+        exit 0
+    fi
 fi
 
 # Configuration
 ZIP_URL="https://datacloud.helsinki.fi/index.php/s/NrYCcotR4s7bFHt/download"
 ZIP_FILE="vae_statistics.zip"
 TARGET_DIR="./macaqueretina/retina/"
-EXPECTED_SHA256="a658f60066719c2f55a95ca9792186fc0cc213a1e80b0d3344542f6d04b752b5"  
+EXPECTED_SHA256="a658f60066719c2f55a95ca9792186fc0cc213a1e80b0d3344542f6d04b752b5"
 
 # Step 1: Download the ZIP file
 echo "Downloading $ZIP_URL..."
@@ -22,7 +43,6 @@ wget "$ZIP_URL" -O "$ZIP_FILE" || { echo "Download failed"; exit 1; }
 # Step 2: Verify the SHA-256 checksum
 echo "Verifying checksum..."
 DOWNLOADED_SHA256=$(sha256sum "$ZIP_FILE" | awk '{ print $1 }')
-
 if [ "$DOWNLOADED_SHA256" != "$EXPECTED_SHA256" ]; then
     echo "Checksum verification failed!"
     echo "Expected: $EXPECTED_SHA256"
@@ -38,5 +58,5 @@ unzip "$ZIP_FILE" -d "$TARGET_DIR" || { echo "Extraction failed -- you need to r
 # Step 4: Remove the ZIP file
 echo "Removing $ZIP_FILE..."
 rm -f "$ZIP_FILE"
-
 echo "Done!"
+
