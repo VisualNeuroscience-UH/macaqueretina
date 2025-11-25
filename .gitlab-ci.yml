@@ -51,7 +51,7 @@ deploy-prod:
   before_script: []
   script:
     - git remote add github https://$GITHUB_PAT@github.com/VisualNeuroscience-UH/macaqueretina.git
-    - git fetch github  # Fetch all objects from GitHub
+    # - git fetch github  # Fetch all objects from GitHub
     - git push github "+$CI_COMMIT_SHA:continuous_deployment"
   variables:
     HOME: /tmp
