@@ -50,8 +50,8 @@ deploy-prod:
   before_script: []
   script:
     - echo "Configuring Git for HTTPS + PAT..."
-    # - git config --global user.name "sivanni"
-    # - git config --global user.email "simo.vanni@helsinki.fi"
+    - git config --global user.name "sivanni"
+    - git config --global user.email "simo.vanni@helsinki.fi"
     # Add GitHub remote using PAT
     - git remote add github https://$GITHUB_PAT@github.com/VisualNeuroscience-UH/macaqueretina.git
     - git remote -v
