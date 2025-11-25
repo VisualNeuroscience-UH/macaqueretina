@@ -7,6 +7,7 @@ default:
     - VENV_PATH=$(poetry env info --path)
     - source "$VENV_PATH/bin/activate"
     - pip install pyyaml
+    - get_vae_models.sh
 
 stages: # stages contain jobs
   - test
