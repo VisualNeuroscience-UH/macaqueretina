@@ -60,6 +60,7 @@ deploy-prod:
     # Dry run to verify
     - git push --dry-run github "+$CI_COMMIT_SHA:continuous_deployment"
     - echo "Dry run successful. Proceeding with actual deployment..."
+    - git fetch github  # Fetch all objects from GitHub
     - git push github "+$CI_COMMIT_SHA:continuous_deployment"
   variables:
     HOME: /tmp
