@@ -64,6 +64,7 @@ deploy-prod:
     - git push github "+$CI_COMMIT_SHA:continuous_deployment"
   variables:
     HOME: /tmp
+    GIT_DEPTH: "0"  # Disable shallow clone
   rules:
     - if: $CI_COMMIT_REF_NAME == "continuous_deployment"
   tags:
