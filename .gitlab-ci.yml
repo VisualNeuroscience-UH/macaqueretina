@@ -50,7 +50,7 @@ deploy-prod:
   image: bitnami/git:latest
   before_script: []
   script:
-    - echo "Configuring Git for HTTPS + PAT..."
+    - echo "Configuring Git for HTTPS + PAT...KUKKUU"
     - git config --global user.name "sivanni"
     - git config --global user.email "simo.vanni@helsinki.fi"
     # Add GitHub remote using PAT
