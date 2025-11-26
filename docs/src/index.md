@@ -8,4 +8,4 @@ When run directly, all parameters are read from all yaml files in the [your_repo
 
 When imported, all parameters are first read from the yaml files, but you have the option of changing the parameters at runtime.
 
-Please cite this software as: Vanni S, Hasana S, Vedele F, Hokkanen H: Macaque Retina Simulator (in preparation).
+Please cite this software as: Vanni S, Hasana S, Vedele F, Hokkanen H: Macaque retina simulator (in preparation).

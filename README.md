@@ -1,4 +1,4 @@
-# Macaque Retina Simulator
+# Macaque retina simulator
 
 This is a Python software to build a model of the primate retina and convert various visual stimuli to ganglion cell action potentials. 
 The simulator is primarily for research, with the intention of providing biologically plausible spike trains for downstream visual cortex simulations.
@@ -24,7 +24,7 @@ For local documentation, install the package with `poetry install --with dev` an
 
 ## How to cite this project
 
-Vanni S, Vedele F, Hokkanen H. Macaque Retina Simulator (in preparation)
+Vanni S, Vedele F, Hokkanen H. Macaque retina simulator (in preparation)
 
 
 ## Contributing

@@ -1,5 +1,5 @@
-site_name: Macaque Retina Simulator
-site_description: Documentation for the Macaque Retina Simulator project
+site_name: Macaque retina simulator
+site_description: Documentation for the Macaque retina simulator -project
 site_author: Simo Vanni
 
 theme:
