@@ -39,13 +39,14 @@
     ],
     "codeRepository": "https://github.com/VisualNeuroscience-UH/macaqueretina",
     "dateModified": "2025-11-26",
-    "datePublished": "2025-11-13",
+    "datePublished": "2025-11-26",
     "description": "This is a Python software to build a model of the primate retina and convert various visual stimuli to ganglion cell action potentials. \nThe simulator is primarily for research, with the intention of providing biologically plausible spike trains for downstream visual cortex simulations.",
     "downloadUrl": "https://github.com/VisualNeuroscience-UH/macaqueretina",
     "funder": {
         "type": "Organization",
         "name": "Research Council of Finland"
     },
+    "identifier": "https://doi.org/10.5281/zenodo.17726226",
     "keywords": [
         "visual",
         "cerebral cortex",
@@ -56,6 +57,7 @@
     "name": "Macaque retina simulator",
     "operatingSystem": "Linux",
     "programmingLanguage": "Python 3",
+    "relatedLink": "https://macaqueretina.readthedocs.io/en/latest/",
     "schema:releaseNotes": "Initial release.",
     "softwareRequirements": "https://python-poetry.org/docs/main/",
     "version": "1.0.4",
@@ -65,6 +67,5 @@
     },
     "developmentStatus": "active",
     "funding": "361816",
-    "issueTracker": "https://github.com/VisualNeuroscience-UH/macaqueretina/issues",
-    "referencePublication": "https://doi.org/10.5281/zenodo.17726226"
+    "issueTracker": "https://github.com/VisualNeuroscience-UH/macaqueretina/issues"
 }

@@ -19,6 +19,7 @@ Navigate to your local macaqueretina git repository root and run `poetry install
 
 ## Documentation
 
+See [ReadtheDocs](https://macaqueretina.readthedocs.io/en/latest/)  
 For local documentation, install the package with `poetry install --with dev` and run `mkdocs serve` at repo root after installation.
 
 
