@@ -23,7 +23,7 @@ def retina_config():
     mr.config.retina_parameters.temporal_model_type = "fixed"
     mr.config.retina_parameters.dog_model_type = "ellipse_fixed"
     mr.config.device = "cpu"
-    mr.config.numpy_seed = 1
+    mr.config.numpy_seed = 0
 
     return mr.config
 
