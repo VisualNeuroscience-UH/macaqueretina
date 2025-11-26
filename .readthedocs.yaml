@@ -4,10 +4,11 @@ build:
   tools:
     python: "3.12"
   jobs:
-    pre_install:
+    post_install:
       - pip install poetry
-      - poetry config virtualenvs.in-project true
-      - poetry install --with dev --no-root
+      - poetry self add poetry-plugin-export
+      - poetry export --output requirements.txt --with dev
+      - pip install -r requirements.txt --no-deps
 mkdocs:
   configuration: mkdocs.yml
   fail_on_warning: false
