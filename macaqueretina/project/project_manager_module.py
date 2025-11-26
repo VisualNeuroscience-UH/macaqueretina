@@ -186,25 +186,9 @@ class ProjectManager(ProjectUtilitiesMixin):
             VisualSignal,
         )
 
-        self.construct_retina = self.build_retina_instance()
+        self.apply_changed_config()
 
         self.viz.construct_retina = self.construct_retina
-
-        stimulate = VisualStimulus(self.config, data_io, self.get_xy_from_npz)
-        self.stimulate = stimulate
-
-        simulate_retina = SimulateRetina(
-            self.config,
-            data_io,
-            self.project_data,
-            self.retina_math,
-            self.config.device,
-            stimulate,
-        )
-        self.simulate_retina = simulate_retina
-
-        experiment = Experiment(self.config, data_io, stimulate, simulate_retina)
-        self.experiment = experiment
 
         analog_input = AnalogInput(
             self.config,
@@ -218,27 +202,37 @@ class ProjectManager(ProjectUtilitiesMixin):
 
         self.data_sampler = DataSampler
 
-        # Set numpy random seed
-        np.random.seed(self.config.numpy_seed)
-
-    def build_retina_instance(self):
-        project_data = ProjectData()
-
-        fit = Fit(project_data, self.config.experimental_metadata)
+    def apply_changed_config(self):
+        fit = Fit(self.project_data, self.config.experimental_metadata)
 
         retina_vae = RetinaVAE(self.config)
 
-        construct_retina = ConstructRetina(
+        self.construct_retina = ConstructRetina(
             self.config,
             self.data_io,
             self.viz,
             fit,
             retina_vae,
             self.retina_math,
-            project_data,
+            self.project_data,
             self.get_xy_from_npz,
         )
-        return construct_retina
+
+        self.stimulate = VisualStimulus(self.config, self.data_io, self.get_xy_from_npz)
+        self.simulate_retina = SimulateRetina(
+            self.config,
+            self.data_io,
+            self.project_data,
+            self.retina_math,
+            self.stimulate,
+        )
+
+        self.experiment = Experiment(
+            self.config, self.data_io, self.stimulate, self.simulate_retina
+        )
+
+        # Set numpy random seed
+        np.random.seed(self.config.numpy_seed)
 
     @property
     def data_io(self):

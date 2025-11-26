@@ -867,6 +867,12 @@ class RetinaVAE(RetinaMath):
 
         if model_path is not None:
             model_path = Path(model_path)
+
+            if not any(model_path.iterdir()):
+                raise FileNotFoundError(
+                    "VAE model folder is empty. You need to run get_vae_models.sh at the repository root. Aborting..."
+                )
+
             if Path.exists(model_path) and model_path.is_file():
                 print(
                     f"Loading model from {model_path}. \nWARNING: This will replace the current model in-place."

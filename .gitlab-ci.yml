@@ -1,11 +1,12 @@
-# Consider shell executor for deployment. Runs commands directly onhost machine.
-# Consider docker executor for build and test jobs. Runs commands in isolated containers.
 default:
-  image: python:3.11-slim
+  image: python:3.12-bookworm # includes wget and python 3.12
   before_script:
+    - export PATH=/tmp/.local/bin:$PATH
     - pip install poetry
-    - poetry install
-    - source `poetry env info --path`/bin/activate
+    - poetry install --without dev
+    - VENV_PATH=$(poetry env info --path)
+    - source "$VENV_PATH/bin/activate"
+    - pip install pyyaml
 
 stages: # stages contain jobs
   - test
@@ -18,30 +19,44 @@ unit_tests:
     - echo "Running unit tests..."
     - pytest tests/unit_tests
   tags:
-    - shared-runner
+    - openshift
+  variables:
+    HOME: /tmp
 
 integration_tests1:
   stage: test
   script:
+    - ./get_vae_models.sh -y
     - echo "Running integration tests..."
     - pytest tests/integration_tests/test_construct_retina_cpu.py
   tags:
-    - shared-runner
+    - openshift
+  variables:
+    HOME: /tmp
 
 integration_tests2:
   stage: test
   script:
     - echo "Running integration tests..."
-    - pytest tests/integration_tests/test_simulation.py
+    - pytest tests/integration_tests/test_simulation_cpu.py
     - pytest tests/integration_tests/test_visual_stimulus.py
   tags:
-    - shared-runner
+    - openshift
+  variables:
+    HOME: /tmp
+
 
 deploy-prod:
   stage: deploy
+  image: bitnami/git:latest
+  before_script: []
   script:
-    - echo "This job deploys something from the $CI_COMMIT_BRANCH branch."
+    - git remote add github https://$GITHUB_PAT@github.com/VisualNeuroscience-UH/macaqueretina.git
+    - git push github "+$CI_COMMIT_SHA:continuous_deployment"
+  variables:
+    HOME: /tmp
+    GIT_DEPTH: "0"  # Disable shallow clone
   rules:
-    - if: $CI_COMMIT_REF_NAME == "main"
+    - if: $CI_COMMIT_REF_NAME == "continuous_deployment"
   tags:
-    - shared-runner
+    - openshift

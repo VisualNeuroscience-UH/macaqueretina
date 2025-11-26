@@ -846,7 +846,7 @@ class FitDataTypeTemplate(ABC, PrintableMixin):
         pass
 
     # Helper methods
-    def _fit_with_retry(self, fit_func, data, max_retries=5, **kwargs):
+    def _fit_with_retry(self, fit_func, data, max_retries=1, **kwargs):
         for _ in range(max_retries):
             try:
                 return fit_func(data, **kwargs)
@@ -872,7 +872,7 @@ class FitDataTypeTemplate(ABC, PrintableMixin):
             match dist:
                 case "gamma":
                     shape, loc[index], scale[index] = self._fit_with_retry(
-                        stats.gamma.fit, experimental_data[:, index], loc=0
+                        stats.gamma.fit, experimental_data[:, index], loc=1
                     )
                     x_model_fit[:, index] = np.linspace(
                         stats.gamma.ppf(

@@ -62,7 +62,8 @@ class GanglionCellBase(ABC):
             case "cuda":
                 self._device = "cuda_standalone"
             case "cpu":
-                self._device = "cpp_standalone"
+                self._device = "runtime"
+                # self._device = "cpp_standalone" Consider for long/memory intensive runs in workstations
         return self._device
 
     @abstractmethod
@@ -119,7 +120,7 @@ class GanglionCellBase(ABC):
         b2.set_device(
             self.device, directory=self.standalone_tmp_dir, build_on_run=build_on_run
         )
-        if b2.get_device().has_been_run:
+        if not self._device == "runtime" and b2.get_device().has_been_run:
             b2.device.reinit()
             b2.device.activate(build_on_run=build_on_run)
 
@@ -312,6 +313,7 @@ class GanglionCellParasol(GanglionCellBase):
         simulation_duration = n_timepoints * _dt
 
         self._set_brian_standalone_device(build_on_run=False)
+        # b2.set_device("runtime") # Vanilla Python
 
         # Low-pass stage by convolution
         x_vec = np.empty((n_units, n_timepoints))
@@ -549,7 +551,9 @@ class GanglionCellMidget(GanglionCellBase):
         state_monitor = b2.StateMonitor(neuron_group, ["y"], record=True)
 
         b2.run(simulation_duration)
-        b2.device.build(directory=self.standalone_tmp_dir, compile=True, run=False)
+        b2.device.build(
+            directory=self.standalone_tmp_dir, compile=True, run=False
+        )  # run=True?
 
         # Separate run for the center and surround domains
         for domain_idx in range(2):
@@ -1540,25 +1544,6 @@ class ConcreteSimulationBuilder(SimulationBuildInterface):
         The device on which computations will be performed.
     n_sweeps : int
         Number of simulation trials to run.
-
-    Attributes
-    ----------
-    _vs : VisualSignal
-        The visual signal object.
-    _gcs : GanglionCellProduct
-        The ganglion cell data object.
-    _cones : ConeCells
-        The cone cells object.
-    _bipolars : BipolarCells
-        The bipolar cells object.
-    _retina_math : RetinaMath
-        The retina math utility object.
-    _device : Any
-        The computation device.
-    n_sweeps : int
-        Number of simulation trials.
-    _project_data : Dict[str, Any]
-        Dictionary for storing project-related data.
     """
 
     def __init__(
@@ -1578,7 +1563,8 @@ class ConcreteSimulationBuilder(SimulationBuildInterface):
         self._bipolars = bipolars
 
         self._retina_math = retina_math
-        self._device = device
+        print(f"\nConcreteSimulationBuilder device is {device}")
+        self.device = device
         self.n_sweeps = n_sweeps
         self._stimulate = stimulate
 
@@ -1613,10 +1599,6 @@ class ConcreteSimulationBuilder(SimulationBuildInterface):
     @property
     def retina_math(self):
         return self._retina_math
-
-    @property
-    def device(self):
-        return self._device
 
     @property
     def stimulate(self):
@@ -2196,7 +2178,6 @@ class ConcreteSimulationBuilder(SimulationBuildInterface):
 
         # Convert NumPy arrays to PyTorch tensors
         device = self.device
-        print(f"{device=}")
         video_copy_tensor = torch.tensor(video_copy, dtype=torch.float32, device=device)
         r_matrix_tensor = torch.tensor(r_matrix, dtype=torch.long, device=device)
         q_matrix_tensor = torch.tensor(q_matrix, dtype=torch.long, device=device)
@@ -3661,8 +3642,6 @@ class SimulateRetina(RetinaMath):
         Container for project-specific data.
     retina_math : RetinaMath
         Mathematical utilities for retinal calculations.
-    device : str or torch.device
-        Computation device (CPU or GPU).
 
     Attributes
     ----------
@@ -3676,8 +3655,6 @@ class SimulateRetina(RetinaMath):
         Container for project-specific data.
     retina_math : RetinaMath
         Mathematical utilities for retinal calculations.
-    device : str or torch.device
-        Computation device (CPU or GPU).
     """
 
     def __init__(
@@ -3686,15 +3663,13 @@ class SimulateRetina(RetinaMath):
         data_io: Any,
         project_data: Any,
         retina_math: RetinaMath,
-        device: str,
         stimulate: Any,
     ) -> None:
-        self._config: Any = config
-        self._data_io: Any = data_io
-        self._project_data: Any = project_data
-        self._retina_math: RetinaMath = retina_math
-        self._device: str = device
-        self._stimulate: Any = stimulate
+        self._config = config
+        self._data_io = data_io
+        self._project_data = project_data
+        self._retina_math = retina_math
+        self._stimulate = stimulate
 
     @property
     def config(self) -> Any:
@@ -3711,10 +3686,6 @@ class SimulateRetina(RetinaMath):
     @property
     def retina_math(self) -> RetinaMath:
         return self._retina_math
-
-    @property
-    def device(self) -> str:
-        return self._device
 
     @property
     def stimulate(self) -> Any:
@@ -4014,16 +3985,18 @@ class SimulateRetina(RetinaMath):
         unity : bool, optional
             If True, runs uniformity index simulation.
         """
+
         self._get_construct_metadata_if_missing()
         vs, gcs, cones, bipolars = self._get_products(stimulus)
         n_sweeps = self.config.simulation_parameters["n_sweeps"]
+
         builder = ConcreteSimulationBuilder(
             vs,
             gcs,
             cones,
             bipolars,
             self.retina_math,
-            self.device,
+            self.config.device,
             n_sweeps,
             self.stimulate,
         )
