@@ -11,8 +11,8 @@ The density of many GC types is inversely proportional to their dendritic field 
 
 The difference-of-Gaussians `DOG` spatial receptive fields for the four unit types were modeled with separate center and surround. The DoG can have either center and surround fixed to same position and allowing the size and amplitude of the surround vary (`circular`, `ellipse_fixed`), or with independent center and surround (`ellipse_independent`). We use the fixed ellipse in all our demos.
 
-Variational autoencoder `VAE` is a machine learning model which generates new spatial receptive field samples not restricted to ellipse form.
-
+Variational autoencoder `VAE` is a machine learning model which generates new spatial receptive field samples not restricted to ellipse form. To use the VAE models, you need to run 
+`./get_vae_models.sh` in repo root and download the about 800 MB of model data.
 
 ### Temporal receptive field models
 
