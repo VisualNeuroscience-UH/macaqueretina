@@ -4,10 +4,6 @@ import matplotlib.pyplot as plt
 # Local
 import macaqueretina as mr
 
-mr.config.device = "cpu"
-# mr.PM.apply_changed_config()
-# mr.PM.simulate_retina.device = mr.config.device
-
 mr.construct_retina()
 mr.make_stimulus()
 mr.simulate_retina()
@@ -30,13 +26,13 @@ mr.viz.show_all_gc_responses(savefigname=None)
 # mr.viz.show_single_gc_view(unit_index=2, frame_number=160, savefigname=None)
 # mr.viz.show_gc_noise_hist_cov_mtx(savefigname=None)
 
-# # # for fixed temporal model only ##
-# # mr.viz.show_spatiotemporal_filter_sums(savefigname=None)
-# # mr.viz.show_spatiotemporal_filter(unit_index=1, savefigname=None)
-# # mr.viz.show_temporal_kernel_frequency_response(unit_index=2, savefigname=None)
+# # for fixed temporal model only ##
+# mr.viz.show_spatiotemporal_filter_sums(savefigname=None)
+# mr.viz.show_spatiotemporal_filter(unit_index=1, savefigname=None)
+# mr.viz.show_temporal_kernel_frequency_response(unit_index=2, savefigname=None)
 
-# # # for subunit temporal model only ##
-# # mr.viz.show_cone_responses(time_range=[0.0, 1.1], savefigname=None)
+# # for subunit temporal model only ##
+# mr.viz.show_cone_responses(time_range=[0.0, 1.1], savefigname=None)
 
 
 # ################################################################################
