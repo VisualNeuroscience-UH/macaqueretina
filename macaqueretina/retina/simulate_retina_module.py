@@ -1106,7 +1106,7 @@ class TemporalModelFixed(TemporalModelBase):
         )
 
         # Define batch size
-        batch_size = 100  # Adjust this based on your GPU memory
+        batch_size = 80  # Adjust this based on your GPU memory
 
         # Process in batches
         tqdm_desc = "Preparing fixed generator potential..."
@@ -1744,16 +1744,27 @@ class ConcreteSimulationBuilder(SimulationBuildInterface):
         """
         params_all = gcs.df.loc[gcs.unit_indices]
 
-        gc_noise_mean = params_all.Mean.values
+        # Signal component
         gain_name = "A_cen" if gcs.gc_type == "midget" else "A"
         gc_gain_raw = params_all[gain_name].values
         gc_gain_adjusted = gc_gain_raw * gcs.gc_gain_adjustment
         firing_rates_light = vs.generator_potentials * gc_gain_adjusted[:, np.newaxis]
         firing_rates_light = firing_rates_light[:, :, np.newaxis]
-        firing_rates_cone_noise = (
-            vs.gc_synaptic_noise * gc_noise_mean[:, np.newaxis, np.newaxis]
-        )
 
+        # Noise component
+        noise_fr_std = params_all.Mean.values.std()
+        gc_noise_raw = vs.gc_synaptic_noise_raw
+        mu = np.mean(gc_noise_raw.flatten())
+        sigma = np.std(gc_noise_raw.flatten())
+
+        # z-score normalization
+        gc_noise_normalized = (gc_noise_raw - mu) / sigma
+
+        # scale to empirical std
+        gc_noise_empirical_std = gc_noise_normalized * noise_fr_std
+        firing_rates_cone_noise = gc_noise_empirical_std + vs.noise_fr_mean
+
+        # Rectifying nonlinearity
         firing_rates = np.maximum(firing_rates_light + firing_rates_cone_noise, 0)
 
         vs.firing_rates = firing_rates
@@ -2259,13 +2270,13 @@ class ConcreteSimulationBuilder(SimulationBuildInterface):
 
         if not hasattr(vs, "cone_noise"):
             self.vs = self.cones.create_noise(vs, self.n_sweeps)
-        if not hasattr(vs, "gc_synaptic_noise"):
+        if not hasattr(vs, "gc_synaptic_noise_raw"):
             self.vs = self.cones.connect_cone_noise_to_gcs(vs, self.n_sweeps)
 
         # Dimension checks
         if not vs.cone_noise.shape == ndim_cones:
             raise ValueError("Cone noise shape mismatch")
-        if not vs.gc_synaptic_noise.shape == ndim_gc:
+        if not vs.gc_synaptic_noise_raw.shape == ndim_gc:
             raise ValueError("GC synaptic noise shape mismatch")
 
     def get_generator_potentials(self) -> None:
@@ -2993,8 +3004,7 @@ class ConeProduct(ReceptiveFieldsBase):
 
         # if model is dynamic or fixed, connect cone noise directly to ganglion cells
         cones_to_gcs_weights = self.cones_to_gcs_weights
-        magn = self.retina_parameters["noise_gain"]
-        cone_noise_norm_T = vs.cone_noise * magn
+        cone_noise_norm_T = vs.cone_noise
         cone_noise_norm = np.moveaxis(cone_noise_norm_T, 0, 1)
 
         if np.any(np.sum(cones_to_gcs_weights, axis=0) == 0):
@@ -3009,7 +3019,6 @@ class ConeProduct(ReceptiveFieldsBase):
         weights_norm_tensor = torch.tensor(
             weights_norm, device=device, dtype=torch.float32
         )
-        magn_tensor = torch.tensor(magn, device=device, dtype=torch.float32)
         tvec_size = vs.tvec.size
 
         gc_synaptic_noise_tensor = torch.zeros(
@@ -3017,26 +3026,27 @@ class ConeProduct(ReceptiveFieldsBase):
         )
 
         for trial in range(n_sweeps):
-            noise_this_trial = magn_tensor * torch.matmul(
+            noise_this_trial = torch.matmul(
                 cone_noise_norm_tensor[:, :, trial], weights_norm_tensor
             )
             gc_synaptic_noise_tensor[..., trial] = noise_this_trial.T
 
-        gc_synaptic_noise = gc_synaptic_noise_tensor.cpu().numpy()
+        gc_synaptic_noise_raw = gc_synaptic_noise_tensor.cpu().numpy()
 
         noise_type = self.retina_parameters["noise_type"]
 
         # If noise type is independent, assume Gaussian statistics, independent for each gc unit
         match noise_type:
             case "shared":
-                noise_out = gc_synaptic_noise
+                noise_out = gc_synaptic_noise_raw
             case "independent":
-                mu = np.mean(gc_synaptic_noise.flatten())
-                sigma = np.std(gc_synaptic_noise.flatten())
-                dims = gc_synaptic_noise.shape
+                mu = np.mean(gc_synaptic_noise_raw.flatten())
+                sigma = np.std(gc_synaptic_noise_raw.flatten())
+                dims = gc_synaptic_noise_raw.shape
                 noise_out = np.random.normal(loc=mu, scale=sigma, size=dims)
 
-        vs.gc_synaptic_noise = noise_out
+        vs.gc_synaptic_noise_raw = noise_out
+        vs.noise_fr_mean = self.retina_parameters["noise_fr_mean"]
 
         return vs
 
@@ -3759,7 +3769,7 @@ class SimulateRetina(RetinaMath):
             "generator_potentials": vs.generator_potentials,
             "video_dt": vs.video_dt,
             "tvec_new": vs.tvec_new,
-            "gc_synaptic_noise": vs.gc_synaptic_noise,
+            "gc_synaptic_noise_raw": vs.gc_synaptic_noise_raw,
         }
 
         # Attach data requested by other classes to project_data
@@ -3858,7 +3868,7 @@ class SimulateRetina(RetinaMath):
         if gc_noise_filename_full is not None:
             gc_noise_npz = self.data_io.load_data(full_path=gc_noise_filename_full)
 
-            vs.gc_synaptic_noise = gc_noise_npz["gc_synaptic_noise"]
+            vs.gc_synaptic_noise_raw = gc_noise_npz["gc_synaptic_noise_raw"]
 
         return vs
 

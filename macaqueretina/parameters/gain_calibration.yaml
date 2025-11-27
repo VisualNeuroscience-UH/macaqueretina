@@ -43,11 +43,12 @@ gain_calibration:
 
   # Cone noise gain induces ~25Hz spontaneous firing rates for the ON parasol and
   # midget gc units, and ~5Hz for the OFF parasol and midget units. (Raunak Sinha,
-  # personal communication).
-  noise_gain_table:
+  # personal communication). There are slight variations in final noise rates 
+  # due to rectification and spike generation.
+  noise_fr_mean_table:
     "on": 
-      parasol: 5.0
-      midget: 4.0
+      parasol: 25
+      midget: 25
     "off":
-      parasol: 2.1
-      midget: 1.5
+      parasol: 5
+      midget: 5

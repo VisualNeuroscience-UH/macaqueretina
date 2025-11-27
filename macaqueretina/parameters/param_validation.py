@@ -220,7 +220,7 @@ class GainCalibration(BaseConfigModel):
 
         off: Off
 
-    noise_gain_table: NoiseGainTable
+    noise_fr_mean_table: NoiseGainTable
 
 
 ## From retina_parameters_extend.yaml
@@ -697,9 +697,9 @@ class ConfigParams(BaseConfigModel):
             self.retina_parameters.spatial_model_type,
         ).get(self.retina_parameters.temporal_model_type)
 
-        self.retina_parameters.noise_gain = getattr(
+        self.retina_parameters.noise_fr_mean = getattr(
             getattr(
-                self.gain_calibration.noise_gain_table,
+                self.gain_calibration.noise_fr_mean_table,
                 self.retina_parameters.response_type,
             ),
             self.retina_parameters.gc_type,
