@@ -18,3 +18,4 @@ run:
     savefigname: null
   visualize_all_gc_responses: 
     show: True
+  experiment_hpc: False

@@ -62,8 +62,8 @@ class GanglionCellBase(ABC):
             case "cuda":
                 self._device = "cuda_standalone"
             case "cpu":
-                self._device = "runtime"
-                # self._device = "cpp_standalone" Consider for long/memory intensive runs in workstations
+                # self._device = "runtime"
+                self._device = "cpp_standalone"  # Consider for long/memory intensive runs in workstations
         return self._device
 
     @abstractmethod
@@ -536,7 +536,6 @@ class GanglionCellMidget(GanglionCellBase):
         eqs = """
         dy/dt = (-y + ts * x_derivative + (1 - hs) * x_input(t, i)) / ts : 1
         x_derivative = (x_input(t, i) - x_input(t-dt, i)) / dt : Hz
-        # Parameters
         hs : 1
         ts : second
         """

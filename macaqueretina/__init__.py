@@ -1,5 +1,7 @@
 """
-Macaque retina simulator.
+This module is run when macaqueretina is imported. It connects the top-level
+macaqueretina namespace to the various sub-modules. It also runs the
+ProjectManager to load the configuration parameters.
 """
 
 # Built-in

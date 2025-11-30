@@ -1,5 +1,6 @@
 """
-Module on retina management
+Module on retina management. When this module is called directly, it runs
+the core_parameters.yaml defined 'run' pipeline.
 
 We use dependency injection to make the code more modular and easier to test.
 It means that during construction here at the manager level, we can inject
@@ -45,7 +46,8 @@ if TYPE_CHECKING:
     from macaqueretina.data_io.config_io import Configuration
 
 
-warnings.simplefilter("ignore")
+warnings.filterwarnings("ignore", category=SyntaxWarning)
+warnings.filterwarnings("ignore", category=UserWarning)
 
 
 def _get_validation_params_method(parameters_folder: Path) -> Callable | None:
@@ -81,8 +83,8 @@ def _get_validation_params_method(parameters_folder: Path) -> Callable | None:
             )
 
 
-def _dispatcher(PM: ProjectManager, config: Configuration) -> None:
-    """Runs the pipeline(s) chosen in the main yaml file."""
+def run_core_parameter_pipeline(PM: ProjectManager, config: Configuration) -> None:
+    """Runs the pipeline(s) chosen in the core_parameters.yaml file."""
     run = config.run
     if run.build_retina:
         PM.construct_retina.build_retina_client()
@@ -100,6 +102,8 @@ def _dispatcher(PM: ProjectManager, config: Configuration) -> None:
     if run.visualize_all_gc_responses:
         options = run.visualize_all_gc_responses
         PM.viz.show_all_gc_responses()
+    if run.experiment_hpc:
+        pass
 
 
 def load_parameters() -> Configuration:
@@ -301,7 +305,7 @@ def main():
 
     PM = ProjectManager(config)
 
-    _dispatcher(PM, config)
+    run_core_parameter_pipeline(PM, config)
 
     end_time = time.time()
     print(
@@ -320,4 +324,5 @@ def main():
 
 
 if __name__ == "__main__":
+    """Run the core_parameters.yaml run pipeline items."""
     main()

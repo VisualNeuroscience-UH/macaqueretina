@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "macaqueretina"
-version = "1.0.5"
+version = "1.0.6"
 description = "Python software to build a model of macaque retina and convert visual stimuli to cortical input"
 authors = ["Henri Hokkanen", "Simo Vanni <simo.vanni@helsinki.fi>", "Francescangelo Vedele <francescangelo.vedele@helsinki.fi>"]
 license = "MIT"
@@ -18,9 +18,9 @@ classifiers = [
 ]
 
 [tool.poetry.dependencies]
-brian2 = "2.7.1"
-brian2cuda = "^1.0a6"
-cython = "^3.0.11"
+brian2 = "2.8.0"
+brian2cuda = "^1.0a7"
+cython = "^3.0.11,<3.1.4,"
 h5py = "*"
 imageio = "*"
 ipython = "*"
@@ -32,7 +32,7 @@ Pillow = "*"
 pydantic = "^2.11.7"
 pyshortcuts = "*"
 pytest = "*"
-python = "^3.11"
+python = "^3.12"
 pyqt5 = "^5.15.11"
 scikit-image = "*"
 scikit-learn = "*"
