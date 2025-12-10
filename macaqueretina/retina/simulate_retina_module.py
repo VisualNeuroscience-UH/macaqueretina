@@ -62,7 +62,7 @@ class GanglionCellBase(ABC):
             case "cuda":
                 self._device = "cuda_standalone"
             case "cpu":
-                # self._device = "runtime"
+                # self._device = "runtime" # skips Brian2 standalone mode
                 self._device = "cpp_standalone"  # Consider for long/memory intensive runs in workstations
         return self._device
 
