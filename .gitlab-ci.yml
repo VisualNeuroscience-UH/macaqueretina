@@ -1,5 +1,5 @@
 default:
-  image: python:3.12-bookworm # includes wget and python 3.12
+  image: python:3.14-bookworm # includes wget and python 3.14
   before_script:
     - export PATH=/tmp/.local/bin:$PATH
     - pip install poetry
