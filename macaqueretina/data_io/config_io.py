@@ -22,8 +22,9 @@ import datetime
 import hashlib
 import pprint
 from collections.abc import MutableMapping
+from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Iterable, Iterator, Mapping
+from typing import Any, Callable, Iterable, Iterator, Mapping
 
 # Third-party
 import numpy as np
@@ -150,12 +151,67 @@ class Configuration(MutableMapping):
       attribute assignment.
     """
 
-    def __init__(self, initial: Mapping[str, Any] | None = None) -> None:
-        """Initialize the configuration, optionally with a mapping to populate config."""
+    def __init__(
+        self,
+        initial: Mapping[str, Any] | None = None,
+        *,
+        _root: "Configuration | None" = None,
+        _path: tuple[str, ...] = (),
+    ) -> None:
         super().__setattr__("_data", {})
+        super().__setattr__(
+            "_on_change", None
+        )  # type: Callable[[Configuration, tuple[str, ...], Any], None] | None
+        super().__setattr__("_mute_depth", 0)
+        super().__setattr__("_root", _root if _root is not None else self)
+        super().__setattr__("_path", _path)
+
         if initial:
             for k, v in dict(initial).items():
-                self._data[k] = Configuration(v) if isinstance(v, dict) else v
+                self._data[k] = self._wrap(k, v)
+
+    def _wrap(self, key: str, v: Any) -> Any:
+        """Wrap nested dicts as Configuration and propagate root/path."""
+        if isinstance(v, Configuration):
+            return v
+        if isinstance(v, dict):
+            return Configuration(v, _root=self._root, _path=self._path + (key,))
+        return v
+
+    def set_on_change(
+        self,
+        cb: Callable[[Configuration, tuple[str, ...], Any], None] | None,
+    ) -> None:
+        """Register a callback called after any mutation."""
+        # Always register on the root so nested mutations work without propagation.
+        super(Configuration, self._root).__setattr__("_on_change", cb)
+
+    @contextmanager
+    def mute_notifications(self):
+        """Temporarily disable on_change notifications (prevents revalidation loops)."""
+        super().__setattr__("_mute_depth", self._mute_depth + 1)
+        try:
+            yield self
+        finally:
+            super().__setattr__("_mute_depth", self._mute_depth - 1)
+
+    def _notify_changed(self, path: tuple[str, ...], value: Any) -> None:
+        if self._mute_depth > 0:
+            return
+        # Always call the root callback (nested Configuration objects have _on_change=None).
+        cb = self._root._on_change
+        if cb is not None:
+            cb(self._root, path, value)
+
+    def replace_from(self, other: Mapping[str, Any] | Configuration) -> None:
+        """
+        Replace *contents* in-place (keeps object identity), recursively wrapping dicts.
+        Useful to apply validated config without breaking references held by other objects.
+        """
+        new_map = other.to_dict() if isinstance(other, Configuration) else dict(other)
+        self._data.clear()
+        for k, v in new_map.items():
+            self._data[k] = self._wrap(k, v)
 
     # MutableMapping core methods
     def __getitem__(self, key: str) -> Any:
@@ -164,11 +220,13 @@ class Configuration(MutableMapping):
 
     def __setitem__(self, key: str, value: Any) -> None:
         """Supports dict-like assignment (config["param"] = my_value)."""
-        self._data[key] = Configuration(value) if isinstance(value, dict) else value
+        self._data[key] = self._wrap(key, value)
+        self._notify_changed(self._path + (key,), value)
 
     def __delitem__(self, key: str) -> None:
         """Supports dict-like deletion: del config["param"]."""
         del self._data[key]
+        self._notify_changed(self._path + (key,), None)
 
     def __iter__(self) -> Iterator[str]:
         """Iterate over top-level keys in config (for k in config)."""
@@ -202,31 +260,50 @@ class Configuration(MutableMapping):
     def pop(self, key: str, default=_SENTINEL):
         """Supports config.pop("param") (behaves like built-in dict)."""
         if default is _SENTINEL:
-            return self._data.pop(key)
-        return self._data.pop(key, default)
+            out = self._data.pop(key)
+        else:
+            out = self._data.pop(key, default)
+        self._notify_changed(self._path + (key,), None)
+        return out
 
     def popitem(self):
         """Supports config.popitem() (behaves like built-in dict)."""
-        return self._data.popitem()
+        k, v = self._data.popitem()
+        self._notify_changed(self._path + (k,), None)
+        return (k, v)
 
     def clear(self):
         """Supports config.clear() to remove all params (behaves like built-in dict)."""
         self._data.clear()
+        self._notify_changed(self._path, None)
 
-    def update(self, other: Mapping[str, Any] | None = None, **kwargs):
-        """Supports config.update() (behaves like built-in dict)."""
-        if other:
-            for k, v in dict(other).items():
-                self._data[k] = type(self)(v) if isinstance(v, dict) else v
+    def update(self, other: Mapping[str, Any] | None = None, /, **kwargs):
+        """
+        Supports config.update() (behaves like built-in dict), but also preserves
+        reactive semantics by emitting per-key notifications.
+        """
+        if other is not None:
+            if isinstance(other, Configuration):
+                iterable = other.items()
+            elif isinstance(other, Mapping):
+                iterable = other.items()
+            else:
+                # Accept iterable of (k, v) like dict.update does
+                iterable = other
+
+            for k, v in iterable:
+                self.__setitem__(k, v)
+
         for k, v in kwargs.items():
-            self._data[k] = type(self)(v) if isinstance(v, dict) else v
+            self.__setitem__(k, v)
 
     def setdefault(self, key: str, default=None):
         """Supports config.setdefault() (behaves like built-in dict)."""
         if key in self._data:
             return self._data[key]
-        value = type(self)(default) if isinstance(default, dict) else default
+        value = self._wrap(key, default)
         self._data[key] = value
+        self._notify_changed(self._path + (key,), value)
         return value
 
     # Convert Configuration object to dict

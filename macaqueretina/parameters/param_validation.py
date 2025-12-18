@@ -15,7 +15,8 @@ from __future__ import annotations
 # Built-in
 import random
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal, Self
+from pydantic_core import PydanticUndefined
+from typing import Any, Literal, Self
 
 # Third-party
 import brian2.units as b2u
@@ -28,9 +29,8 @@ from pydantic import (
     model_validator,
 )
 
-if TYPE_CHECKING:
-    # Local
-    from macaqueretina.data_io.config_io import Configuration
+# Local
+from macaqueretina.data_io.config_io import Configuration
 
 
 class BaseConfigModel(BaseModel):
@@ -43,19 +43,21 @@ class BaseConfigModel(BaseModel):
     def __init__(self, **data: dict):
         provided_fields = set(data.keys())
         for field_name, field_content in type(self).model_fields.items():
-            if (
-                field_name not in provided_fields
-                and hasattr(field_content, "default")
-                and field_content.default is not None
-            ):
-                print(
-                    f"Parameter '{field_name}' not provided in the YAML file(s), "
-                    f"using default value: {field_content.default} (set in param_validation.py)",
-                )
+            # Only print when a *real* default exists (avoid PydanticUndefined spam)
+            if field_name in provided_fields:
+                continue
+            default = getattr(field_content, "default", PydanticUndefined)
+            if default is PydanticUndefined or default is None:
+                continue
+
+            print(
+                f"Parameter '{field_name}' not provided in the YAML file(s), "
+                f"using default value: {default} (set in param_validation.py)",
+            )
 
         super().__init__(**data)
 
-    model_config = ConfigDict(extra="allow")
+    model_config = ConfigDict(extra="allow", arbitrary_types_allowed=True)
 
 
 class BaseInternalConfigModel(BaseModel):
@@ -68,7 +70,7 @@ class BaseInternalConfigModel(BaseModel):
     def __init__(self, **data: dict):
         super().__init__(**data)
 
-    model_config = ConfigDict(extra="allow")
+    model_config = ConfigDict(extra="allow", arbitrary_types_allowed=True)
 
 
 ## From retina_parameters.yaml
@@ -87,7 +89,7 @@ class RetinaParameters(BaseConfigModel):
     model_density: float = Field(
         le=1.0,
         default=1.0,
-        description=r"1.0 for 100% \of the literature density of ganglion cells",
+        description="1.0 for 100% \of the literature density of ganglion cells",
     )
     retina_center: complex = Field(
         default=complex(5.0 + 0j),
@@ -101,11 +103,77 @@ class RetinaParameters(BaseConfigModel):
         description="null for most recent or 'model_[GC TYPE]_[RESPONSE TYPE]_[DEVICE]_[TIMESTAMP].pt' at input_folder. Applies to VAE only",
     )
 
+    gain_calibration: GainCalibration | None = None
+
+    @computed_field
+    @property
+    def noise_gain(self) -> float:
+        """Dynamically compute noise_gain based on gc_type and response_type."""
+        if self.gain_calibration is None:
+            raise ValueError("gain_calibration not set in RetinaParameters")
+
+        return getattr(
+            getattr(
+                self.gain_calibration.noise_fr_mean_table,
+                self.response_type,
+            ),
+            self.gc_type,
+        )
+
+    @computed_field
+    @property
+    def signal_gain(self) -> float:
+        """Dynamically compute signal_gain based on gc_type and response_type."""
+        if self.gain_calibration is None:
+            raise ValueError("gain_calibration not set in RetinaParameters")
+
+        return getattr(
+            getattr(
+                getattr(
+                    self.gain_calibration.signal_gain_table,
+                    self.gc_type,
+                ),
+                self.response_type,
+            ),
+            self.spatial_model_type,
+        ).get(self.temporal_model_type)
+    
+    @computed_field
+    @property
+    def noise_fr_mean(self) -> float:
+        """Dynamically compute noise_fr_mean based on gc_type and response_type."""
+        if self.gain_calibration is None:
+            raise ValueError("gain_calibration not set in RetinaParameters")
+        
+        return getattr(
+                getattr(
+                    self.gain_calibration.noise_fr_mean_table,
+                    self.response_type,
+                ),
+                self.gc_type,
+            )
+
     @field_validator("retina_center", mode="before")
     @classmethod
-    def parse_complex(cls, v):
-        if isinstance(v, str):
+    def parse_complex(cls, v: Any) -> complex:
+        if v is None:
+            return v
+        if isinstance(v, complex):
+            return v
+        if isinstance(v, (int, float)):
             return complex(v)
+
+        if isinstance(v, str):
+            s = v.strip().replace(" ", "")  # make "6+ 5j" -> "6+5j"
+            try:
+                return complex(s)
+            except ValueError as e:
+                raise ValueError(
+                    f"retina_center must be a complex-like string (e.g. '6+5j', '6-5j') or a number; got {v!r}"
+                ) from e
+
+        # Let Pydantic handle other types (or fail clearly)
+        return v
 
 
 ## From visual_stimulus_parameters.yaml
@@ -135,7 +203,7 @@ class VisualStimulusParameters(BaseConfigModel):
     spatial_frequency: float = Field(default=2.0, description="cpd")
     orientation: float = Field(default=90.0, description="degrees")
     phase_shift: float = Field(default=0.0, description="radians")
-    stimulus_video_name: str | None
+    stimulus_video_name: str | None = None
     contrast: float = Field(default=1.0)
     mean: float = Field(
         default=128.0, description="Mean luminance in  cd/m2 and adaptation level"
@@ -207,7 +275,7 @@ class GainCalibration(BaseConfigModel):
 
     signal_gain_table: SignalGainTable
 
-    class NoiseGainTable(BaseConfigModel):
+    class NoiseFrMeanTable(BaseConfigModel):
         class On(BaseConfigModel):
             parasol: float
             midget: float
@@ -220,7 +288,7 @@ class GainCalibration(BaseConfigModel):
 
         off: Off
 
-    noise_fr_mean_table: NoiseGainTable
+    noise_fr_mean_table: NoiseFrMeanTable
 
 
 ## From retina_parameters_extend.yaml
@@ -289,19 +357,30 @@ class RetinaParametersExtend(BaseConfigModel):
         @field_validator("r_dark", "max_response", "alpha", mode="after")
         @classmethod
         def add_b2u_pa(cls, v) -> b2u.Quantity:
-            return v * b2u.pA
+            if isinstance(v, b2u.Quantity):
+                return v * b2u.pA
+            return v
 
         @field_validator("beta", "tau_y", "tau_z", "tau_r", "alpha", mode="after")
         @classmethod
         def add_b2u_ms(cls, v):
-            return v * b2u.ms
+            if isinstance(v, b2u.Quantity):
+                return v * b2u.ms
+            return v
 
         @field_validator("filter_limit_time", mode="after")
         @classmethod
         def add_b2u_second(cls, v):
-            return v * b2u.second
+            if isinstance(v, b2u.Quantity):
+                return v * b2u.second
+            return v
 
     cone_signal_parameters: ConeSignalParameters
+
+    @field_validator("cone_general_parameters", mode="before")
+    @classmethod
+    def _cone_general_none_to_empty(cls, v):
+        return {} if v is None else v
 
     class BipolarGeneralParameters(BaseConfigModel):
         bipo2gc_div: int = 6
@@ -378,6 +457,21 @@ class RetinaParametersExtend(BaseConfigModel):
         show_skip_steps: int = 5
         savefigname: str | None
 
+        retina_parameters: RetinaParameters | None = Field(
+            default=None, exclude=True, repr=False
+        )
+        retina_parameters_extend: RetinaParametersExtend | None = Field(
+            default=None, exclude=True, repr=False
+        )
+
+        @computed_field
+        @property
+        def n_iterations(self) -> int:
+            return getattr(
+                self.retina_parameters_extend.n_repulsion_iterations,
+                self.retina_parameters.gc_type,
+            )
+
     receptive_field_repulsion_parameters: ReceptiveFieldRepulsionParameters
 
     class Bipolar2gcDict(BaseConfigModel):
@@ -406,6 +500,19 @@ class RetinaParametersExtend(BaseConfigModel):
         )
 
     dd_regr_model_options: DdRegrModelOptions
+
+    retina_parameters: RetinaParameters | None = Field(
+        default=None, exclude=True, repr=False
+    )
+
+    @computed_field
+    @property
+    def dd_regr_model(self) -> Literal["linear", "quadratic", "cubic", "powerlaw"]:
+        """Dynamically compute dd_regr_model based on gc_type."""
+        return getattr(
+            self.dd_regr_model_options,
+            self.retina_parameters.gc_type,
+        )
 
 
 class DendrDiamUnits(BaseConfigModel):
@@ -443,21 +550,6 @@ class VaeTrainParameters(BaseInternalConfigModel):
     conv_layers: int = Field(default=2, description="Number of convolutional layers")
     batch_norm: bool = Field(default=True, description="Use batch normalization")
     latent_distribution: Literal["normal", "uniform"] = "uniform"
-
-    @field_validator("latent_dim", mode="after")
-    @classmethod
-    def latent_dim_pow_2(cls, latent_dim: int) -> int:
-        """Check whether latent_dim is a power of 2 between 2 and 128"""
-        if not (2 <= latent_dim <= 128):
-            raise ValueError(
-                "latent_dim (in config/constants.yaml, vae_train_parameters) must be a power of 2 between 2 and 128."
-            )
-        if latent_dim & (latent_dim - 1) != 0:
-            raise ValueError(
-                "latent_dim (in config/constants.yaml, vae_train_parameters) must be a power of 2 between 2 and 128."
-            )
-
-        return latent_dim
 
     class AugmentationDict(BaseInternalConfigModel):
         rotation: int = Field(default=0, description="Rotation in degrees")
@@ -522,21 +614,6 @@ class VaeTrainParameters(BaseInternalConfigModel):
     conv_layers: int = Field(default=2, description="Number of convolutional layers")
     batch_norm: bool = Field(default=True, description="Use batch normalization")
     latent_distribution: Literal["normal", "uniform"] = "uniform"
-
-    @field_validator("latent_dim", mode="after")
-    @classmethod
-    def latent_dim_pow_2(cls, latent_dim: int) -> int:
-        """Check whether latent_dim is a power of 2 between 2 and 128"""
-        if not (2 <= latent_dim <= 128):
-            raise ValueError(
-                "latent_dim (in config/constants.yaml, vae_train_parameters) must be a power of 2 between 2 and 128."
-            )
-        if latent_dim & (latent_dim - 1) != 0:
-            raise ValueError(
-                "latent_dim (in config/constants.yaml, vae_train_parameters) must be a power of 2 between 2 and 128."
-            )
-
-        return latent_dim
 
     class AugmentationDict(BaseInternalConfigModel):
         rotation: int = Field(default=0, description="Rotation in degrees")
@@ -590,8 +667,9 @@ class ConfigParams(BaseConfigModel):
     experiment: str = Field(
         description="Current experiment. Use distinct folders for distinct stimuli."
     )
-    input_folder: str
-    output_folder: str
+    input_subfolder: str
+    output_subfolder: str
+    stimulus_subfolder: str
     numpy_seed: int | None
     device: Literal["cpu", "cuda"]
     run: dict[str, Any]
@@ -607,11 +685,6 @@ class ConfigParams(BaseConfigModel):
     # Simulation parameters
     simulation_parameters: SimulationParameters
     gain_calibration: GainCalibration
-
-    @computed_field
-    @property
-    def literature_data_folder(self) -> Path:
-        return git_repo_path.joinpath(r"retina/literature_data")
 
     gc_density_1_datafile: str
     gc_density_1_scaling_data_and_function: list
@@ -641,6 +714,83 @@ class ConfigParams(BaseConfigModel):
 
     profile: bool = False
 
+    @computed_field
+    @property
+    def literature_data_folder(self) -> Path:
+        return self.git_repo_root_path.joinpath(r"retina/literature_data")
+
+    @computed_field
+    @property
+    def dendr_diam1_datafile(self) -> str:
+        return getattr(self, f"dendr_diam1_datafile_{self.retina_parameters.gc_type}")
+
+    @computed_field
+    @property
+    def dendr_diam2_datafile(self) -> str:
+        return getattr(self, f"dendr_diam2_datafile_{self.retina_parameters.gc_type}")
+
+    @computed_field
+    @property
+    def dendr_diam3_datafile(self) -> str:
+        return getattr(self, f"dendr_diam3_datafile_{self.retina_parameters.gc_type}")
+
+    @computed_field
+    @property
+    def temporal_BK_model_datafile(self) -> str:
+        return getattr(
+            self, f"temporal_BK_model_datafile_{self.retina_parameters.gc_type}"
+        )
+
+    @computed_field
+    @property
+    def spatial_DoG_datafile(self) -> str:
+        return getattr(self, f"spatial_DoG_datafile_{self.retina_parameters.gc_type}")
+
+    @computed_field
+    @property
+    def path(self) -> Path:
+        path = self.model_root_path.joinpath(
+            Path(self.project), self.experiment
+        ).resolve()
+
+        if not path.is_dir():
+            path.mkdir(parents=True, exist_ok=True)
+
+        # Validate main project path, must be absolute
+        if not path.is_absolute():
+            raise KeyError("The 'path' parameter is not an absolute path, aborting...")
+        return path
+
+    @computed_field
+    @property
+    def input_folder(self) -> Path:
+        input_folder = self.path.joinpath(Path(self.input_subfolder)).resolve()
+
+        if not input_folder.is_dir():
+            input_folder.mkdir(parents=True, exist_ok=True)
+
+        return input_folder
+
+    @computed_field
+    @property
+    def output_folder(self) -> Path:
+        output_folder = self.path.joinpath(Path(self.output_subfolder)).resolve()
+
+        if not output_folder.is_dir():
+            output_folder.mkdir(parents=True, exist_ok=True)
+
+        return output_folder
+
+    @computed_field
+    @property
+    def stimulus_folder(self) -> Path:
+        stimulus_folder = self.path.joinpath(Path(self.stimulus_subfolder)).resolve()
+
+        if not stimulus_folder.is_dir():
+            stimulus_folder.mkdir(parents=True, exist_ok=True)
+
+        return stimulus_folder
+
     @field_validator("model_root_path", mode="after")
     @classmethod
     def convert_model_root_path_to_path(cls, model_root_path) -> Path:
@@ -654,12 +804,6 @@ class ConfigParams(BaseConfigModel):
 
         return Path(model_root_path)
 
-    @computed_field
-    @property
-    def stimulus_folder(self) -> str:
-        """Stimulus images and videos"""
-        return Path(f"stim_{self.output_folder}")
-
     @field_validator("numpy_seed", mode="after")
     @classmethod
     def return_np_seed(cls, n):
@@ -668,60 +812,29 @@ class ConfigParams(BaseConfigModel):
         return n
 
     @model_validator(mode="after")
-    def set_derived_values(self) -> Self:
-        # Set parameters that depend on another value in a different class
-        self.project_manager_module_file_path = proj_manager_mod_file_path
-        self.git_repo_root_path = git_repo_path
+    def set_references(self) -> Self:
+        """Sets internal cross-references."""
+        self.retina_parameters.gain_calibration = self.gain_calibration
+        self.retina_parameters_extend.retina_parameters = self.retina_parameters
+        self.retina_parameters_extend.receptive_field_repulsion_parameters.retina_parameters = (
+            self.retina_parameters
+        )
+        self.retina_parameters_extend.receptive_field_repulsion_parameters.retina_parameters_extend = (
+            self.retina_parameters_extend
+        )
+        self.retina_parameters.gain_calibration = self.gain_calibration
+        
+        # Derive default stimulus video name using ConfigParams.stimulus_folder
         if self.visual_stimulus_parameters.stimulus_video_name is None:
             self.visual_stimulus_parameters.stimulus_video_name = (
-                f"{self.stimulus_folder}.hdf5"
+                str(self.stimulus_folder) + ".hdf5"
             )
-        self.retina_parameters_extend.dd_regr_model = getattr(
-            self.retina_parameters_extend.dd_regr_model_options,
-            self.retina_parameters.gc_type,
-        )
-        self.retina_parameters_extend.receptive_field_repulsion_parameters.n_iterations = getattr(
-            self.retina_parameters_extend.n_repulsion_iterations,
-            self.retina_parameters.gc_type,
-        )
 
-        # Set signal gain from a separate yaml file
-        self.retina_parameters.signal_gain = getattr(
-            getattr(
-                getattr(
-                    self.gain_calibration.signal_gain_table,
-                    self.retina_parameters.gc_type,
-                ),
-                self.retina_parameters.response_type,
-            ),
-            self.retina_parameters.spatial_model_type,
-        ).get(self.retina_parameters.temporal_model_type)
-
-        self.retina_parameters.noise_fr_mean = getattr(
-            getattr(
-                self.gain_calibration.noise_fr_mean_table,
-                self.retina_parameters.response_type,
-            ),
-            self.retina_parameters.gc_type,
-        )
-        if self.retina_parameters.gc_type == "parasol":
-            self.dendr_diam1_datafile = self.dendr_diam1_datafile_parasol
-            self.dendr_diam2_datafile = self.dendr_diam2_datafile_parasol
-            self.dendr_diam3_datafile = self.dendr_diam3_datafile_parasol
-            self.temporal_BK_model_datafile = self.temporal_BK_model_datafile_parasol
-            self.spatial_DoG_datafile = self.spatial_DoG_datafile_parasol
-        elif self.retina_parameters.gc_type == "midget":
-            self.dendr_diam1_datafile = self.dendr_diam1_datafile_midget
-            self.dendr_diam2_datafile = self.dendr_diam2_datafile_midget
-            self.dendr_diam3_datafile = self.dendr_diam3_datafile_midget
-            self.temporal_BK_model_datafile = self.temporal_BK_model_datafile_midget
-            self.spatial_DoG_datafile = self.spatial_DoG_datafile_midget
-
-        self.path = self.model_root_path.joinpath(Path(self.project), self.experiment)
         return self
 
 
 class ConfigInternalParams(BaseInternalConfigModel):
+
     experimental_metadata: ExperimentalMetadata | None = ExperimentalMetadata()
     vae_train_parameters: VaeTrainParameters | None = VaeTrainParameters()
 
@@ -730,48 +843,25 @@ class ConfigInternalParams(BaseInternalConfigModel):
         if self.experimental_metadata is None:
             self.experimental_metadata = ExperimentalMetadata()
 
-        self.experimental_metadata.experimental_data_folder = git_repo_path.joinpath(
-            self.experimental_metadata.relative_data_path
+        self.experimental_metadata.experimental_data_folder = (
+            self.git_repo_root_path.joinpath(
+                self.experimental_metadata.relative_data_path
+            )
         )
 
-        self.experimental_metadata.exp_rf_stat_folder = git_repo_path.joinpath(
-            r"retina/dog_statistics"
+        self.experimental_metadata.exp_rf_stat_folder = (
+            self.git_repo_root_path.joinpath(r"retina/dog_statistics")
         )
 
         if self.vae_train_parameters is None:
             self.vae_train_parameters = VaeTrainParameters()
 
-        self.vae_train_parameters.gen_rf_stat_folder = git_repo_path.joinpath(
-            r"retina/vae_statistics"
-        )
-
         return self
-
-
-def _create_and_validate_core_paths(config):
-    # Create new root/project/experiment path if it doesn't exist
-    if not config.path.is_dir():
-        config.path.mkdir(parents=True, exist_ok=True)
-
-    # Validate main project path, must be absolute
-    if not config.path.is_absolute():
-        raise KeyError("The 'path' parameter is not an absolute path, aborting...")
-
-    # Create the output, stimulus and input folders if they don't exist
-    config.output_folder = config.path.joinpath(config.output_folder)
-    config.stimulus_folder = config.path.joinpath(config.stimulus_folder)
-    config.input_folder = config.path.joinpath(config.input_folder)
-
-    config.input_folder.mkdir(parents=True, exist_ok=True)
-    config.output_folder.mkdir(parents=True, exist_ok=True)
-    config.stimulus_folder.mkdir(parents=True, exist_ok=True)
 
 
 # Façade
 def validate_params(
     original_config: Configuration,
-    project_manager_module_file_path: Path,
-    git_repo_root_path: Path,
 ) -> Configuration:
     """
     Validate and convert parameters to the appropriate types.
@@ -787,31 +877,38 @@ def validate_params(
         Configuration object with the validated parameters, plus any computed
         field from ConfigParams.
     """
-    global proj_manager_mod_file_path
-    proj_manager_mod_file_path = project_manager_module_file_path
+    raw = (
+        original_config.as_dict()
+        if isinstance(original_config, Configuration)
+        else dict(original_config)
+    )
 
-    global git_repo_path
-    git_repo_path = git_repo_root_path
+    params = ConfigParams(**raw)
+    _ = (
+        params.path,
+        params.input_folder,
+        params.output_folder,
+        params.stimulus_folder,
+        params.literature_data_folder,
+        params.dendr_diam1_datafile,
+        params.dendr_diam2_datafile,
+        params.dendr_diam3_datafile,
+        params.temporal_BK_model_datafile,
+        params.spatial_DoG_datafile,
+    )
+
+    internal_params = ConfigInternalParams(
+        experimental_metadata=original_config.get("experimental_metadata"),
+        vae_train_parameters=original_config.get("vae_train_parameters"),
+        git_repo_root_path=original_config.get("git_repo_root_path"),
+    )
+
+    merged = params.model_dump(mode="python")
+    merged.update(internal_params.model_dump(mode="python"))
+
+    config = Configuration(merged)
 
     # Store retina_parameter.yaml keys as core parameters for downstream hashing
-    # config.retina_core_parameter_keys = config.retina_parameters.keys()
-
-    validated_config: ConfigParams = ConfigParams(original_config)
-    validated_config: dict = validated_config.model_dump()
-
-    # Validate internal parameters
-    validated_internal_config: ConfigInternalParams = ConfigInternalParams(
-        **{
-            "experimental_metadata": original_config.get("experimental_metadata"),
-            "vae_train_parameters": original_config.get("vae_train_parameters"),
-        }
-    )
-    validated_internal_config: dict = validated_internal_config.model_dump()
-
-    # Franc was here!
-    config.clear()
-    config.update(validated_config)
-    config.update(validated_internal_config)
-    _create_and_validate_core_paths(config)
+    config.retina_core_parameter_keys = config.retina_parameters.keys()
 
     return config

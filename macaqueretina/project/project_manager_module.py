@@ -11,10 +11,10 @@ of the instance.
 from __future__ import annotations
 
 # Built-in
-import time
+# import time
 import warnings
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING, Any, Callable
 
 # Third-party
 import matplotlib.pyplot as plt
@@ -127,17 +127,12 @@ class ProjectManager(ProjectUtilitiesMixin):
         self.project_manager_module_file_path = Path(__file__).resolve()
         self.git_repo_root_path = self.project_manager_module_file_path.parent.parent
 
-        self.original_config = self.load_parameters()
-        self.config = self.validate_parameters(self.original_config)
-        breakpoint()
-        # load yaml
-        # save original dict before config
-        # make config object and validate
-        # when changed, invoke parent object update_method
-        # update_method: called from config object
-        # change original dict
-        # make config object again and validate
-
+        self.original_config: dict = self.load_parameters()
+        self._retina_extend_keys = set(
+            (self.original_config.get("retina_parameters_extend") or {}).keys()
+        )
+        self.config: Configuration = self.validate_parameters(self.original_config)
+        
         data_io = DataIO(self.config)
         self.data_io = data_io
 
@@ -181,6 +176,8 @@ class ProjectManager(ProjectUtilitiesMixin):
         )
 
         self.apply_changed_config()
+        # Register: any future config mutation triggers re-validation + rebuild
+        self.config.set_on_change(self._on_config_mutated)
 
         self.viz.construct_retina = self.construct_retina
 
@@ -227,6 +224,81 @@ class ProjectManager(ProjectUtilitiesMixin):
 
         # Set numpy random seed
         np.random.seed(self.config.numpy_seed)
+
+    def _set_in_dict(self, d: dict, path: tuple[str, ...], value: Any) -> None:
+        cur = d
+        for k in path[:-1]:
+            if k not in cur or not isinstance(cur[k], dict):
+                cur[k] = {}
+            cur = cur[k]
+        cur[path[-1]] = value
+
+    def _map_literature_view_key_to_raw_key(self, view_key: str, gc_type: str) -> str:
+        """
+        Runtime uses literature_data_files.<name>_path (and some non-_path keys).
+        Raw YAML schema uses <name>_datafile[_<gc_type>] for file paths, plus some
+        non-gc-type-specific keys like dendr_diam_units and gc_density_1_scaling_data_and_function.
+        """
+        # Convert *_path -> *_datafile
+        if view_key.endswith("_path"):
+            base = view_key[: -len("_path")] + "_datafile"
+        else:
+            base = view_key  # e.g. dendr_diam_units, gc_density_1_scaling_data_and_function
+
+        # Prefer gc-type-specific key if it exists in the raw dict
+        candidate = f"{base}_{gc_type}"
+        if candidate in self.original_config:
+            return candidate
+
+        # Otherwise fall back to non-suffixed key if present (or create it)
+        return base
+
+    def _view_path_to_raw_path(
+        self, root_cfg: Configuration, path: tuple[str, ...]
+    ) -> tuple[str, ...]:
+        """
+        Convert a path in the reorganized runtime config back to the raw YAML schema path.
+        """
+        if not path:
+            return path
+
+        # 1) retina_parameters.* may actually belong to retina_parameters_extend.*
+        if path[0] == "retina_parameters" and len(path) >= 2:
+            k = path[1]
+            if k in self._retina_extend_keys:
+                return ("retina_parameters_extend",) + path[1:]
+            return path  # stays under retina_parameters in raw schema too
+
+        # 2) literature_data_files.* lives at top-level in raw schema (often gc-type-specific)
+        if path[0] == "literature_data_files" and len(path) >= 2:
+            view_key = path[1]
+            gc_type = root_cfg.retina_parameters.gc_type  # current runtime value
+            raw_key = self._map_literature_view_key_to_raw_key(view_key, gc_type)
+            # literature_data_files is a "view-only" container; raw key is top-level
+            return (raw_key,) + path[2:]
+
+        # 3) everything else: assume same path in raw schema
+        return path
+
+    def _on_config_mutated(
+        self, root_cfg: "Configuration", path: tuple[str, ...], value: Any
+    ) -> None:
+        if not path:
+            return
+
+        raw_path = self._view_path_to_raw_path(root_cfg, path)
+
+        # Write into RAW dict (YAML-shaped)
+        self._set_in_dict(self.original_config, raw_path, value)
+
+        # Re-validate from RAW dict (so required top-level keys exist)
+        validated = self.validate_parameters(self.original_config)
+
+        # Apply validated/reorganized results back into the live config in-place
+        with root_cfg.mute_notifications():
+            root_cfg.replace_from(validated)
+
+        self.apply_changed_config()
 
     @property
     def data_io(self):
@@ -280,7 +352,7 @@ class ProjectManager(ProjectUtilitiesMixin):
                 "Trying to set improper analog_input. analog_input must be a AnalogInput instance."
             )
 
-    def load_parameters(self) -> tuple[dict, Configuration]:
+    def load_parameters(self) -> dict:
         """Load configuration parameters."""
 
         parameters_folder: Path = self.git_repo_root_path.joinpath("parameters/")
@@ -296,16 +368,20 @@ class ProjectManager(ProjectUtilitiesMixin):
         validate_params: Callable | None = _get_validation_params_method(
             parameters_folder
         )
+
+        original_config["git_repo_root_path"] = self.git_repo_root_path
+        original_config["project_manager_module_file_path"] = (
+            self.project_manager_module_file_path
+        )
+
         if validate_params:
             validated_config = validate_params(
                 original_config,
-                self.project_manager_module_file_path,
-                self.git_repo_root_path,
             )
             reorganizer = ParamReorganizer()
-            config: Configuration = reorganizer.reorganize(validated_config)
+            validated_config: Configuration = reorganizer.reorganize(validated_config)
 
-        return config
+        return validated_config
 
 
 def main():
