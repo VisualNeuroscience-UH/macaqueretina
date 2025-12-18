@@ -769,7 +769,7 @@ def _create_and_validate_core_paths(config):
 
 # Façade
 def validate_params(
-    config: Configuration,
+    original_config: Configuration,
     project_manager_module_file_path: Path,
     git_repo_root_path: Path,
 ) -> Configuration:
@@ -794,16 +794,16 @@ def validate_params(
     git_repo_path = git_repo_root_path
 
     # Store retina_parameter.yaml keys as core parameters for downstream hashing
-    config.retina_core_parameter_keys = config.retina_parameters.keys()
+    # config.retina_core_parameter_keys = config.retina_parameters.keys()
 
-    validated_config: ConfigParams = ConfigParams(**config.as_dict())
+    validated_config: ConfigParams = ConfigParams(original_config)
     validated_config: dict = validated_config.model_dump()
 
     # Validate internal parameters
     validated_internal_config: ConfigInternalParams = ConfigInternalParams(
         **{
-            "experimental_metadata": config.as_dict().get("experimental_metadata"),
-            "vae_train_parameters": config.as_dict().get("vae_train_parameters"),
+            "experimental_metadata": original_config.get("experimental_metadata"),
+            "vae_train_parameters": original_config.get("vae_train_parameters"),
         }
     )
     validated_internal_config: dict = validated_internal_config.model_dump()

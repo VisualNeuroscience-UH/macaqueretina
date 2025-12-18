@@ -22,7 +22,7 @@ import numpy as np
 
 # Local
 from macaqueretina.analysis.analysis_module import Analysis
-from macaqueretina.data_io.config_io import load_yaml
+from macaqueretina.data_io.config_io import load_yaml_as_dict
 from macaqueretina.data_io.data_io_module import DataIO
 from macaqueretina.parameters.param_reorganizer import ParamReorganizer
 from macaqueretina.project.project_utilities_module import (
@@ -83,9 +83,9 @@ def _get_validation_params_method(parameters_folder: Path) -> Callable | None:
             )
 
 
-def run_core_parameter_pipeline(PM: ProjectManager, config: Configuration) -> None:
+def run_core_parameter_pipeline(PM: ProjectManager) -> None:
     """Runs the pipeline(s) chosen in the core_parameters.yaml file."""
-    run = config.run
+    run = PM.config.run
     if run.build_retina:
         PM.construct_retina.build_retina_client()
     if run.make_stimulus:
@@ -106,27 +106,6 @@ def run_core_parameter_pipeline(PM: ProjectManager, config: Configuration) -> No
         pass
 
 
-def load_parameters() -> Configuration:
-    """Load configuration parameters."""
-    project_manager_module_file_path = Path(__file__).resolve()
-    git_repo_root_path = project_manager_module_file_path.parent.parent
-
-    parameters_folder: Path = git_repo_root_path.joinpath("parameters/")
-    yaml_files = list(parameters_folder.glob("*.yaml"))
-    validate_params: Callable | None = _get_validation_params_method(parameters_folder)
-
-    config: Configuration = load_yaml(yaml_files)
-
-    if validate_params:
-        validated_config = validate_params(
-            config, project_manager_module_file_path, git_repo_root_path
-        )
-        reorganizer = ParamReorganizer()
-        config = reorganizer.reorganize(validated_config)
-
-    return config
-
-
 class ProjectData:
     """
     This is a container for project piping data for internal use, such as visualizations.
@@ -139,14 +118,25 @@ class ProjectData:
 
 
 class ProjectManager(ProjectUtilitiesMixin):
-    def __init__(self, config):
+    def __init__(self):
         """
         Main project manager.
         In init we construct other classes and inject necessary dependencies.
         This class is allowed to house project-dependent data and methods.
         """
+        self.project_manager_module_file_path = Path(__file__).resolve()
+        self.git_repo_root_path = self.project_manager_module_file_path.parent.parent
 
-        self.config = config
+        self.original_config = self.load_parameters()
+        self.config = self.validate_parameters(self.original_config)
+        breakpoint()
+        # load yaml
+        # save original dict before config
+        # make config object and validate
+        # when changed, invoke parent object update_method
+        # update_method: called from config object
+        # change original dict
+        # make config object again and validate
 
         data_io = DataIO(self.config)
         self.data_io = data_io
@@ -290,37 +280,62 @@ class ProjectManager(ProjectUtilitiesMixin):
                 "Trying to set improper analog_input. analog_input must be a AnalogInput instance."
             )
 
+    def load_parameters(self) -> tuple[dict, Configuration]:
+        """Load configuration parameters."""
+
+        parameters_folder: Path = self.git_repo_root_path.joinpath("parameters/")
+        yaml_files = list(parameters_folder.glob("*.yaml"))
+        original_config: dict = load_yaml_as_dict(yaml_files)
+        return original_config
+
+    def validate_parameters(
+        self,
+        original_config: dict,
+    ) -> Configuration:
+        parameters_folder: Path = self.git_repo_root_path.joinpath("parameters/")
+        validate_params: Callable | None = _get_validation_params_method(
+            parameters_folder
+        )
+        if validate_params:
+            validated_config = validate_params(
+                original_config,
+                self.project_manager_module_file_path,
+                self.git_repo_root_path,
+            )
+            reorganizer = ParamReorganizer()
+            config: Configuration = reorganizer.reorganize(validated_config)
+
+        return config
+
 
 def main():
-    start_time = time.time()
-    config = load_parameters()
+    # start_time = time.time()
+    # if config.profile is True:
+    #     import cProfile
+    #     import pstats
 
-    if config.profile is True:
-        import cProfile
-        import pstats
+    #     profiler = cProfile.Profile()
+    #     profiler.enable()
+    #     end_time = time.time()
 
-        profiler = cProfile.Profile()
-        profiler.enable()
-        end_time = time.time()
+    PM = ProjectManager()
 
-    PM = ProjectManager(config)
+    run_core_parameter_pipeline(PM)
 
-    run_core_parameter_pipeline(PM, config)
+    # end_time = time.time()
+    # print(
+    #     "Total time taken: ",
+    #     time.strftime(
+    #         "%H hours %M minutes %S seconds", time.gmtime(end_time - start_time)
+    #     ),
+    # )
 
-    end_time = time.time()
-    print(
-        "Total time taken: ",
-        time.strftime(
-            "%H hours %M minutes %S seconds", time.gmtime(end_time - start_time)
-        ),
-    )
+    # plt.show()
 
-    plt.show()
-
-    if config.profile is True:
-        profiler.disable()
-        stats = pstats.Stats(profiler).sort_stats("tottime")
-        stats.print_stats(20)
+    # if config.profile is True:
+    #     profiler.disable()
+    #     stats = pstats.Stats(profiler).sort_stats("tottime")
+    #     stats.print_stats(20)
 
 
 if __name__ == "__main__":

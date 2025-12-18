@@ -6,7 +6,7 @@ ProjectManager to load the configuration parameters.
 
 # Built-in
 import os
-from typing import Callable
+from typing import TYPE_CHECKING, Callable
 
 # Third-party
 import tomli
@@ -14,15 +14,18 @@ import tomli
 # Local
 from .analysis.analysis_module import Analysis
 from .project.project_manager_module import ProjectManager as _ProjectManager
-from .project.project_manager_module import load_parameters as _load_parameters
 from .retina.retina_math_module import RetinaMath
 from .stimuli.experiment_module import Experiment
 from .viz.viz_module import Viz, VizResponse
 
-config = _load_parameters()
-PM: _ProjectManager = _ProjectManager(config)
+if TYPE_CHECKING:
+    from data_io.config_io import Configuration
+
+# ProjectManager instance
+PM: _ProjectManager = _ProjectManager()
 
 # This connects the top-level macaqueretina namespace to the various modules. Look here if you are lost.
+config: Configuration = PM.config
 analysis: Analysis = PM.ana
 construct_retina: Callable = PM.construct_retina.build_retina_client
 countlines = PM.countlines
@@ -53,7 +56,7 @@ __all__ = [
     "viz_spikes_with_stimulus",
 ]
 
-del (_load_parameters, _ProjectManager)
+del _ProjectManager
 
 
 def get_version():

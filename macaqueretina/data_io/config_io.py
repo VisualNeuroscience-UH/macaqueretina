@@ -435,3 +435,35 @@ def load_yaml(paths: Iterable[Path | str] | Path | str) -> Configuration:
         paths_list = list(paths)
 
     return Configuration.from_yaml(*paths_list)
+
+
+def load_yaml_as_dict(paths: Iterable[Path | str] | Path | str) -> dict:
+    """
+    Load project configuration from one or more YAML files.
+
+    Parameters
+    ----------
+
+    paths: Iterable[Path | str] | Path | str
+        Iterable of paths (ora a single Path / str) to YAML configuration files to load
+        and merge.
+
+    Returns
+    -------
+    dict
+        dict object with the contents of the YAML file(s).
+
+    Raises
+    ------
+    FileNotFoundError
+        If any of the args (paths) does not exist
+    """
+
+    if isinstance(paths, (str, Path)):
+        paths_list = [paths]
+    else:
+        paths_list = list(paths)
+
+    loader = _YamlLoader(paths_list)
+
+    return loader.load_config()
