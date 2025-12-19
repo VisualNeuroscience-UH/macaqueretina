@@ -2462,15 +2462,57 @@ class ReceptiveFieldsBase(ABC, PrintableMixin, RetinaMath):
             Dictionary containing retina parameters.
         """
         self.retina_parameters: Dict[str, Any] = retina_parameters
-        self.spatial_filter_sidelen: int = 0
-        self.microm_per_pix: float = 0.0
-        self.temporal_filter_len: int = 0
-        self.gc_type: str = self.retina_parameters["gc_type"]
-        self.response_type: str = self.retina_parameters["response_type"]
-        self.deg_per_mm: float = self.retina_parameters["deg_per_mm"]
-        self.dog_model_type: str = self.retina_parameters["dog_model_type"]
-        self.spatial_model_type: str = self.retina_parameters["spatial_model_type"]
-        self.temporal_model_type: str = self.retina_parameters["temporal_model_type"]
+        self._spatial_filter_sidelen: int = 0
+        self._microm_per_pix: float = 0.0
+        self._temporal_filter_len: int = 0
+
+        @property
+        def spatial_filter_sidelen(self) -> int:
+            return self._spatial_filter_sidelen
+        
+        @spatial_filter_sidelen.setter
+        def spatial_filter_sidelen(self, value: int) -> None:
+            self._spatial_filter_sidelen = value
+        
+        @property
+        def microm_per_pix(self) -> float:
+            return self._microm_per_pix
+        
+        @microm_per_pix.setter
+        def microm_per_pix(self, value: float) -> None:
+            self._microm_per_pix = value
+        
+        @property
+        def temporal_filter_len(self) -> int:
+            return self._temporal_filter_len
+        
+        @temporal_filter_len.setter
+        def temporal_filter_len(self, value: int) -> None:
+            self._temporal_filter_len = value
+        
+        @property
+        def gc_type(self) -> str:
+            return self.retina_parameters["gc_type"]
+        
+        @property
+        def response_type(self) -> str:
+            return self.retina_parameters["response_type"]
+        
+        @property
+        def deg_per_mm(self) -> float:
+            return self.retina_parameters["deg_per_mm"]
+        
+        @property
+        def dog_model_type(self) -> str:
+            return self.retina_parameters["dog_model_type"]
+        
+        @property
+        def spatial_model_type(self) -> str:
+            return self.retina_parameters["spatial_model_type"]
+        
+        @property
+        def temporal_model_type(self) -> str:
+            return self.retina_parameters["temporal_model_type"]
 
 
 class ConeProduct(ReceptiveFieldsBase):
@@ -3311,6 +3353,12 @@ class GanglionCellProduct(ReceptiveFieldsBase):
         self.visual2cortical_params = retina_parameters["visual2cortical_params"]
 
         rspace_pos_mm = pol2cart_df(gc_dataframe)
+        self.response_type = retina_parameters.response_type
+        self.gc_type = retina_parameters.gc_type
+        self.deg_per_mm = retina_parameters.deg_per_mm
+        self.dog_model_type = retina_parameters.dog_model_type
+        self.temporal_model_type = retina_parameters.temporal_model_type
+        self.spatial_model_type = retina_parameters.spatial_model_type
         vspace_pos = rspace_pos_mm * self.deg_per_mm
         vspace_coords_deg = pd.DataFrame(
             {"x_deg": vspace_pos[:, 0], "y_deg": vspace_pos[:, 1]}
