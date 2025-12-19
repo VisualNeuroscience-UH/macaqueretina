@@ -131,8 +131,8 @@ class VisualStimulusParameters(BaseConfigModel):
     stimulus_size: float = Field(
         default=1.5, description="deg, radius for circle, sidelen/2 for rectangle."
     )
-    temporal_frequency: float = Field(default=0.01, description="Hz")
-    spatial_frequency: float = Field(default=2.0, description="cpd")
+    temporal_frequency: float | None = Field(default=0.01, description="Hz")
+    spatial_frequency: float | None = Field(default=2.0, description="cpd")
     orientation: float = Field(default=90.0, description="degrees")
     phase_shift: float = Field(default=0.0, description="radians")
     stimulus_video_name: str | None
@@ -271,35 +271,48 @@ class RetinaParametersExtend(BaseConfigModel):
 
     class ConeSignalParameters(BaseConfigModel):
         unit: str = "pA"
-        A_pupil: float = 9.0
-        lambda_nm: float = 555
-        input_gain: float = 1.0
+        A_pupil: float | b2u.Quantity = 9.0
+        lambda_nm: float | b2u.Quantity = 555
+        input_gain: float | b2u.Quantity = 1.0
         r_dark: float = -136
-        max_response: float = 116.8
-        alpha: float = 19.4
-        beta: float = 0.36
-        gamma: float = 0.448
-        tau_y: float = 4.49
-        n_y: float = 4.33
-        tau_z: float = 166
-        n_z: float = 1.0
-        tau_r: float = 4.78
-        filter_limit_time: float = 3.0
+        max_response: float | b2u.Quantity = 116.8
+        alpha: float | b2u.Quantity = 19.4
+        beta: float | b2u.Quantity = 0.36
+        gamma: float | b2u.Quantity = 0.448
+        tau_y: float | b2u.Quantity = 4.49
+        n_y: float | b2u.Quantity = 4.33
+        tau_z: float | b2u.Quantity = 166
+        n_z: float | b2u.Quantity = 1.0
+        tau_r: float | b2u.Quantity = 4.78
+        filter_limit_time: float | b2u.Quantity = 3.0
 
-        @field_validator("r_dark", "max_response", "alpha", mode="after")
+        @field_validator("r_dark", "max_response", mode="after")
         @classmethod
         def add_b2u_pa(cls, v) -> b2u.Quantity:
-            return v * b2u.pA
+            if not isinstance(v, b2u.Quantity):
+                return v * b2u.pA
+            return v
 
-        @field_validator("beta", "tau_y", "tau_z", "tau_r", "alpha", mode="after")
+        @field_validator("beta", "tau_y", "tau_z", "tau_r", mode="after")
         @classmethod
         def add_b2u_ms(cls, v):
-            return v * b2u.ms
+            if not isinstance(v, b2u.Quantity):
+                return v * b2u.ms
+            return v
 
         @field_validator("filter_limit_time", mode="after")
         @classmethod
         def add_b2u_second(cls, v):
-            return v * b2u.second
+            if not isinstance(v, b2u.Quantity):
+                return v * b2u.second
+            return v
+        
+        @field_validator("alpha", mode="after")
+        @classmethod
+        def add_b2u_pa_ms(cls, v) -> b2u.Quantity:
+            if not isinstance(v, b2u.Quantity):
+                return v * b2u.pA * b2u.ms
+            return v
 
     cone_signal_parameters: ConeSignalParameters
 
