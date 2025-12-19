@@ -179,19 +179,7 @@ class ProjectManager(ProjectUtilitiesMixin):
         # Register: any future config mutation triggers re-validation + rebuild
         self.config.set_on_change(self._on_config_mutated)
 
-        self.viz.construct_retina = self.construct_retina
-
-        analog_input = AnalogInput(
-            self.config,
-            data_io,
-            viz,
-            ReceptiveFields=ReceptiveFieldsBase,
-            pol2cart_df=self.simulate_retina.pol2cart_df,
-            get_w_z_coords=self.simulate_retina.get_w_z_coords,
-        )
-        self.analog_input = analog_input
-
-        self.data_sampler = DataSampler
+        
 
     def apply_changed_config(self):
         fit = Fit(self.project_data, self.config.experimental_metadata)
@@ -221,6 +209,20 @@ class ProjectManager(ProjectUtilitiesMixin):
         self.experiment = Experiment(
             self.config, self.data_io, self.stimulate, self.simulate_retina
         )
+
+        self.viz.construct_retina = self.construct_retina
+
+        analog_input = AnalogInput(
+            self.config,
+            self.data_io,
+            self.viz,
+            ReceptiveFields=ReceptiveFieldsBase,
+            pol2cart_df=self.simulate_retina.pol2cart_df,
+            get_w_z_coords=self.simulate_retina.get_w_z_coords,
+        )
+        self.analog_input = analog_input
+
+        self.data_sampler = DataSampler
 
         # Set numpy random seed
         np.random.seed(self.config.numpy_seed)
