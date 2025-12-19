@@ -856,6 +856,11 @@ class ConfigInternalParams(BaseInternalConfigModel):
         if self.vae_train_parameters is None:
             self.vae_train_parameters = VaeTrainParameters()
 
+
+        self.vae_train_parameters.gen_rf_stat_folder = self.git_repo_root_path.joinpath(
+            r"retina/vae_statistics"
+        )
+
         return self
 
 
