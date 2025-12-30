@@ -11,6 +11,7 @@ of the instance.
 from __future__ import annotations
 
 # Built-in
+import runpy
 import time
 import warnings
 from pathlib import Path
@@ -99,11 +100,12 @@ def run_core_parameter_pipeline(PM: ProjectManager) -> None:
             n_samples=options.n_samples,
             savefigname=options.savefigname,
         )
-    if run.visualize_all_gc_responses:
+    if run.visualize_all_gc_responses.show:
         options = run.visualize_all_gc_responses
         PM.viz.show_all_gc_responses()
-    if run.experiment_hpc:
-        pass
+    if run.experiment.run_experiment:
+        experiment_script_path = run.experiment.script_path
+        runpy.run_path(experiment_script_path, run_name="__main__")
 
 
 class ProjectData:
