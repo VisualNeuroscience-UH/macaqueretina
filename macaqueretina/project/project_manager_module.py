@@ -12,13 +12,11 @@ from __future__ import annotations
 
 # Built-in
 import runpy
-import time
 import warnings
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable
 
 # Third-party
-import matplotlib.pyplot as plt
 import numpy as np
 
 # Local
