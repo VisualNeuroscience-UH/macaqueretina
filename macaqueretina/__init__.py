@@ -25,7 +25,7 @@ if TYPE_CHECKING:
 PM: _ProjectManager = _ProjectManager()
 
 # This connects the top-level macaqueretina namespace to the various modules. Look here if you are lost.
-config: Configuration = PM.config
+config: "Configuration" = PM.config
 analysis: Analysis = PM.ana
 construct_retina: Callable = PM.construct_retina.build_retina_client
 countlines = PM.countlines
