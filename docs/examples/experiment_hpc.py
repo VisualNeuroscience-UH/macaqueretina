@@ -4,58 +4,19 @@ Parameters are changed via environment variables ??using param_hpc_updater.py.??
 The environment variables are set in SLURM job script.
 """
 
-# # Built-in
-import os
-import sys
-from pathlib import Path
-
-# Third-party
-import yaml
-
-
-def update_yaml_with_env_vars(yaml_path, top_level_key):
-    with open(yaml_path) as f:
-        data = yaml.safe_load(f)
-
-    if top_level_key not in data:
-        print(f"Error: '{top_level_key}' not found in YAML file.")
-        sys.exit(1)
-
-    updated_keys = 0
-    for key, value in data[top_level_key].items():
-        env_var = key.upper()
-        if env_var in os.environ and isinstance(value, str):
-            data[top_level_key][key] = os.environ[env_var]
-            updated_keys += 1
-
-    with open(yaml_path, "w") as f:
-        yaml.safe_dump(data, f, sort_keys=False)
-    print(
-        f"Updated '{yaml_path}' with environment {updated_keys} variables for top-level key '{top_level_key}'."
-    )
-
-
-# ##################################################
-# # Repeat for all parameters file & key pairs whose
-# # parameters should be updated via env vars
-
-# yaml_path = Path("macaqueretina/parameters/retina_parameters.yaml")
-# top_level_key = "retina_parameters"
-
-# update_yaml_with_env_vars(yaml_path, top_level_key)
-# ############################################
-# Local
-
 if __name__ == "__main__":
     import macaqueretina as mr
 
-    # Change params here
+    # Stimulus folder
     mr.config.stimulus_folder = mr.config.path.joinpath(f"stim_{mr.config.experiment}")
     mr.config.stimulus_folder.mkdir(parents=True, exist_ok=True)
+
+    # Output folder
     retina_parameters = mr.config.retina_parameters
     output_folder = f"{retina_parameters.gc_type}_{retina_parameters.response_type}_{retina_parameters.spatial_model_type}_{retina_parameters.temporal_model_type}"
     mr.config.output_folder = mr.config.path.joinpath(output_folder)
     mr.config.output_folder.mkdir(parents=True, exist_ok=True)
+
     mr.construct_retina()
 
     ###############################

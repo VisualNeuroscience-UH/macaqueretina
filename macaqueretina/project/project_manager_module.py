@@ -120,7 +120,7 @@ class ProjectData:
 
 
 class ProjectManager(ProjectUtilitiesMixin):
-    def __init__(self):
+    def __init__(self, yaml_path=None):
         """
         Main project manager.
         In init we construct other classes and inject necessary dependencies.
@@ -129,7 +129,11 @@ class ProjectManager(ProjectUtilitiesMixin):
         self.project_manager_module_file_path = Path(__file__).resolve()
         self.git_repo_root_path = self.project_manager_module_file_path.parent.parent
 
-        self.original_config: dict = self.load_parameters()
+        if yaml_path is None:
+            self.original_config: dict = self.load_parameters()
+        else:
+            self.original_config: dict = self.load_parameters(yaml_path)
+
         self._retina_extend_keys = set(
             (self.original_config.get("retina_parameters_extend") or {}).keys()
         )
