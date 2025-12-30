@@ -11,7 +11,7 @@ of the instance.
 from __future__ import annotations
 
 # Built-in
-# import time
+import time
 import warnings
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable
@@ -132,7 +132,7 @@ class ProjectManager(ProjectUtilitiesMixin):
             (self.original_config.get("retina_parameters_extend") or {}).keys()
         )
         self.config: Configuration = self.validate_parameters(self.original_config)
-        
+
         data_io = DataIO(self.config)
         self.data_io = data_io
 
@@ -178,8 +178,6 @@ class ProjectManager(ProjectUtilitiesMixin):
         self.apply_changed_config()
         # Register: any future config mutation triggers re-validation + rebuild
         self.config.set_on_change(self._on_config_mutated)
-
-        
 
     def apply_changed_config(self):
         fit = Fit(self.project_data, self.config.experimental_metadata)
@@ -283,7 +281,7 @@ class ProjectManager(ProjectUtilitiesMixin):
         return path
 
     def _on_config_mutated(
-        self, root_cfg: "Configuration", path: tuple[str, ...], value: Any
+        self, root_cfg: Configuration, path: tuple[str, ...], value: Any
     ) -> None:
         if not path:
             return
@@ -387,7 +385,7 @@ class ProjectManager(ProjectUtilitiesMixin):
 
 
 def main():
-    # start_time = time.time()
+    start_time = time.time()
     # if config.profile is True:
     #     import cProfile
     #     import pstats
@@ -400,15 +398,15 @@ def main():
 
     run_core_parameter_pipeline(PM)
 
-    # end_time = time.time()
-    # print(
-    #     "Total time taken: ",
-    #     time.strftime(
-    #         "%H hours %M minutes %S seconds", time.gmtime(end_time - start_time)
-    #     ),
-    # )
+    end_time = time.time()
+    print(
+        "Total time taken: ",
+        time.strftime(
+            "%H hours %M minutes %S seconds", time.gmtime(end_time - start_time)
+        ),
+    )
 
-    # plt.show()
+    plt.show()
 
     # if config.profile is True:
     #     profiler.disable()
