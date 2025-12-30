@@ -15,7 +15,6 @@ from __future__ import annotations
 # Built-in
 import random
 from pathlib import Path
-from pydantic_core import PydanticUndefined
 from typing import Any, Literal, Self
 
 # Third-party
@@ -28,6 +27,7 @@ from pydantic import (
     field_validator,
     model_validator,
 )
+from pydantic_core import PydanticUndefined
 
 # Local
 from macaqueretina.data_io.config_io import Configuration
@@ -137,21 +137,21 @@ class RetinaParameters(BaseConfigModel):
             ),
             self.spatial_model_type,
         ).get(self.temporal_model_type)
-    
+
     @computed_field
     @property
     def noise_fr_mean(self) -> float:
         """Dynamically compute noise_fr_mean based on gc_type and response_type."""
         if self.gain_calibration is None:
             raise ValueError("gain_calibration not set in RetinaParameters")
-        
+
         return getattr(
-                getattr(
-                    self.gain_calibration.noise_fr_mean_table,
-                    self.response_type,
-                ),
-                self.gc_type,
-            )
+            getattr(
+                self.gain_calibration.noise_fr_mean_table,
+                self.response_type,
+            ),
+            self.gc_type,
+        )
 
     @field_validator("retina_center", mode="before")
     @classmethod
@@ -374,7 +374,7 @@ class RetinaParametersExtend(BaseConfigModel):
             if not isinstance(v, b2u.Quantity):
                 return v * b2u.second
             return v
-        
+
         @field_validator("alpha", mode="after")
         @classmethod
         def add_b2u_pa_ms(cls, v) -> b2u.Quantity:
@@ -592,56 +592,6 @@ class ExperimentalMetadata(BaseInternalConfigModel):
     )
 
 
-class VaeTrainParameters(BaseInternalConfigModel):
-    vae_run_mode: Literal["load_model", "train_model"] = Field(
-        default="load_model", description="train_model requires experimental data"
-    )
-    epochs: int = Field(default=500, description="Number of training epochs")
-    lr_step_size: int = Field(
-        default=20, description="Learning rate decay step size (in epochs)"
-    )
-    lr_gamma: float | int = Field(
-        default=0.9,
-        description="Learning rate decay (multiplier for learning rate)",
-    )
-    resolution_hw: int = Field(
-        default=13, description="Both x and y images will be sampled to this space."
-    )
-    latent_dim: int = Field(
-        default=32, description="Latent dimension (powers of 2 between 2 and 128)"
-    )
-    channels: int = Field(default=16, description="Number of channels")
-    lr: float = Field(default=0.0005, description="Learning rate")
-    batch_size: int | None = Field(default=256, description="Batch size")
-    test_split: float = Field(
-        default=0.2,
-        description="Split data for validation and testing (both will take this fraction of data)",
-    )
-    kernel_stride: Literal["k3s1", "k3s2", "k5s2", "k5s1", "k7s1"] = "k7s1"
-    conv_layers: int = Field(default=2, description="Number of convolutional layers")
-    batch_norm: bool = Field(default=True, description="Use batch normalization")
-    latent_distribution: Literal["normal", "uniform"] = "uniform"
-
-    class AugmentationDict(BaseInternalConfigModel):
-        rotation: int = Field(default=0, description="Rotation in degrees")
-        translation: tuple[int, int] = Field(
-            default=(0, 0), description="Fraction of image, in (x, y) -directions"
-        )
-        noise: float = Field(
-            default=0,
-            description="Noise float in [0, 1] (noise is added to the image)",
-        )
-        flip: float = Field(
-            default=0.5,
-            description="Flip probability, both horizontal and vertical",
-        )
-        data_multiplier: int = Field(
-            default=4, description="How many times to get the data w/ augmentation"
-        )
-
-    augmentation_dict: AugmentationDict | None = AugmentationDict()
-
-
 class ExperimentalMetadata(BaseInternalConfigModel):
     data_microm_per_pix: int | None = 60
     data_spatialfilter_height: int | None = 13
@@ -823,14 +773,10 @@ class ConfigParams(BaseConfigModel):
         """Sets internal cross-references."""
         self.retina_parameters.gain_calibration = self.gain_calibration
         self.retina_parameters_extend.retina_parameters = self.retina_parameters
-        self.retina_parameters_extend.receptive_field_repulsion_parameters.retina_parameters = (
-            self.retina_parameters
-        )
-        self.retina_parameters_extend.receptive_field_repulsion_parameters.retina_parameters_extend = (
-            self.retina_parameters_extend
-        )
+        self.retina_parameters_extend.receptive_field_repulsion_parameters.retina_parameters = self.retina_parameters
+        self.retina_parameters_extend.receptive_field_repulsion_parameters.retina_parameters_extend = self.retina_parameters_extend
         self.retina_parameters.gain_calibration = self.gain_calibration
-        
+
         # Derive default stimulus video name using ConfigParams.stimulus_folder
         if self.visual_stimulus_parameters.stimulus_video_name is None:
             self.visual_stimulus_parameters.stimulus_video_name = (
@@ -841,7 +787,6 @@ class ConfigParams(BaseConfigModel):
 
 
 class ConfigInternalParams(BaseInternalConfigModel):
-
     experimental_metadata: ExperimentalMetadata | None = ExperimentalMetadata()
     vae_train_parameters: VaeTrainParameters | None = VaeTrainParameters()
 
@@ -862,7 +807,6 @@ class ConfigInternalParams(BaseInternalConfigModel):
 
         if self.vae_train_parameters is None:
             self.vae_train_parameters = VaeTrainParameters()
-
 
         self.vae_train_parameters.gen_rf_stat_folder = self.git_repo_root_path.joinpath(
             r"retina/vae_statistics"
