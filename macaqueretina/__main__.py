@@ -2,26 +2,20 @@
 
 import os
 import sys
-import tempfile
 import time
 from pathlib import Path
 
 import yaml
 
 # Local
-# from data_io.config_io import load_yaml_as_dict
 from project.project_manager_module import ProjectManager, run_core_parameter_pipeline
-
-# # TMP ENV VAR FOR TESTING
-# tmpdir = Path("/tmp/kukkuu")
-# tmpdir.mkdir(parents=True, exist_ok=True)
-# os.environ["YAML_TMPDIR"] = str(tmpdir.absolute())
-
-
-# breakpoint()
 
 
 def update_yaml_with_env_vars(yaml_path, top_level_key):
+    """
+    Environment variables whose name match the keys under the given
+    top level key are updated to the env variable value.
+    """
     with open(yaml_path) as f:
         data = yaml.safe_load(f)
 
@@ -43,10 +37,11 @@ def update_yaml_with_env_vars(yaml_path, top_level_key):
     )
 
 
-def update_yaml(yaml_tmpdir):
-    ##################################################
-    # Repeat for all parameters file & key pairs whose
-    # parameters should be updated via env vars
+def copy_and_update_yaml(yaml_tmpdir):
+    """
+    Repeats for all parameters file & key pairs whose
+    parameters should be updated via env vars
+    """
     main_path = Path(__file__).resolve()
     git_repo_root_path = main_path.parent.parent
     parameters_folder: Path = git_repo_root_path.joinpath("macaqueretina/parameters/")
@@ -54,10 +49,8 @@ def update_yaml(yaml_tmpdir):
 
     yaml_tmpdir.mkdir(parents=True, exist_ok=True)
     for src in yaml_files:
-        # src = Path("/opt2/git_repos/macaqueretina/macaqueretina/parameters/core_parameters.yaml")
         dst = yaml_tmpdir / src.name
 
-        # dst.parent.mkdir(parents=True, exist_ok=True)  # Create parent dir if needed
         dst.write_bytes(src.read_bytes())  # Copy file content
         print(f"Copied {src.name} to {dst}")
 
@@ -67,7 +60,6 @@ def update_yaml(yaml_tmpdir):
         param_file = f"{top_level_key}.yaml"
         yaml_path = yaml_tmpdir / param_file
         update_yaml_with_env_vars(yaml_path, top_level_key)
-    ############################################
 
 
 def main():
@@ -75,7 +67,7 @@ def main():
 
     if os.environ.get("YAML_TMPDIR"):
         yaml_tmpdir = Path(os.environ.get("YAML_TMPDIR"))
-        update_yaml(yaml_tmpdir)
+        copy_and_update_yaml(yaml_tmpdir)
 
     PM = ProjectManager()
 
