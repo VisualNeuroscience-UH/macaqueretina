@@ -1,4 +1,8 @@
-" This module runs the core_parameters.yaml defined 'run' pipeline when called directly as python macaqueretina. " ""
+"""
+This module runs the core_parameters.yaml defined 'run' pipeline when called directly as python macaqueretina.
+If environment has YAML_TMPDIR defined (as in HPC run), selected to level keys are explored for futher replacements
+before running the pipeline.
+"""
 
 import os
 import sys
