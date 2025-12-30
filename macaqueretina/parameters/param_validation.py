@@ -838,7 +838,7 @@ def validate_params(
         if isinstance(original_config, Configuration)
         else dict(original_config)
     )
-
+    #
     params = ConfigParams(**raw)
     _ = (
         params.path,

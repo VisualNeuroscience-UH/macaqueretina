@@ -384,38 +384,3 @@ class ProjectManager(ProjectUtilitiesMixin):
             validated_config: Configuration = reorganizer.reorganize(validated_config)
 
         return validated_config
-
-
-def main():
-    start_time = time.time()
-    # if config.profile is True:
-    #     import cProfile
-    #     import pstats
-
-    #     profiler = cProfile.Profile()
-    #     profiler.enable()
-    #     end_time = time.time()
-
-    PM = ProjectManager()
-
-    run_core_parameter_pipeline(PM)
-
-    end_time = time.time()
-    print(
-        "Total time taken: ",
-        time.strftime(
-            "%H hours %M minutes %S seconds", time.gmtime(end_time - start_time)
-        ),
-    )
-
-    plt.show()
-
-    # if config.profile is True:
-    #     profiler.disable()
-    #     stats = pstats.Stats(profiler).sort_stats("tottime")
-    #     stats.print_stats(20)
-
-
-if __name__ == "__main__":
-    """Run the core_parameters.yaml run pipeline items."""
-    main()

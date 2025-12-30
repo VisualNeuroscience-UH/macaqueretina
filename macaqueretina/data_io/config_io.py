@@ -159,9 +159,7 @@ class Configuration(MutableMapping):
         _path: tuple[str, ...] = (),
     ) -> None:
         super().__setattr__("_data", {})
-        super().__setattr__(
-            "_on_change", None
-        )  # type: Callable[[Configuration, tuple[str, ...], Any], None] | None
+        super().__setattr__("_on_change", None)  # type: Callable[[Configuration, tuple[str, ...], Any], None] | None
         super().__setattr__("_mute_depth", 0)
         super().__setattr__("_root", _root if _root is not None else self)
         super().__setattr__("_path", _path)
@@ -180,7 +178,7 @@ class Configuration(MutableMapping):
 
     def set_on_change(
         self,
-        cb: Callable[[Configuration, tuple[str, ...], Any], None] | None,
+        cb: Callable[["Configuration", tuple[str, ...], Any], None] | None,
     ) -> None:
         """Register a callback called after any mutation."""
         # Always register on the root so nested mutations work without propagation.
@@ -203,7 +201,7 @@ class Configuration(MutableMapping):
         if cb is not None:
             cb(self._root, path, value)
 
-    def replace_from(self, other: Mapping[str, Any] | Configuration) -> None:
+    def replace_from(self, other: Mapping[str, Any] | "Configuration") -> None:
         """
         Replace *contents* in-place (keeps object identity), recursively wrapping dicts.
         Useful to apply validated config without breaking references held by other objects.
@@ -221,12 +219,12 @@ class Configuration(MutableMapping):
     def __setitem__(self, key: str, value: Any) -> None:
         """Supports dict-like assignment (config["param"] = my_value)."""
         self._data[key] = self._wrap(key, value)
-        self._notify_changed(self._path + (key,), value)
+        # self._notify_changed(self._path + (key,), value)
 
     def __delitem__(self, key: str) -> None:
         """Supports dict-like deletion: del config["param"]."""
         del self._data[key]
-        self._notify_changed(self._path + (key,), None)
+        # self._notify_changed(self._path + (key,), None)
 
     def __iter__(self) -> Iterator[str]:
         """Iterate over top-level keys in config (for k in config)."""
@@ -257,25 +255,25 @@ class Configuration(MutableMapping):
         """Supports config.values() (behaves like built-in dict)."""
         return self._data.values()
 
-    def pop(self, key: str, default=_SENTINEL):
-        """Supports config.pop("param") (behaves like built-in dict)."""
-        if default is _SENTINEL:
-            out = self._data.pop(key)
-        else:
-            out = self._data.pop(key, default)
-        self._notify_changed(self._path + (key,), None)
-        return out
+    # def pop(self, key: str, default=_SENTINEL):
+    #     """Supports config.pop("param") (behaves like built-in dict)."""
+    #     if default is _SENTINEL:
+    #         out = self._data.pop(key)
+    #     else:
+    #         out = self._data.pop(key, default)
+    #     self._notify_changed(self._path + (key,), None)
+    #     return out
 
-    def popitem(self):
-        """Supports config.popitem() (behaves like built-in dict)."""
-        k, v = self._data.popitem()
-        self._notify_changed(self._path + (k,), None)
-        return (k, v)
+    # def popitem(self):
+    #     """Supports config.popitem() (behaves like built-in dict)."""
+    #     k, v = self._data.popitem()
+    #     self._notify_changed(self._path + (k,), None)
+    #     return (k, v)
 
-    def clear(self):
-        """Supports config.clear() to remove all params (behaves like built-in dict)."""
-        self._data.clear()
-        self._notify_changed(self._path, None)
+    # def clear(self):
+    #     """Supports config.clear() to remove all params (behaves like built-in dict)."""
+    #     self._data.clear()
+    #     self._notify_changed(self._path, None)
 
     def update(self, other: Mapping[str, Any] | None = None, /, **kwargs):
         """

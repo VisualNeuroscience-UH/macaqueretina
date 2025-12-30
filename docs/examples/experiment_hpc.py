@@ -5,31 +5,35 @@ The environment variables are set in SLURM job script.
 """
 
 # # Built-in
-# import os
-# import sys
+import os
+import sys
 from pathlib import Path
 
-# # Third-party
-# import yaml
-# def update_yaml_with_env_vars(yaml_path, top_level_key):
-#     with open(yaml_path) as f:
-#         data = yaml.safe_load(f)
+# Third-party
+import yaml
 
-#     if top_level_key not in data:
-#         print(f"Error: '{top_level_key}' not found in YAML file.")
-#         sys.exit(1)
 
-#     for key, value in data[top_level_key].items():
-#         env_var = key.upper()
-#         if env_var in os.environ and isinstance(value, str):
-#             breakpoint()
-#             data[top_level_key][key] = os.environ[env_var]
+def update_yaml_with_env_vars(yaml_path, top_level_key):
+    with open(yaml_path) as f:
+        data = yaml.safe_load(f)
 
-#     with open(yaml_path, "w") as f:
-#         yaml.safe_dump(data, f, sort_keys=False)
-#     print(
-#         f"Updated '{yaml_path}' with environment variables for top-level key '{top_level_key}'."
-# )
+    if top_level_key not in data:
+        print(f"Error: '{top_level_key}' not found in YAML file.")
+        sys.exit(1)
+
+    updated_keys = 0
+    for key, value in data[top_level_key].items():
+        env_var = key.upper()
+        if env_var in os.environ and isinstance(value, str):
+            data[top_level_key][key] = os.environ[env_var]
+            updated_keys += 1
+
+    with open(yaml_path, "w") as f:
+        yaml.safe_dump(data, f, sort_keys=False)
+    print(
+        f"Updated '{yaml_path}' with environment {updated_keys} variables for top-level key '{top_level_key}'."
+    )
+
 
 # ##################################################
 # # Repeat for all parameters file & key pairs whose
@@ -43,19 +47,15 @@ from pathlib import Path
 # Local
 
 if __name__ == "__main__":
-    
-    # ISSUE : FOLDERS ARE MADE EARLIER, NOW IF FOLDER NAMES DEPEND ON PARAMS, THEY ARE WRONG -- OR WE MAKE DOUBLE FOLDERS
-    # HOW DO YOU IMPORT MACAQUERETINA AND CHANGE YOUR FOLDER IF IMPORT CREATES THE FOLDERS?
-    # SOLUTION. MAKE TMP PARAMETER FOLDER FROM CONTAINER, FIRST, INDEED, RUN A SCRIPT CHANGING PARAMS ACCORDING TO ENV VARS. THEREAFTER RUN THIS SCRIPT..
-
     import macaqueretina as mr
-    # 3Change params here
-    mr.config.stimulus_folder = f"stim_{mr.config.experiment}"
+
+    # Change params here
+    mr.config.stimulus_folder = mr.config.path.joinpath(f"stim_{mr.config.experiment}")
+    mr.config.stimulus_folder.mkdir(parents=True, exist_ok=True)
     retina_parameters = mr.config.retina_parameters
-    # breakpoint()
     output_folder = f"{retina_parameters.gc_type}_{retina_parameters.response_type}_{retina_parameters.spatial_model_type}_{retina_parameters.temporal_model_type}"
     mr.config.output_folder = mr.config.path.joinpath(output_folder)
-    
+    mr.config.output_folder.mkdir(parents=True, exist_ok=True)
     mr.construct_retina()
 
     ###############################
@@ -76,20 +76,19 @@ if __name__ == "__main__":
         "distributions": {"uniform": None},
     }
 
-    filename = mr.experiment.build_and_run(build_without_run=True)
+    filename = mr.experiment.build_and_run(build_without_run=False)
 
     ########################################
     ## Analyze and visualize experiment ###
     ########################################
 
-    # my_analysis_options = {
-    #     "exp_variables": exp_variables,
-    #     "t_start_ana": 0.5,
-    #     "t_end_ana": 1.5,
-    # }
-    # mr.analysis.analyze_experiment(filename, my_analysis_options)
+    my_analysis_options = {
+        "exp_variables": exp_variables,
+        "t_start_ana": 0.5,
+        "t_end_ana": 1.5,
+    }
+    mr.analysis.analyze_experiment(filename, my_analysis_options)
 
-    ##############################################
-
+    #############################################
 
     # plt.show()
