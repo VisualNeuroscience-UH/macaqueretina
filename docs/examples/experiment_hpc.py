@@ -54,5 +54,3 @@ if __name__ == "__main__":
     mr.analysis.analyze_experiment(filename, my_analysis_options)
 
     #############################################
-
-    plt.show()
