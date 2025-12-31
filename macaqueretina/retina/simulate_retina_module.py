@@ -2469,47 +2469,47 @@ class ReceptiveFieldsBase(ABC, PrintableMixin, RetinaMath):
         @property
         def spatial_filter_sidelen(self) -> int:
             return self._spatial_filter_sidelen
-        
+
         @spatial_filter_sidelen.setter
         def spatial_filter_sidelen(self, value: int) -> None:
             self._spatial_filter_sidelen = value
-        
+
         @property
         def microm_per_pix(self) -> float:
             return self._microm_per_pix
-        
+
         @microm_per_pix.setter
         def microm_per_pix(self, value: float) -> None:
             self._microm_per_pix = value
-        
+
         @property
         def temporal_filter_len(self) -> int:
             return self._temporal_filter_len
-        
+
         @temporal_filter_len.setter
         def temporal_filter_len(self, value: int) -> None:
             self._temporal_filter_len = value
-        
+
         @property
         def gc_type(self) -> str:
             return self.retina_parameters["gc_type"]
-        
+
         @property
         def response_type(self) -> str:
             return self.retina_parameters["response_type"]
-        
+
         @property
         def deg_per_mm(self) -> float:
             return self.retina_parameters["deg_per_mm"]
-        
+
         @property
         def dog_model_type(self) -> str:
             return self.retina_parameters["dog_model_type"]
-        
+
         @property
         def spatial_model_type(self) -> str:
             return self.retina_parameters["spatial_model_type"]
-        
+
         @property
         def temporal_model_type(self) -> str:
             return self.retina_parameters["temporal_model_type"]
