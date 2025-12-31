@@ -624,9 +624,9 @@ class ConfigParams(BaseConfigModel):
     experiment: str = Field(
         description="Current experiment. Use distinct folders for distinct stimuli."
     )
-    input_subfolder: str
-    output_subfolder: str
-    stimulus_subfolder: str
+    input_subfolder: str | None
+    output_subfolder: str | None
+    stimulus_subfolder: str | None
     numpy_seed: int | None
     device: Literal["cpu", "cuda"]
     run: dict[str, Any]
@@ -721,30 +721,38 @@ class ConfigParams(BaseConfigModel):
     @computed_field
     @property
     def input_folder(self) -> Path:
-        input_folder = self.path.joinpath(Path(self.input_subfolder)).resolve()
-
-        if not input_folder.is_dir():
-            input_folder.mkdir(parents=True, exist_ok=True)
+        if self.input_subfolder:
+            input_folder = self.path.joinpath(Path(self.input_subfolder)).resolve()
+            if not input_folder.is_dir():
+                input_folder.mkdir(parents=True, exist_ok=True)
+        else:
+            input_folder = None
 
         return input_folder
 
     @computed_field
     @property
     def output_folder(self) -> Path:
-        output_folder = self.path.joinpath(Path(self.output_subfolder)).resolve()
-
-        if not output_folder.is_dir():
-            output_folder.mkdir(parents=True, exist_ok=True)
+        if self.output_subfolder:
+            output_folder = self.path.joinpath(Path(self.output_subfolder)).resolve()
+            if not output_folder.is_dir():
+                output_folder.mkdir(parents=True, exist_ok=True)
+        else:
+            output_folder = None
 
         return output_folder
 
     @computed_field
     @property
     def stimulus_folder(self) -> Path:
-        stimulus_folder = self.path.joinpath(Path(self.stimulus_subfolder)).resolve()
-
-        if not stimulus_folder.is_dir():
-            stimulus_folder.mkdir(parents=True, exist_ok=True)
+        if self.stimulus_subfolder:
+            stimulus_folder = self.path.joinpath(
+                Path(self.stimulus_subfolder)
+            ).resolve()
+            if not stimulus_folder.is_dir():
+                stimulus_folder.mkdir(parents=True, exist_ok=True)
+        else:
+            stimulus_folder = None
 
         return stimulus_folder
 

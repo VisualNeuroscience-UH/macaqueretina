@@ -2,8 +2,8 @@ model_root_path: "/opt3/projects"
 project: "macaqueretina"
 experiment: "gain_calib_sf_251231"
 input_subfolder: "../in"  # input VAE models, images, videos, other data
-output_subfolder: "test" # spikes, retinas, experiment metadata
-stimulus_subfolder: "stimulus" 
+output_subfolder: null # spikes, retinas, experiment metadata
+stimulus_subfolder: null 
 numpy_seed: 42  # null for random or int for fixed seed
 device: "cpu"  # "cpu" or "cuda"
 profile: false
