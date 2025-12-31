@@ -28,30 +28,30 @@ if __name__ == "__main__":
 
     # These are the variables to be changed in the experiment
     # See visual_stimulus_parameters, safe up to two variables
-    exp_variables = ["contrast"]  # ["contrast", "spatial_frequency"]
+    exp_variables = ["temporal_frequency"]
     mr.config.experiment_parameters = {
         "exp_variables": exp_variables,
         # two vals below for each exp_variable, even is it is not changing
-        "min_max_values": [[0, 1.0]],  # [[0, 0.6], [0.1, 15.0]]
-        "n_steps": [2],  # [10 ,16]
+        "min_max_values": [[1.0, 32.0]],  # [[0, 0.6], [0.1, 15.0]]
+        "n_steps": [16],  # [10 ,16]
         "logarithmic": [False],  # [True, True]
         "n_sweeps": 1,
         # "distributions": {"gaussian": {"sweeps": 10, "mean": [-30, 30], "sd": [5, 5]}},
         "distributions": {"uniform": None},
     }
 
-    filename = mr.experiment.build_and_run(build_without_run=False)
+    filename = mr.experiment.build_and_run(build_without_run=True)
 
-    # ########################################
-    # ## Analyze and visualize experiment ###
-    # ########################################
+    ########################################
+    ## Analyze and visualize experiment ###
+    ########################################
 
-    # my_analysis_options = {
-    #     "exp_variables": exp_variables,
-    #     "t_start_ana": 0.5,
-    #     "t_end_ana": 1.5,
-    # }
-    # mr.analysis.analyze_experiment(filename, my_analysis_options)
+    my_analysis_options = {
+        "exp_variables": exp_variables,
+        "t_start_ana": 0.5,
+        "t_end_ana": 1.5,
+    }
+    mr.analysis.analyze_experiment(filename, my_analysis_options)
 
     #############################################
 
