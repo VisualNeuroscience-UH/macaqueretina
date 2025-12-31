@@ -25,6 +25,8 @@ if TYPE_CHECKING:
 # ProjectManager instance
 if os.environ.get("YAML_TMPDIR"):
     yaml_tmpdir = Path(os.environ.get("YAML_TMPDIR"))
+else:
+    yaml_tmpdir = None
 
 PM: _ProjectManager = _ProjectManager(yaml_path=yaml_tmpdir)
 
