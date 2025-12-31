@@ -98,10 +98,7 @@ class RetinaParameters(BaseConfigModel):
     force_retina_build: bool = Field(
         default=True, description="If True, rebuilds retina even if the hash matches"
     )
-    model_file_name: Path | None = Field(
-        default=None,
-        description="null for most recent or 'model_[GC TYPE]_[RESPONSE TYPE]_[DEVICE]_[TIMESTAMP].pt' at input_folder. Applies to VAE only",
-    )
+    model_file_name: Path | None = None
 
     gain_calibration: GainCalibration | None = None
 
