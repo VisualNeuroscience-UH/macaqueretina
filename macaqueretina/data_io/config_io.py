@@ -441,6 +441,8 @@ class Configuration(MutableMapping):
                 return obj.isoformat()
             if isinstance(obj, np.ndarray):
                 return (tuple(obj.shape), tuple(obj.flatten().tolist()))
+            if isinstance(obj, np.integer):
+                return int(obj)
             return obj
 
         # Make Configuration hashable

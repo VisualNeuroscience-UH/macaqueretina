@@ -4,15 +4,14 @@ If environment has YAML_TMPDIR defined (as in HPC run), selected to level keys a
 before running the pipeline.
 """
 
+# Built-in
 import os
 import sys
 import time
 from pathlib import Path
 
+# Third party
 import yaml
-
-# Local
-from project.project_manager_module import ProjectManager, run_core_parameter_pipeline
 
 
 def update_yaml_with_env_vars(yaml_path, top_level_key):
@@ -28,9 +27,9 @@ def update_yaml_with_env_vars(yaml_path, top_level_key):
         sys.exit(1)
 
     updated_keys = 0
-    for key, value in data[top_level_key].items():
+    for key, _ in data[top_level_key].items():
         env_var = key.upper()
-        if env_var in os.environ and isinstance(value, str):
+        if env_var in os.environ:
             data[top_level_key][key] = os.environ[env_var]
             updated_keys += 1
 
@@ -43,16 +42,16 @@ def update_yaml_with_env_vars(yaml_path, top_level_key):
 
 def copy_and_update_yaml(yaml_tmpdir):
     """
-    Repeats for all parameters file & key pairs whose
-    parameters should be updated via env vars
+    Copies all files from parameters folder to temporary parameters folder.
+    Updates parameters which should be updated via env vars
     """
     main_path = Path(__file__).resolve()
     git_repo_root_path = main_path.parent.parent
     parameters_folder: Path = git_repo_root_path.joinpath("macaqueretina/parameters/")
-    yaml_files = list(parameters_folder.glob("*.yaml"))
+    all_files = list(parameters_folder.glob("*.*"))
 
     yaml_tmpdir.mkdir(parents=True, exist_ok=True)
-    for src in yaml_files:
+    for src in all_files:
         dst = yaml_tmpdir / src.name
 
         dst.write_bytes(src.read_bytes())  # Copy file content
@@ -73,7 +72,12 @@ def main():
         yaml_tmpdir = Path(os.environ.get("YAML_TMPDIR"))
         copy_and_update_yaml(yaml_tmpdir)
 
-    PM = ProjectManager()
+    from project.project_manager_module import (
+        ProjectManager,
+        run_core_parameter_pipeline,
+    )
+
+    PM = ProjectManager(yaml_path=yaml_tmpdir)
 
     run_core_parameter_pipeline(PM)
 

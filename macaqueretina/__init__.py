@@ -6,6 +6,7 @@ ProjectManager to load the configuration parameters.
 
 # Built-in
 import os
+from pathlib import Path
 from typing import TYPE_CHECKING, Callable
 
 # Third-party
@@ -22,7 +23,10 @@ if TYPE_CHECKING:
     from data_io.config_io import Configuration
 
 # ProjectManager instance
-PM: _ProjectManager = _ProjectManager()
+if os.environ.get("YAML_TMPDIR"):
+    yaml_tmpdir = Path(os.environ.get("YAML_TMPDIR"))
+
+PM: _ProjectManager = _ProjectManager(yaml_path=yaml_tmpdir)
 
 # This connects the top-level macaqueretina namespace to the various modules. Look here if you are lost.
 config: "Configuration" = PM.config

@@ -11,15 +11,13 @@ plt.rcParams["image.cmap"] = "gray"
 
 """
 This module creates the visual stimuli. Stimuli include patches of sinusoidal gratings at different orientations
-and spatial frequencies. The duration can be defined in seconds and size (radius), and center location (x,y) 
+and spatial frequencies. The duration can be defined in seconds and size (radius), and center location (x,y)
 in degrees.
 
 Input: stimulus definition
 Output: video stimulus frames
 
 Formats .avi .mov .mp4 ?
-
-
 """
 
 
@@ -334,7 +332,6 @@ class VideoBaseClass:
 
         # Linearly increasing frequency over time
         k = (end_frequency - start_frequency) / duration_seconds
-        instantaneous_frequency = start_frequency + k * time_vec
 
         # Creating the chirp signal
         phase = (

@@ -128,9 +128,11 @@ class ProjectManager(ProjectUtilitiesMixin):
         self.git_repo_root_path = self.project_manager_module_file_path.parent.parent
 
         if yaml_path is None:
-            self.original_config: dict = self.load_parameters()
+            self.parameters_folder = self.git_repo_root_path.joinpath("parameters/")
         else:
-            self.original_config: dict = self.load_parameters(yaml_path)
+            self.parameters_folder = yaml_path
+
+        self.original_config: dict = self.load_parameters()
 
         self._retina_extend_keys = set(
             (self.original_config.get("retina_parameters_extend") or {}).keys()
@@ -358,9 +360,7 @@ class ProjectManager(ProjectUtilitiesMixin):
 
     def load_parameters(self) -> dict:
         """Load configuration parameters."""
-
-        parameters_folder: Path = self.git_repo_root_path.joinpath("parameters/")
-        yaml_files = list(parameters_folder.glob("*.yaml"))
+        yaml_files = list(self.parameters_folder.glob("*.yaml"))
         original_config: dict = load_yaml_as_dict(yaml_files)
         return original_config
 
@@ -368,11 +368,9 @@ class ProjectManager(ProjectUtilitiesMixin):
         self,
         original_config: dict,
     ) -> Configuration:
-        parameters_folder: Path = self.git_repo_root_path.joinpath("parameters/")
         validate_params: Callable | None = _get_validation_params_method(
-            parameters_folder
+            self.parameters_folder
         )
-
         original_config["git_repo_root_path"] = self.git_repo_root_path
         original_config["project_manager_module_file_path"] = (
             self.project_manager_module_file_path

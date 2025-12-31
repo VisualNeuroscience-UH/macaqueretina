@@ -508,6 +508,7 @@ class Experiment(VideoBaseClass):
         # Replace with input options
         for idx, input_options in enumerate(cond_options):
             # Create stimulus video name. Note, this updates the cond_options dict
+            # TÄHÄN JÄIT: STIM VIDEO EI LÖYDY JA TEHDÄÄN UUDELLEEN. HASH ONGELMA LUULTAVASTI.
             stimulus_video_name = "Stim_" + cond_names[idx]
             input_options["stimulus_video_name"] = stimulus_video_name
 
@@ -516,13 +517,14 @@ class Experiment(VideoBaseClass):
                 self._replace_options(input_options)
 
                 # Try loading existing file, if not found, create stimulus
-                try:
-                    stim = self.data_io.load_stimulus_from_videofile(
-                        stimulus_video_name
-                    )
-                except FileNotFoundError:
-                    stim = self.stimulate.make_stimulus_video(self.options)
-                    self.options["raw_intensity"] = stim.options["raw_intensity"]
+                # try:
+                #     stim = self.data_io.load_stimulus_from_videofile(
+                #         stimulus_video_name
+                #     )
+                # except FileNotFoundError:
+                stim = self.stimulate.make_stimulus_video(self.options)
+                # breakpoint()
+                # self.options["raw_intensity"] = stim.options["raw_intensity"]
 
                 gc_type = self.config.retina_parameters["gc_type"]
                 response_type = self.config.retina_parameters["response_type"]

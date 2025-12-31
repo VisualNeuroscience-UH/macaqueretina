@@ -14,6 +14,9 @@ if __name__ == "__main__":
     # Output folder
     retina_parameters = mr.config.retina_parameters
     output_folder = f"{retina_parameters.gc_type}_{retina_parameters.response_type}_{retina_parameters.spatial_model_type}_{retina_parameters.temporal_model_type}"
+
+    print(f"\n{output_folder=}\n")
+
     mr.config.output_folder = mr.config.path.joinpath(output_folder)
     mr.config.output_folder.mkdir(parents=True, exist_ok=True)
 
@@ -30,7 +33,7 @@ if __name__ == "__main__":
         "exp_variables": exp_variables,
         # two vals below for each exp_variable, even is it is not changing
         "min_max_values": [[0, 1.0]],  # [[0, 0.6], [0.1, 15.0]]
-        "n_steps": [5],  # [10 ,16]
+        "n_steps": [2],  # [10 ,16]
         "logarithmic": [False],  # [True, True]
         "n_sweeps": 1,
         # "distributions": {"gaussian": {"sweeps": 10, "mean": [-30, 30], "sd": [5, 5]}},
@@ -39,16 +42,16 @@ if __name__ == "__main__":
 
     filename = mr.experiment.build_and_run(build_without_run=False)
 
-    ########################################
-    ## Analyze and visualize experiment ###
-    ########################################
+    # ########################################
+    # ## Analyze and visualize experiment ###
+    # ########################################
 
-    my_analysis_options = {
-        "exp_variables": exp_variables,
-        "t_start_ana": 0.5,
-        "t_end_ana": 1.5,
-    }
-    mr.analysis.analyze_experiment(filename, my_analysis_options)
+    # my_analysis_options = {
+    #     "exp_variables": exp_variables,
+    #     "t_start_ana": 0.5,
+    #     "t_end_ana": 1.5,
+    # }
+    # mr.analysis.analyze_experiment(filename, my_analysis_options)
 
     #############################################
 
