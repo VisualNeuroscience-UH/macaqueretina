@@ -69,7 +69,6 @@ def valid_yaml_filepath():
                 "a": 0.077 / 0.082,
                 "k": 1 / 0.082,
             },
-            "profile": False,
         }
 
         yaml.dump(yaml_content, f, default_flow_style=False, sort_keys=False)
@@ -205,7 +204,6 @@ def valid_source_dict():
             "neurongroups": ["NG1", "NG2"],
         },
         "numpy_seed": 42,
-        "profile": False,
         "time": 10 * b2u.second,
         "to_pop": "something",
     }
@@ -291,7 +289,6 @@ def test_mutablemapping_get_set_del(valid_source_dict):
     config = Configuration(valid_source_dict)
 
     assert config["root_path"] == "/root/path"
-    assert isinstance(config["profile"], bool)
     assert config.get("numpy_seed") == 42
     assert isinstance(config.get("time"), b2u.Quantity)
 
@@ -329,7 +326,6 @@ def test_mutablemapping_iter_len(valid_source_dict):
         "execute",
         "analysis_parameters",
         "numpy_seed",
-        "profile",
         "time",
         "to_pop",
     ]
@@ -356,7 +352,6 @@ def test_dict_methods(valid_source_dict):
         "execute",
         "analysis_parameters",
         "numpy_seed",
-        "profile",
         "time",
         "to_pop",
     ]
@@ -371,11 +366,6 @@ def test_pop_popitem_clear(valid_source_dict):
     item_pop = config.popitem()
     assert item_pop == ("to_pop", "something")
     assert "to_pop" not in config
-
-    profile = config.pop("profile")
-    assert profile == False
-    assert isinstance(profile, bool)
-    assert profile not in config
 
     config.clear()
     expected_keys = [

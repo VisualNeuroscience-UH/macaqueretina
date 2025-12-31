@@ -806,9 +806,8 @@ class VisualStimulus(VideoBaseClass):
 
         for this_option in visual_stimulus_parameters:
             print(this_option, ":", visual_stimulus_parameters[this_option])
-            assert (
-                this_option in self.options.keys()
-            ), f"The option '{this_option}' was not recognized"
+            if this_option not in self.options.keys():
+                raise KeyError(f"The option '{this_option}' was not recognized")
 
         self.options.update(visual_stimulus_parameters)
         bg = self.options["background"]

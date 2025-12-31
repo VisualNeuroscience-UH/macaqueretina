@@ -666,8 +666,6 @@ class ConfigParams(BaseConfigModel):
     parasol_off_RI_values_datafile: str
     temporal_pattern_datafile: str
 
-    profile: bool = False
-
     @computed_field
     @property
     def literature_data_folder(self) -> Path:

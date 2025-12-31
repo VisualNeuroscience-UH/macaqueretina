@@ -20,7 +20,6 @@ model_root_path/
 - ***output_folder*** : **str** | 3rd level folder for output like spikes, retinas, experiment metadata
 - ***numpy_seed*** : **int** or  `null` | integer as fixed seed to replicate simulation or null for random seed.
 - ***device*** :  **str** `"cpu"` or `"cuda"` | If you have an NVIDIA GPU and CUDA installed, it is useful for speed. For large models the GPU may run out of memory. 
-- ***profile*** : **bool** | false or true (lowercase in yaml format)
 
 
 ## Parameters for constructing retina

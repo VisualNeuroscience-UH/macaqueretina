@@ -108,7 +108,6 @@ class Experiment(VideoBaseClass):
 
     def __init__(self, config, data_io, stimulate, simulate_retina):
         super().__init__()
-
         self._config = config
         self._data_io = data_io
         self._stimulate = stimulate
@@ -458,7 +457,9 @@ class Experiment(VideoBaseClass):
         )
         relevant_metadata = {}
         for this_option in relevant_stimulus_parameters:
-            relevant_metadata[this_option] = visual_stimulus_parameters[this_option]
+            relevant_metadata[this_option] = visual_stimulus_parameters.get(
+                this_option, "missing_key"
+            )
 
         # Handle intensity, mean and contrast parameters. Intensity is a tuple of min and max values.
         # If intensity is found active, then mean and contrast are not needed.
@@ -499,8 +500,6 @@ class Experiment(VideoBaseClass):
         # Update options to match visual_stimulus_parameters in conf file
         self._replace_options(self.config.visual_stimulus_parameters)
 
-        # Replace filename with None. If don't want to save the stimulus, None is valid,
-        # but if want to save, then filename will be generated in the loop below
         simulation_parameters = self.config.simulation_parameters
         self.options["n_sweeps"] = self.config.experiment_parameters["n_sweeps"]
         simulation_parameters["n_sweeps"] = self.config.experiment_parameters[
@@ -510,7 +509,6 @@ class Experiment(VideoBaseClass):
         # Replace with input options
         for idx, input_options in enumerate(cond_options):
             # Create stimulus video name. Note, this updates the cond_options dict
-            # TÄHÄN JÄIT: STIM VIDEO EI LÖYDY JA TEHDÄÄN UUDELLEEN. HASH ONGELMA LUULTAVASTI.
             stimulus_video_name = "Stim_" + cond_names[idx]
             input_options["stimulus_video_name"] = stimulus_video_name
 
@@ -525,7 +523,6 @@ class Experiment(VideoBaseClass):
                 #     )
                 # except FileNotFoundError:
                 stim = self.stimulate.make_stimulus_video(self.options)
-                # breakpoint()
                 # self.options["raw_intensity"] = stim.options["raw_intensity"]
 
                 gc_type = self.config.retina_parameters["gc_type"]
@@ -543,9 +540,9 @@ class Experiment(VideoBaseClass):
             self.options["logarithmic"] = tuple(
                 self.config.experiment_parameters["logarithmic"]
             )
-            self.options["retina_center"] = self.config.retina_parameters[
-                "retina_center"
-            ]
+            self.options["retina_center"] = str(
+                self.config.retina_parameters["retina_center"]
+            )
             relevant_metadata = self._relevant_stimulus_options(self.options)
 
             result_df = self._create_dataframe(
@@ -555,5 +552,9 @@ class Experiment(VideoBaseClass):
             # Check if path exists, create parents if not
             save_exp_metadata_path.parent.mkdir(parents=True, exist_ok=True)
             result_df.to_csv(save_exp_metadata_path)
+
+            # Remove the added options to keep stimulus hash the same in the next iteration at script level.
+            del self.options["logarithmic"]
+            del self.options["retina_center"]
 
         return save_exp_metadata_path.name
