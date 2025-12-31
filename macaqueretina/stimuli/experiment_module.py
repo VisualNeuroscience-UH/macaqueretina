@@ -50,9 +50,11 @@ class RelevantStimulusParameters:
         "phase_shift",
     ]
     relevant_stimulus_parameters["temporal_sine_pattern"] = [
+        "temporal_frequency",
         "phase_shift",
     ]
     relevant_stimulus_parameters["temporal_square_pattern"] = [
+        "temporal_frequency",
         "phase_shift",
     ]
     relevant_stimulus_parameters["temporal_chirp_pattern"] = [

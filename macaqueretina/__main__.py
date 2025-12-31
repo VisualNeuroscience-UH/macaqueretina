@@ -30,7 +30,10 @@ def update_yaml_with_env_vars(yaml_path, top_level_key):
     for key, _ in data[top_level_key].items():
         env_var = key.upper()
         if env_var in os.environ:
-            data[top_level_key][key] = os.environ[env_var]
+            if os.environ[env_var].isnumeric():
+                data[top_level_key][key] = float(os.environ[env_var])
+            else:
+                data[top_level_key][key] = os.environ[env_var]
             updated_keys += 1
 
     with open(yaml_path, "w") as f:
