@@ -1,6 +1,6 @@
 model_root_path: "/opt3/projects"
 project: "macaqueretina"
-experiment: "gain_calib_sf_251231"
+experiment: "gain_calibration_sf_260101"
 input_subfolder: "../in"  # input VAE models, images, videos, other data
 output_subfolder: null # spikes, retinas, experiment metadata. null for experiments creating the folders
 stimulus_subfolder: null 
