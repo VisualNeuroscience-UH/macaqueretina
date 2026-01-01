@@ -3409,7 +3409,7 @@ class GanglionCellProduct(ReceptiveFieldsBase):
         Set gain adjustment for ganglion cells.
 
         """
-        self.gc_gain_adjustment = self.retina_parameters["signal_gain"]
+        self.gc_gain_adjustment = self.retina_parameters["calibrated_gain"]
 
     def link_gcs_to_vs(self, vs: Any) -> None:
         """

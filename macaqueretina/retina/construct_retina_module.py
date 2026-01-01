@@ -16,10 +16,11 @@ from scipy.spatial import Voronoi
 from shapely.geometry import Polygon as ShapelyPolygon
 from tqdm import tqdm
 
-# Local
-from .rf_repulsion_utils import apply_rf_repulsion
 from macaqueretina.project.project_utilities_module import PrintableMixin
 from macaqueretina.retina.retina_math_module import RetinaMath
+
+# Local
+from .rf_repulsion_utils import apply_rf_repulsion
 
 
 class Retina(PrintableMixin):
@@ -5216,7 +5217,7 @@ class ConstructRetina(PrintableMixin):
             "model_density",
             "retina_center",
             "force_retina_build",
-            "signal_gain",
+            "calibrated_gain",
         ]
 
         main_retina_parameters = {
@@ -5374,4 +5375,5 @@ class ConstructRetina(PrintableMixin):
 
         filepath = output_path.joinpath(self.mosaic_filename)
         print(f"Saving model mosaic to {filepath}")
+        gc.df.to_csv(filepath)
         gc.df.to_csv(filepath)

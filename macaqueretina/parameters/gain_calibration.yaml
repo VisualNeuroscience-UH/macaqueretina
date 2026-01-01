@@ -1,6 +1,6 @@
 gain_calibration:
   # drifting grating calibration table
-  signal_gain_table:
+  calibrated_gain_table:
     threshold: 10  # Hz
     parasol:
       "on":

@@ -2398,7 +2398,7 @@ class Viz:
             self._figsave(figurename=savefigname)
 
     def show_gain_calibration(
-        self, threshold, folder_pattern, signal_gain=1.0, savefigname=None
+        self, threshold, folder_pattern, gain_multiplier=1.0, savefigname=None
     ):
         """
         Show signal gain calibration plot based on the provided threshold and folder pattern. Calls
@@ -2410,13 +2410,13 @@ class Viz:
             The threshold value for gain calibration.
         folder_pattern : str
             The folder pattern to search for gain calibration data.
-        signal_gain : float, optional
+        gain_multiplier : float, optional
             The gain applied to the signal. Default is 1.0.
         savefigname : str, optional
             The name of the file where the figure will be saved. If None, the figure is not saved.
         """
         df, peak_column, most_frequent_peak_idx = self.ana.get_gain_calibration_df(
-            threshold, folder_pattern, signal_gain=signal_gain
+            threshold, folder_pattern, gain_multiplier=gain_multiplier
         )
         df_at_peak = df.loc[:, [peak_column, "gain"]]
 

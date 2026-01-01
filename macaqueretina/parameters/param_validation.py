@@ -119,15 +119,15 @@ class RetinaParameters(BaseConfigModel):
 
     @computed_field
     @property
-    def signal_gain(self) -> float:
-        """Dynamically compute signal_gain based on gc_type and response_type."""
+    def calibrated_gain(self) -> float:
+        """Dynamically compute calibrated_gain based on gc_type and response_type."""
         if self.gain_calibration is None:
             raise ValueError("gain_calibration not set in RetinaParameters")
 
         return getattr(
             getattr(
                 getattr(
-                    self.gain_calibration.signal_gain_table,
+                    self.gain_calibration.calibrated_gain_table,
                     self.gc_type,
                 ),
                 self.response_type,
@@ -270,7 +270,7 @@ class GainCalibration(BaseConfigModel):
         parasol: Parasol
         midget: Midget
 
-    signal_gain_table: SignalGainTable
+    calibrated_gain_table: SignalGainTable
 
     class NoiseFrMeanTable(BaseConfigModel):
         class On(BaseConfigModel):

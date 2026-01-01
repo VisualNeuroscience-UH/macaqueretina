@@ -868,7 +868,12 @@ class Analysis:
             csv_save_path = data_folder / filename_out
             F_unit_phase_df.to_csv(csv_save_path)
 
-    def get_gain_calibration_df(self, threshold, folder_pattern, signal_gain=1.0):
+    def get_gain_calibration_df(self, threshold, folder_pattern, gain_multiplier=1.0):
+        """
+        Analyze gain calibration experiment.
+        """
+
+        # Find all files in path with folder_pattern, such as "parasol_on*"
         matching_files_or_folders = self.data_io.all_patterns(
             self.config.path, folder_pattern
         )
@@ -878,7 +883,8 @@ class Analysis:
         df = pd.DataFrame()
         for this_folder in matching_folders:
             filename = self.data_io.most_recent_pattern(
-                this_folder, "*_F1F2_population_means.csv"
+                this_folder,
+                "*_F1F2_unit_ampl_means.csv",
             )
             this_df = pd.read_csv(filename, index_col=0).drop(axis=0, index=1)
 
@@ -896,7 +902,7 @@ class Analysis:
 
             # Step 3: Extract the numeric part from the corresponding element
             gain = "".join(filter(str.isdigit, corresponding_element))
-            this_df["gain"] = float(gain) * signal_gain
+            this_df["gain"] = float(gain) * gain_multiplier
             df = pd.concat([df, this_df], axis=0, ignore_index=True)
 
         # select dataframe columns whose names include substring "tf"
