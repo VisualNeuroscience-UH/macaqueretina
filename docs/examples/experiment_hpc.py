@@ -4,7 +4,7 @@ Parameters are changed via environment variables using __main__.py when invoking
 The environment variables are set in SLURM job script.
 """
 
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 
 import macaqueretina as mr
 
@@ -45,20 +45,20 @@ for calibrated_gain in range(1, 11):
         "distributions": {"uniform": None},
     }
 
-    filename = mr.experiment.build_and_run(build_without_run=True)
+    filename = mr.experiment.build_and_run(build_without_run=False)
 
-########################################
-## Analyze and visualize experiment ###
-########################################
+    ########################################
+    ## Analyze and visualize experiment ###
+    ########################################
 
-my_analysis_options = {
-    "exp_variables": exp_variables,
-    "t_start_ana": 0.5,
-    "t_end_ana": 12.5,
-}
-mr.analysis.analyze_experiment(filename, my_analysis_options)
+    my_analysis_options = {
+        "exp_variables": exp_variables,
+        "t_start_ana": 0.5,
+        "t_end_ana": 12.5,
+    }
+    mr.analysis.analyze_experiment(filename, my_analysis_options)
 
-############################################
+    ############################################
 
 # threshold = 10
 # # folder_pattern = "parasol_on_DOG_fixed_contrast0p035_gain*_temporal_frequency"
