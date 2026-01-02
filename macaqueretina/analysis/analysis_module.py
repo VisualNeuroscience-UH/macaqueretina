@@ -887,6 +887,10 @@ class Analysis:
                 "*_F1F2_unit_ampl_means.csv",
             )
             this_df = pd.read_csv(filename, index_col=0).drop(axis=0, index=1)
+            this_df = this_df[this_df["F_peak"] == "F1"]
+            # Drop unit id and F_peak
+            this_df = this_df.drop(columns=["unit", "F_peak"])
+            this_df = this_df.mean().to_frame().T
 
             # Get gain value from folder name
             folder_components = folder_pattern.split("_")
