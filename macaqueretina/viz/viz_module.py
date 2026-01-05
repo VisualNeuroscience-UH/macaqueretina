@@ -4912,10 +4912,8 @@ class Viz:
 
         abscissa = result_df[frequency_parameter_name].unique()
 
-        # abscissa_at_threshold= self.get_abscissa_at_threshold_for_naka_rushton_model(result_df, abscissa, threshold)
         # Loop frequency parameter, fit naka_rushton
         # Parameters: Rmax: float, c50: float, baseline: float
-
         Rmax = result_df["amplitudes"].values.max()
         p0 = (Rmax, 0.5, 0.0)
         bounds = ((0, 0, 0), (Rmax * 2, 100, Rmax))
@@ -4937,7 +4935,7 @@ class Viz:
         mask = cs_all < 1
         abscissa = abscissa[~mask]
         cs_all = cs_all[~mask]
-        breakpoint()
+
         try:
             # K, k_c, r_c, k_s, r_s
             # bounds = (-np.inf, np.inf)
