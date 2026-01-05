@@ -4783,6 +4783,27 @@ class Viz:
         if savefigname:
             self._figsave(figurename=savefigname)
 
+    def get_abscissa_at_threshold_for_naka_rushton_model(
+        self,
+        x_data: np.ndarray,
+        y_data: np.ndarray,
+        p0: tuple,
+        bounds: tuple,
+        threshold: np.float,
+    ) -> np.ndarray:
+        fit_function = self.naka_rushton
+        inverse_fit_function = self.naka_rushton_inverse
+        popt, pcov = opt.curve_fit(
+            fit_function,
+            x_data,
+            y_data,
+            p0=p0,
+            bounds=bounds,
+        )
+        abscissa_at_threshold = inverse_fit_function(threshold, *popt)
+
+        return abscissa_at_threshold
+
     def contrast_sensitivity(
         self,
         filename,
@@ -4801,7 +4822,7 @@ class Viz:
         Parameters
         ----------
         filename : str
-            The name of the file containing the experimental data.
+            The name of the file containing the experimental metadata.
         exp_variables : list of str
             The experimental variables to consider for the analysis.
         xlog : bool
@@ -4889,36 +4910,34 @@ class Viz:
                         result_df[frequency_parameter_name] == this_freq, "threshold"
                     ] = threshold_value
 
-        # Loop frequency parameter, fit naka_rushton
-        # Parameters: Rmax: float, c50: float, baseline: float
-        fit_function = self.naka_rushton
-        inverse_fit_function = self.naka_rushton_inverse
-        Rmax = result_df["amplitudes"].values.max()
-        p0 = [Rmax, 0.5, 0.0]
-        bounds = ((0, 0, 0), (Rmax * 2, 100, Rmax))
         abscissa = result_df[frequency_parameter_name].unique()
 
-        cs_all = np.zeros(len(abscissa))
+        # abscissa_at_threshold= self.get_abscissa_at_threshold_for_naka_rushton_model(result_df, abscissa, threshold)
+        # Loop frequency parameter, fit naka_rushton
+        # Parameters: Rmax: float, c50: float, baseline: float
+
+        Rmax = result_df["amplitudes"].values.max()
+        p0 = (Rmax, 0.5, 0.0)
+        bounds = ((0, 0, 0), (Rmax * 2, 100, Rmax))
+
+        abscissa_at_threshold = np.zeros(len(abscissa))
         for freq_idx, this_freq in enumerate(abscissa):
             df = result_df[result_df[frequency_parameter_name] == this_freq]
             x_data = df["contrast"].values
             y_data = df["amplitudes"].values
-            popt, pcov = opt.curve_fit(
-                fit_function,
-                x_data,
-                y_data,
-                p0=p0,
-                bounds=bounds,
-            )
             threshold = df["threshold"].values[0]
-            contrast_at_the_threshold = inverse_fit_function(threshold, *popt)
-            cs_all[freq_idx] = 1 / contrast_at_the_threshold
+            abscissa_at_threshold[freq_idx] = (
+                self.get_abscissa_at_threshold_for_naka_rushton_model(
+                    x_data, y_data, p0, bounds, threshold
+                )
+            )
 
         # Remove data points with cs < 1, considered noise
+        cs_all = 1 / abscissa_at_threshold
         mask = cs_all < 1
         abscissa = abscissa[~mask]
         cs_all = cs_all[~mask]
-
+        breakpoint()
         try:
             # K, k_c, r_c, k_s, r_s
             # bounds = (-np.inf, np.inf)
