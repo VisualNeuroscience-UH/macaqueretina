@@ -27,7 +27,7 @@ PATTERNS = [
     "sine_grating",
     "square_grating",
     "white_gaussian_noise",
-    "natural_images",
+    "natural_image",
     "natural_video",
     "temporal_sine_pattern",
     "temporal_square_pattern",
@@ -64,8 +64,8 @@ def test_make_stimulus_video(
     )
     stimulus_config.visual_stimulus_parameters.duration_seconds = 0.1
     stimulus_config.visual_stimulus_parameters.fps = 30
-    stimulus_config.visual_stimulus_parameters.image_width = 128
     stimulus_config.visual_stimulus_parameters.image_height = 128
+    stimulus_config.visual_stimulus_parameters.image_width = 128
     stimulus_config.visual_stimulus_parameters.mean = 128
     stimulus_config.visual_stimulus_parameters.contrast = 0.5
     stimulus_config.visual_stimulus_parameters.stimulus_size = 1.0
@@ -79,7 +79,7 @@ def test_make_stimulus_video(
     if pattern == "spatially_uniform_binary_noise":
         stimulus_config.visual_stimulus_parameters.on_proportion = 0.5
         stimulus_config.visual_stimulus_parameters.direction = "increment"
-    if pattern in ["natural_images"]:
+    if pattern in ["natural_image"]:
         stimulus_config.input_folder = test_root / "mock_data"
         mr.config.external_stimulus_parameters.stimulus_file = "test_image.jpg"
     if pattern in ["natural_video"]:

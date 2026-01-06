@@ -255,8 +255,9 @@ class DataIO:
             else:
                 data = np.float32(image)  # 16 bit to save space and memory
         elif filename_extension in [".avi", ".mp4"]:
-            video_data = cv2.VideoCapture(str(data_fullpath_filename))
-            data = self._video_capture2numpy_array(video_data)
+            data = cv2.VideoCapture(str(data_fullpath_filename))
+            # video_data = cv2.VideoCapture(str(data_fullpath_filename))
+            # data = self._video_capture2numpy_array(video_data)
         elif filename_extension in [".npy"]:
             data = np.load(data_fullpath_filename)
         elif filename_extension in [".npz"]:
@@ -275,28 +276,28 @@ class DataIO:
         else:
             return data
 
-    def _video_capture2numpy_array(self, video_data):
-        """
-        Convert video data to numpy array
-        :param video_data: cv2.VideoCapture object
-        :return: numpy array
-        """
+    # def _video_capture2numpy_array(self, video_data):
+    #     """
+    #     Convert video data to numpy array
+    #     :param video_data: cv2.VideoCapture object
+    #     :return: numpy array
+    #     """
 
-        frames = []
+    #     frames = []
 
-        # Read frames in a loop
-        while True:
-            ret, frame = video_data.read()
-            if not ret:
-                break
-            frames.append(frame)
+    #     # Read frames in a loop
+    #     while True:
+    #         ret, frame = video_data.read()
+    #         if not ret:
+    #             break
+    #         frames.append(frame)
 
-        # Release the VideoCapture object
-        video_data.release()
-        # Convert list of frames to a numpy array
-        data = np.array(frames)
+    #     # Release the VideoCapture object
+    #     video_data.release()
+    #     # Convert list of frames to a numpy array
+    #     data = np.array(frames)
 
-        return data
+    #     return data
 
     def save_dict_to_hdf5(self, filename, dic):
         """

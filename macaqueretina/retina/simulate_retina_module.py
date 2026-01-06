@@ -1399,8 +1399,8 @@ class TemporalModelSubunit(TemporalModelBase):
             (stim_len_tp - duration_tp - idx_start_delay) * dt_ms / 1000
         )
         options["'temporal_frequency'"] = 0
-        options["image_width"] = 240
         options["image_height"] = 240
+        options["image_width"] = 240
         options["stimulus_video_name"] = "impulse_response_video.mp4"
 
         vs.video_dt = (1 / options["fps"]) * b2u.second  # input

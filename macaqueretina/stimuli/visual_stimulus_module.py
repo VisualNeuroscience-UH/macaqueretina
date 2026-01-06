@@ -5,7 +5,9 @@ from pathlib import Path
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
+from cv2 import resize
 from scipy.ndimage import rotate
+from scipy.signal import resample
 
 plt.rcParams["image.cmap"] = "gray"
 
@@ -28,8 +30,8 @@ class VideoBaseClass:
         The base class methods are applied to every stimulus
         """
         options = {}
-        options["image_width"] = 1280  # Image width in pixels
         options["image_height"] = 720  # Image height in pixels
+        options["image_width"] = 1280  # Image width in pixels
         options["container"] = "mp4"  # file format to export
         options["codec"] = "mp4v"  # only mp4v works for my ubuntu 22.04
         options["fps"] = 100.0  # 64.0  # Frames per second
@@ -147,17 +149,16 @@ class VideoBaseClass:
         fps = self.options["fps"]
         duration_seconds = self.options["duration_seconds"]
         orientation = self.options["orientation"]
-        image_width = self.options["image_width"]
         image_height = self.options["image_height"]
-        # image_width_in_degrees = image_width / self.options["pix_per_deg"]
+        image_width = self.options["image_width"]
         diameter = np.ceil(np.sqrt(image_height**2 + image_width**2)).astype(np.int32)
         image_width_diameter = diameter
         image_height_diameter = diameter
         n_frames = int(fps * duration_seconds)
-        # frames = np.zeros((n_frames, image_height_diameter, image_width_diameter))
+        # scipy.ndimage.rotate cannot handle 16 bit data => float32
         frames = np.zeros(
             (n_frames, image_height_diameter, image_width_diameter)
-        ).astype(self.options["dtype"])
+        ).astype(np.float32)
 
         # Specific part for sine grating
         if grating_type == "sine":
@@ -190,7 +191,6 @@ class VideoBaseClass:
 
         # Specific part for square grating
         elif grating_type == "square":
-            # n_cycles = spatial_frequency * image_width_in_degrees
             cycle_width_pix = self.options["pix_per_deg"] / spatial_frequency
 
             phase_shift_in_pixels = cycle_width_pix * (
@@ -282,8 +282,8 @@ class VideoBaseClass:
 
         # Create sine wave
         n_frames = self.frames.shape[0]
-        image_width = self.options["image_width"]
         image_height = self.options["image_height"]
+        image_width = self.options["image_width"]
 
         # time_vector in radians, temporal modulation via np.sin()
         time_vec_end = 2 * np.pi * temporal_frequency * duration_seconds
@@ -302,10 +302,10 @@ class VideoBaseClass:
 
         assert temporal_modulation.shape[0] == n_frames, "Unequal N frames, aborting..."
         assert (
-            image_width != n_frames
+            image_height != n_frames
         ), "Errors in 3D broadcasting, change image width/height NOT to match n frames "
         assert (
-            image_height != n_frames
+            image_width != n_frames
         ), "Errors in 3D broadcasting, change image width/height NOT to match n frames "
 
         self.frames = frames
@@ -326,8 +326,8 @@ class VideoBaseClass:
 
         # Create chirp signal
         n_frames = self.frames.shape[0]
-        image_width = self.options["image_width"]
         image_height = self.options["image_height"]
+        image_width = self.options["image_width"]
 
         # Time vector in seconds
         time_vec = np.linspace(0, duration_seconds, int(fps * duration_seconds))
@@ -352,10 +352,10 @@ class VideoBaseClass:
 
         assert temporal_modulation.shape[0] == n_frames, "Unequal N frames, aborting..."
         assert (
-            image_width != n_frames
+            image_height != n_frames
         ), "Errors in 3D broadcasting, change image width/height NOT to match n frames "
         assert (
-            image_height != n_frames
+            image_width != n_frames
         ), "Errors in 3D broadcasting, change image width/height NOT to match n frames "
 
         self.frames = frames
@@ -384,27 +384,93 @@ class VideoBaseClass:
         mask_value = 1
         self.frames[self.frames == mask_value] = self.options["background"]
 
-    def _extract_frames(self, cap, n_frames):
+    def _extract_frames(self, cap: cv2.VideoCapture, frames: np.ndarray) -> np.ndarray:
         """
-        Extracts and resizes the frames from a cv2.VideoCapture object
+        Loads the frames from a cv2.VideoCapture object s array of gray values between 0-255.
 
         Parameters
         ----------
         cap : cv2.VideoCapture
             The video capture object from which frames are extracted.
-        n_frames : int
-            The number of frames to extract.
+        frames: np.ndarray
+            Empty 3D array for loading the frames
         """
-        w = self.options["image_width"]
-        h = self.options["image_height"]
-        # Load each frame as array of gray values between 0-255
-        for frame_ix in range(n_frames):
-            _, frame = cap.read()
+        cvtColor = cv2.cvtColor
+        COLOR_BGR2GRAY = cv2.COLOR_BGR2GRAY
 
-            frame_out = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-            self.frames[frame_ix, :, :] = cv2.resize(
-                frame_out, (w, h), interpolation=cv2.INTER_AREA
+        # Load each frame as array of gray values between 0-255
+        for frame_ix in range(frames.shape[0]):
+            _, this_frame = cap.read()
+
+            frames[frame_ix, :, :] = cvtColor(this_frame, COLOR_BGR2GRAY)
+
+        return frames
+
+    def _spatial_resample(
+        self,
+        frames: np.ndarray,
+        req_video_height: int,
+        req_video_width: int,
+        target_height: int,
+        target_width: int,
+    ) -> np.ndarray:
+        """
+        Spatial resampling of frames
+
+        Parameters
+        ----------
+        frames : nd.array
+            Input video 3D array [time, height, width]
+        req_video_height : int
+            Input video requested image height (no aspect ration change)
+        req_video_width : int
+            Input video requested image width (no aspect ration change)
+        target_height : int
+            Target image height
+        target_width : int
+            Target image width
+        """
+
+        video_n_frames = frames.shape[0]
+        video_height = frames.shape[1]
+        video_width = frames.shape[2]
+
+        height_cut = int((video_height - req_video_height) / 2)
+        width_cut = int((video_width - req_video_width) / 2)
+        frames_cut = frames[:, height_cut:-height_cut, width_cut:-width_cut]
+
+        frames_resampled = np.zeros((video_n_frames, target_height, target_width))
+
+        INTER_AREA = cv2.INTER_AREA
+        for frame_ix in range(video_n_frames):
+            frame_in = frames_cut[frame_ix, ...]
+            frames_resampled[frame_ix, ...] = resize(
+                frame_in, (target_width, target_height), interpolation=INTER_AREA
             )
+
+        return frames_resampled
+
+    def _temporal_resample(
+        self, frames: np.ndarray, req_video_n_frames: int, target_n_frames: int
+    ) -> np.ndarray:
+        """
+        Temporal resampling of frames
+
+        Parameters
+        ----------
+        frames : nd.array
+            Input video 3D array [time, height, width]
+        req_video_n_frames: int
+            Requested N frames from input video
+        target_n_frames: int
+            Target N frames
+        """
+
+        frames_resampled = resample(
+            frames[:req_video_n_frames], target_n_frames, axis=0
+        )
+
+        return frames_resampled
 
 
 class StimulusPattern:
@@ -598,7 +664,7 @@ class StimulusPattern:
             np.zeros(self.frames.shape) + frame_time_series[:, np.newaxis, np.newaxis]
         )
 
-    def natural_images(self):
+    def natural_image(self):
         """
         Process natural images for use in stimulus patterns.
 
@@ -613,7 +679,7 @@ class StimulusPattern:
         self.image = self.data_io.load_data(image_file_name)
 
         # resize image by specifying custom width and height
-        resized_image = cv2.resize(self.image, self.frames.shape[1:])
+        resized_image = resize(self.image, self.frames.shape[1:])
 
         # add new axis to b to use numpy broadcasting
         resized_image = resized_image[np.newaxis, :, :]
@@ -634,35 +700,61 @@ class StimulusPattern:
         After processing, it updates the raw intensity values based on the new data.
         """
 
+        target_fps = self.options["fps"]
+        target_pix_per_deg = self.options["pix_per_deg"]
+        video_pix_per_deg = self.config.external_stimulus_parameters["pix_per_deg"]
+
+        target_height = self.frames.shape[1]
+        target_width = self.frames.shape[2]
+        target_n_frames = self.frames.shape[0]
+
+        # Get external input video
         video_file_name = self.config.external_stimulus_parameters["stimulus_file"]
         video_cap = self.data_io.load_data(video_file_name)
 
-        self.fps = self.options["fps"]
-        self.pix_per_deg = self.options["pix_per_deg"]
-
-        # Cut to desired length at desired fps
-        n_frames = self.frames.shape[0]
-        self.frames = np.ones(
-            n_frames, (self.options["image_height"], self.options["image_width"])
-        )
-
-        video_n_frames = int(video_cap.get(cv2.CAP_PROP_FRAME_COUNT))
-        video_width = int(video_cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         video_height = int(video_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        fps = video_cap.get(cv2.CAP_PROP_FPS)
+        video_width = int(video_cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        video_n_frames = int(video_cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        video_fps = video_cap.get(cv2.CAP_PROP_FPS)
 
-        self._extract_frames(video_cap, n_frames)
+        # Rquired dimensions with no empty background or aspect ratio change or speed change
+        req_video_height = int(target_height * (video_pix_per_deg / target_pix_per_deg))
+        req_video_width = int(target_width * (video_pix_per_deg / target_pix_per_deg))
+        req_video_n_frames = int(target_n_frames * (video_fps / target_fps))
+
+        if video_height < req_video_height:
+            raise ImportError("Input video less than requested height in pixels")
+        if video_width < req_video_width:
+            raise ImportError("Input video less than requested width in pixels")
+        if video_n_frames < req_video_n_frames:
+            raise ImportError("Input video less than requested n frames")
+
+        video_frames = np.zeros((video_n_frames, video_height, video_width))
+
+        video_frames = self._extract_frames(video_cap, video_frames)
+        video_frames_res = self._spatial_resample(
+            video_frames, req_video_height, req_video_width, target_height, target_width
+        )
+
+        self.frames = self._temporal_resample(
+            video_frames_res, req_video_n_frames, target_n_frames
+        )
+        self.fps = target_fps
 
         print(
-            "Original movie dimensions %d x %d px, %d frames at %d fps."
-            % (video_width, video_height, video_n_frames, fps)
+            "Original movie dimensions %d height %d width, %d frames at %d fps."
+            % (video_height, video_width, video_n_frames, video_fps)
         )
         print(
-            "Resized movie dimensions %d x %d px, %d frames at %d fps."
+            "From which we used %d height %d width, %d frames."
+            % (req_video_height, req_video_width, target_n_frames)
+        )
+        print(
+            "To get movie with dimensions %d height %d width, %d frames at %d fps."
             % (
-                self.options["image_width"],
-                self.options["image_height"],
-                n_frames,
+                self.frames.shape[1],
+                self.frames.shape[2],
+                self.frames.shape[0],
                 self.fps,
             )
         )
@@ -739,8 +831,8 @@ class VisualStimulus(VideoBaseClass):
         """
         Valid stimulus_options include
 
-        image_width: in pixels
         image_height: in pixels
+        image_width: in pixels
         container: file format to export
         codec: compression format
         fps: frames per second
@@ -749,7 +841,7 @@ class VisualStimulus(VideoBaseClass):
         baseline_end_seconds: midgray at the end
         pattern:
             'sine_grating'; 'square_grating'; 'white_gaussian_noise';
-            'natural_images'; 'natural_video'; 'temporal_sine_pattern'; 'temporal_square_pattern';
+            'natural_image'; 'natural_video'; 'temporal_sine_pattern'; 'temporal_square_pattern';
             'spatially_uniform_binary_noise'
         stimulus_form: 'circular'; 'rectangular'; 'annulus'
         stimulus_position: in degrees, (0,0) is the center.
@@ -844,7 +936,7 @@ class VisualStimulus(VideoBaseClass):
         self._scale_intensity()
 
         # For natural images, set zero-masked pixels to background value
-        if self.options["pattern"] == "natural_images":
+        if self.options["pattern"] == "natural_image":
             self._set_zero_masked_pixels_to_bg()
 
         # Call StimulusForm class method to mask frames

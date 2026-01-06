@@ -37,8 +37,8 @@ def simulation_config(tmp_path_factory):
     mr.config.visual_stimulus_parameters.stimulus_form = "circular"
     mr.config.visual_stimulus_parameters.duration_seconds = 0.1
     mr.config.visual_stimulus_parameters.fps = 30
-    mr.config.visual_stimulus_parameters.image_width = 200
     mr.config.visual_stimulus_parameters.image_height = 200
+    mr.config.visual_stimulus_parameters.image_width = 200
     mr.config.visual_stimulus_parameters.mean = 128
     mr.config.visual_stimulus_parameters.contrast = 0.5
     mr.config.visual_stimulus_parameters.stimulus_size = 1.0

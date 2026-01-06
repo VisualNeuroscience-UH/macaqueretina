@@ -74,6 +74,8 @@ def main():
     if os.environ.get("YAML_TMPDIR"):
         yaml_tmpdir = Path(os.environ.get("YAML_TMPDIR"))
         copy_and_update_yaml(yaml_tmpdir)
+    else:
+        yaml_tmpdir = None
 
     from project.project_manager_module import (
         ProjectManager,

@@ -177,10 +177,10 @@ class RetinaParameters(BaseConfigModel):
 class VisualStimulusParameters(BaseConfigModel):
     pattern: str = Field(
         default="temporal_square_pattern",
-        description="Options: 'sine_grating', 'square_grating', 'colored_temporal_noise', 'white_gaussian_noise', 'natural_images', 'natural_video', 'temporal_sine_pattern', 'temporal_square_pattern', 'temporal_chirp_pattern', 'contrast_chirp_pattern', 'spatially_uniform_binary_noise'",
+        description="Options: 'sine_grating', 'square_grating', 'colored_temporal_noise', 'white_gaussian_noise', 'natural_image', 'natural_video', 'temporal_sine_pattern', 'temporal_square_pattern', 'temporal_chirp_pattern', 'contrast_chirp_pattern', 'spatially_uniform_binary_noise'",
     )
-    image_width: int = Field(default=240, description="image (canvas) width in pixels")
     image_height: int = 240
+    image_width: int = 240
     pix_per_deg: int = 60
     dtype_name: Literal["uint8", "float16"] = "float16"
     fps: int = 300

@@ -18,8 +18,8 @@ class RelevantStimulusParameters:
     relevant_stimulus_parameters = {}
 
     relevant_stimulus_parameters["common_parameters"] = [
-        "image_width",
         "image_height",
+        "image_width",
         "pix_per_deg",
         "fps",
         "duration_seconds",

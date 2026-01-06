@@ -46,8 +46,8 @@ This file contains the data for the following dictionaries:
 This comprises a complete definition of artificial stimuli and also affects external image and video stimuli. 
 Valid parameters include (overriding visual_stimulus_module.VideoBaseClass):
 
-- ***image_width***: **int** | in pixels  
 - ***image_height***: **int** | in pixels  
+- ***image_width***: **int** | in pixels  
 - ***pix_per_deg***: **int** | pixels per degree  
 - ***dtype_name***: **str** | low contrast steps need `"float16"`, for performance, use `"uint8"`  
 - ***fps***: **int** | frames per second  
@@ -56,7 +56,7 @@ Valid parameters include (overriding visual_stimulus_module.VideoBaseClass):
 - ***baseline_end_seconds***: **float** | duration of midgray at the end  
 - ***pattern***:  **str** |  
     `sine_grating` `square_grating` `colored_temporal_noise` `white_gaussian_noise`
-    `natural_images` `natural_video` `temporal_sine_pattern` `temporal_square_pattern`
+    `natural_image` `natural_video` `temporal_sine_pattern` `temporal_square_pattern`
     `temporal_chirp_pattern` `contrast_chirp_pattern` `spatially_uniform_binary_noise`
 
 - ***stimulus_form***: **str** |  
