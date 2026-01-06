@@ -5,7 +5,7 @@ from pathlib import Path
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy import ndimage
+from scipy.ndimage import rotate
 
 plt.rcParams["image.cmap"] = "gray"
 
@@ -154,7 +154,10 @@ class VideoBaseClass:
         image_width_diameter = diameter
         image_height_diameter = diameter
         n_frames = int(fps * duration_seconds)
-        self.frames = np.zeros((n_frames, image_height_diameter, image_width_diameter))
+        # frames = np.zeros((n_frames, image_height_diameter, image_width_diameter))
+        frames = np.zeros(
+            (n_frames, image_height_diameter, image_width_diameter)
+        ).astype(self.options["dtype"])
 
         # Specific part for sine grating
         if grating_type == "sine":
@@ -179,9 +182,11 @@ class VideoBaseClass:
                 n_frames,
             )
             large_frames += temporal_shift_vector[:, np.newaxis, np.newaxis]
-            self.frames = large_frames
+            frames = large_frames
+
             # Turn to sine values
-            self.frames = np.sin(self.frames + self.options["phase_shift"])
+            frames += self.options["phase_shift"]
+            frames = np.sin(frames)
 
         # Specific part for square grating
         elif grating_type == "square":
@@ -201,22 +206,21 @@ class VideoBaseClass:
                     bar_coords
                     + ((temporal_shift + phase_shift_in_pixels) / (cycle_width_pix / 2))
                 ) % 2
-                self.frames[frame] = np.where(relative_bar_coords < 1, 1, -1)
+                frames[frame] = np.where(relative_bar_coords < 1, 1, -1)
 
         # Common post-processing: Rotate and cut to original dimensions
-        for frame in range(n_frames):
-            self.frames[frame] = ndimage.rotate(
-                self.frames[frame], orientation, reshape=False
-            )
+        frames = rotate(frames, orientation, axes=(2, 1), reshape=False)
+
         marginal_height = (diameter - image_height) // 2
         marginal_width = (diameter - image_width) // 2
-        self.frames = self.frames[
+        frames = frames[
             :, marginal_height:-marginal_height, marginal_width:-marginal_width
         ]
 
         # In case of rounding errors, clip to image_height and image_width
-        self.frames = self.frames[:, :image_height, :image_width]
+        frames = frames[:, :image_height, :image_width]
 
+        self.frames = frames
         # Set raw_intensity to [-1 1]
         self.options["raw_intensity"] = (-1, 1)
 
@@ -229,12 +233,10 @@ class VideoBaseClass:
 
         # Turn position in degrees to position in mask, shift 0,0 to center of image
         center_pix = np.array([0, 0])
-        center_pix[0] = int(
-            width / 2 + pix_per_deg * center_deg[0]
-        )  # NOTE Width goes to x-coordinate
-        center_pix[1] = int(
-            height / 2 + pix_per_deg * -center_deg[1]
-        )  # NOTE Height goes to y-coordinate. Inverted to get positive up
+        # NOTE Width goes to x-coordinate
+        center_pix[0] = int(width / 2 + pix_per_deg * center_deg[0])
+        # NOTE Height goes to y-coordinate. Inverted to get positive up
+        center_pix[1] = int(height / 2 + pix_per_deg * -center_deg[1])
 
         self.options["center_pix"] = center_pix  # x, y
 
@@ -422,9 +424,6 @@ class StimulusPattern:
         """
 
         self._prepare_grating(grating_type="sine")
-
-        # Turn to sine values
-        self.frames = np.sin(self.frames + self.options["phase_shift"])
 
     def square_grating(self):
         """
@@ -778,6 +777,7 @@ class VisualStimulus(VideoBaseClass):
         ------------------------
         Output: saves the stimulus video file to output path if stimulus_video_name is not empty str or None
         """
+        # import time
 
         # Set input arguments to video-object, updates the defaults from VideoBaseClass
         if options is not None:
@@ -835,7 +835,10 @@ class VisualStimulus(VideoBaseClass):
         # Call StimulusPattern class method to get patterns (numpy array)
         # self.frames updated according to the pattern
         # Direct call to class.method() requires the self as argument
+        # Slow
+        # start_time = time.time()
         eval(f'StimulusPattern.{self.options["pattern"]}(self)')
+        # print(f"Step 4: {time.time() - start_time}s")
 
         # Now only the stimulus is scaled. The baseline and bg comes from options
         self._scale_intensity()
@@ -874,8 +877,10 @@ class VisualStimulus(VideoBaseClass):
         self.video_height_deg = self.video_height / self.pix_per_deg
 
         stimulus_video = self
-
+        # Slow
+        # start_time = time.time()
         self.data_io.save_stimulus_to_videofile(video_file_name, stimulus_video)
+        # print(f"Step 8: {time.time() - start_time}s")
 
         return stimulus_video
 

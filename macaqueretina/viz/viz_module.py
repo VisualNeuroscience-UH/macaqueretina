@@ -2398,8 +2398,12 @@ class Viz:
             self._figsave(figurename=savefigname)
 
     def show_gain_calibration(
-        self, threshold, folder_pattern, gain_multiplier=1.0, savefigname=None
-    ):
+        self,
+        threshold: float,
+        folder_pattern: str,
+        gain_multiplier: float = 1.0,
+        savefigname: str | None = None,
+    ) -> None:
         """
         Show signal gain calibration plot based on the provided threshold and folder pattern. Calls
         `ana.get_gain_calibration_df` to retrieve the data and then plots the gain calibration.
@@ -2415,61 +2419,44 @@ class Viz:
         savefigname : str, optional
             The name of the file where the figure will be saved. If None, the figure is not saved.
         """
+
+        # Data wrangling for gain calibration experiment
         df, peak_column, most_frequent_peak_idx = self.ana.get_gain_calibration_df(
-            threshold, folder_pattern, gain_multiplier=gain_multiplier
+            folder_pattern, gain_multiplier=gain_multiplier
         )
-        df_at_peak = df.loc[:, [peak_column, "gain"]]
 
         # Raise warning if threshold is not in the range of peak values
-        if (
-            threshold < df_at_peak[peak_column].min()
-            or threshold > df_at_peak[peak_column].max()
-        ):
+        if threshold < df[peak_column].min() or threshold > df[peak_column].max():
             print(
                 f"Warning: Threshold {threshold} is out of range of peak values "
-                f"(range: {df_at_peak[peak_column].min():.2f} - {df_at_peak[peak_column].max():.2f}),"
+                f"(range: {df[peak_column].min():.2f} - {df[peak_column].max():.2f}),"
                 " extrapolating gain..."
             )
 
-        # Assuming df_at_peak and peak_column are already defined
-        peak_fr_raw = df_at_peak[peak_column].values
-        gain_values_raw = df_at_peak["gain"].values
+        x_data = df["gain"].values
+        y_data = df[peak_column].values
+        Rmax = y_data.max()
+        p0 = (Rmax, 0.5, 0.0)
+        bounds = ((0, 0, 0), (Rmax * 2, 100, Rmax))
 
-        # Create a linear interpolation function with extrapolation
-        slope, intercept, r, p, se = stats.linregress(gain_values_raw, peak_fr_raw)
-
-        # Calculate residuals
-        residuals = peak_fr_raw - (slope * gain_values_raw + intercept)
-
-        # Calculate the modified Z-scores
-        median_residuals = np.median(residuals)
-        median_absolute_deviation = np.median(np.abs(residuals - median_residuals))
-        modified_z_scores = (
-            0.6745 * (residuals - median_residuals) / median_absolute_deviation
+        fit_function = self.naka_rushton
+        inverse_fit_function = self.naka_rushton_inverse
+        popt, _ = opt.curve_fit(
+            fit_function,
+            x_data,
+            y_data,
+            p0=p0,
+            bounds=bounds,
         )
-
-        # Define a threshold for the modified Z-scores
-        outlier_threshold = (
-            3.29  # Corresponds to a p-value of 0.001 in a two-tailed test
-        )
-
-        # Identify outliers
-        mask = np.abs(modified_z_scores) <= outlier_threshold
-        gain_values = gain_values_raw[mask]
-        peak_fr = peak_fr_raw[mask]
-
-        # Recalculate slope and intercept after dropping outliers
-        slope, intercept, r, p, se = stats.linregress(gain_values, peak_fr)
-
-        # Calculate gain at threshold
-        gain_at_threshold = (threshold - intercept) / slope
+        gain_at_threshold = inverse_fit_function(threshold, *popt)
 
         # Ensure the gain column is numeric
         df["gain"] = pd.to_numeric(df["gain"])
+
         # Melt the DataFrame to long format for seaborn
         df_melted = df.melt(
             id_vars=["gain"],
-            value_vars=[f"tf{i}" for i in range(16)],
+            value_vars=(col for col in df.columns if "tf" in col),
             var_name="tf",
             value_name="value",
         )
@@ -2489,27 +2476,20 @@ class Viz:
         ax[0].axvline(
             x=most_frequent_peak_idx, color="r", linestyle="--", label="Peak response"
         )
+
         # Plot the regression line, show datapoints, and threshold line
         sns.scatterplot(
-            x=gain_values,
-            y=peak_fr,
+            x=x_data,
+            y=y_data,
             ax=ax[1],
             label="Data points",
             color="blue",
         )
+
         # Add regression line using the slope and intercept
-        x_fit = np.linspace(gain_values.min(), gain_values.max(), 100)
-        y_fit = slope * x_fit + intercept
+        x_fit = np.linspace(0, x_data.max(), 100)
+        y_fit = fit_function(x_fit, *popt)
         ax[1].plot(x_fit, y_fit, color="orange", label="Regression line")
-        # Plot the outlier points not included into the regression
-        outlier_mask = ~mask
-        sns.scatterplot(
-            x=gain_values_raw[outlier_mask],
-            y=peak_fr_raw[outlier_mask],
-            ax=ax[1],
-            label="Outliers",
-            color="gray",
-        )
 
         # PLot vertical line at gain at threshold
         ax[1].axvline(
@@ -4783,27 +4763,6 @@ class Viz:
         if savefigname:
             self._figsave(figurename=savefigname)
 
-    def get_abscissa_at_threshold_for_naka_rushton_model(
-        self,
-        x_data: np.ndarray,
-        y_data: np.ndarray,
-        p0: tuple,
-        bounds: tuple,
-        threshold: np.float,
-    ) -> np.ndarray:
-        fit_function = self.naka_rushton
-        inverse_fit_function = self.naka_rushton_inverse
-        popt, pcov = opt.curve_fit(
-            fit_function,
-            x_data,
-            y_data,
-            p0=p0,
-            bounds=bounds,
-        )
-        abscissa_at_threshold = inverse_fit_function(threshold, *popt)
-
-        return abscissa_at_threshold
-
     def contrast_sensitivity(
         self,
         filename,
@@ -4919,16 +4878,22 @@ class Viz:
         bounds = ((0, 0, 0), (Rmax * 2, 100, Rmax))
 
         abscissa_at_threshold = np.zeros(len(abscissa))
+        fit_function = self.naka_rushton
+        inverse_fit_function = self.naka_rushton_inverse
+
         for freq_idx, this_freq in enumerate(abscissa):
             df = result_df[result_df[frequency_parameter_name] == this_freq]
             x_data = df["contrast"].values
             y_data = df["amplitudes"].values
             threshold = df["threshold"].values[0]
-            abscissa_at_threshold[freq_idx] = (
-                self.get_abscissa_at_threshold_for_naka_rushton_model(
-                    x_data, y_data, p0, bounds, threshold
-                )
+            popt, _ = opt.curve_fit(
+                fit_function,
+                x_data,
+                y_data,
+                p0=p0,
+                bounds=bounds,
             )
+            abscissa_at_threshold[freq_idx] = inverse_fit_function(threshold, *popt)
 
         # Remove data points with cs < 1, considered noise
         cs_all = 1 / abscissa_at_threshold

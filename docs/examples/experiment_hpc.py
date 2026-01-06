@@ -5,25 +5,30 @@ The environment variables are set in SLURM job script.
 """
 
 # import matplotlib.pyplot as plt
+import numpy as np
 
 import macaqueretina as mr
 
 # Stimulus folder
-mr.config.stimulus_folder = mr.config.path.joinpath(f"stim_{mr.config.experiment}")
+mr.config.stimulus_folder = mr.config.path.joinpath(
+    f"stim_{mr.config.retina_parameters.gc_type}"
+)
 mr.config.stimulus_folder.mkdir(parents=True, exist_ok=True)
 
 # Output folder
 retina_parameters = mr.config.retina_parameters
+gains = np.logspace(np.log10(0.1), np.log10(16), 10)  # 0.1
+gains = np.round(gains, 2)
 
-for calibrated_gain in range(1, 11):
+for calibrated_gain in gains:
     ###############################
     ## Build and run experiment ###
     ###############################
 
-    mr.config.retina_parameters.calibrated_gain = float(calibrated_gain)
+    mr.config.retina_parameters.calibrated_gain = np.round(calibrated_gain, 1)
     contrast = str(mr.config.visual_stimulus_parameters.contrast).replace(".", "p")
     sf = str(mr.config.visual_stimulus_parameters.spatial_frequency).replace(".", "p")
-    gain = str(calibrated_gain)
+    gain = str(calibrated_gain).replace(".", "p")
     output_folder = f"{retina_parameters.gc_type}_{retina_parameters.response_type}_{retina_parameters.spatial_model_type}_{retina_parameters.temporal_model_type}_c{contrast}_g{gain}_sf{sf}"
     print(f"\n{output_folder=}\n")
     mr.config.output_folder = mr.config.path.joinpath(output_folder)
@@ -37,7 +42,7 @@ for calibrated_gain in range(1, 11):
         "exp_variables": exp_variables,
         # two vals below for each exp_variable, even is it is not changing
         "min_max_values": [[1.0, 32.0]],  # [[0, 0.6], [0.1, 15.0]]
-        # "n_steps": [2],  # [10 ,16]
+        # "n_steps": [3],  # [10 ,16]
         "n_steps": [16],  # [10 ,16]
         "logarithmic": [True],  # [True, True]
         "n_sweeps": 1,
@@ -58,29 +63,24 @@ for calibrated_gain in range(1, 11):
     }
     mr.analysis.analyze_experiment(filename, my_analysis_options)
 
-    ############################################
+###########################################
 
-# threshold = 10
-# # folder_pattern = "parasol_on_DOG_fixed_contrast0p035_gain*_temporal_frequency"
-# folder_pattern = "gain_calibration_sf_parasol_on_VAE_dynamic_c0p035_g*_sf2"
-# # folder_pattern = "parasol_on_DOG_subunit_c0p035_g*_sf2p0"
-# # folder_pattern = "parasol_on_DOG_subunit_c0p035"
-# gain_multiplier = 1.0
-# mr.viz.show_gain_calibration(
-#     threshold, folder_pattern, gain_multiplier=gain_multiplier, savefigname=None
+# # Contrast sensitivity
+# filename = "exp_metadata_contrast_spatial_frequency_0f60a89182e4.csv"
+# mr.viz.contrast_sensitivity(
+#     filename,
+#     ["contrast", "spatial_frequency"],
+#     xlog=True,
+#     ylog=True,
+#     xlim=[0.1, 10],
+#     ylim=[1, 200],
 # )
 
-# plt.show()
-
-# To replicate old Fig 6.
-# core_parameters.yaml:
-#   experiment: "gain_calibration_flicker"
+# # Gain calibration
 # threshold = 10
-# folder_pattern = "parasol_on_DOG_fixed_contrast0p035_gain*_temporal_frequency"
-# # folder_pattern = "gain_calibration_sf_parasol_on_DOG_fixed_c0p035_g*_sf2"
-# # folder_pattern = "parasol_on_DOG_subunit_c0p035_g*_sf2p0"
-# # folder_pattern = "parasol_on_DOG_subunit_c0p035"
-# gain_multiplier = 0.5
+# # folder_pattern = "midget_off_DOG_subunit_c0p114_g*_sf5p0"
+# folder_pattern = "parasol_on_DOG_fixed_c0p035_g*_sf2p0"
+# gain_multiplier = 1.0
 # mr.viz.show_gain_calibration(
 #     threshold, folder_pattern, gain_multiplier=gain_multiplier, savefigname=None
 # )

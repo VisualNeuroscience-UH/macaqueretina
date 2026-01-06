@@ -868,9 +868,28 @@ class Analysis:
             csv_save_path = data_folder / filename_out
             F_unit_phase_df.to_csv(csv_save_path)
 
-    def get_gain_calibration_df(self, threshold, folder_pattern, gain_multiplier=1.0):
+    def get_gain_calibration_df(self, folder_pattern, gain_multiplier=1.0):
         """
-        Analyze gain calibration experiment.
+        Data wrangling for gain calibration experiment.
+
+        Parameters:
+        ----------
+        folder_pattern : str
+            Data for distinct gains are expected to be in different folders, with gain
+            value position marked with asterisk, e.g. 'parasol_on_DOG_fixed_c0p035_g*_sf2p0'
+        gain_multiplier : float
+            Coefficient multiplying the gain value integer in folder_pattern. This coefficient
+            needs to be used in the simulations, too. Allows compensation for potential
+            large variability in gian.
+
+        Returns:
+        -------
+        df: pd.DataFrame
+            Rows hold distinct gain values, columns hold different temporal frequencies
+        peak column: str
+            Dataframe column title holding the strongest signals
+        most_frequent_peak_idx: int
+            Index to column with the strongest signals
         """
 
         # Find all files in path with folder_pattern, such as "parasol_on*"
@@ -905,7 +924,8 @@ class Analysis:
             corresponding_element = name_components[asterisk_index]
 
             # Step 3: Extract the numeric part from the corresponding element
-            gain = "".join(filter(str.isdigit, corresponding_element))
+            gain = corresponding_element.lstrip("gain")
+            gain = gain.replace("p", ".")
             this_df["gain"] = float(gain) * gain_multiplier
             df = pd.concat([df, this_df], axis=0, ignore_index=True)
 

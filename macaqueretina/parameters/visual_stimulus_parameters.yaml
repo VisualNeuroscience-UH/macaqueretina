@@ -12,11 +12,11 @@ visual_stimulus_parameters:
   stimulus_position: [0.0, 0.0]  # relative to stimulus center in retina
   stimulus_size: 1.5  # 2.2,  # deg, radius for circle, sidelen/2 for rectangle.
   temporal_frequency: 5  # 0.01,  # 4.0,  # 40,  # Hz
-  spatial_frequency: 5  # cpd
+  spatial_frequency: 2  # cpd
   orientation: 90  # degrees
   phase_shift: 0  # math.pi + 0.1,  # radians
   stimulus_video_name: null # if null, defaults to f"{stimulus_folder}_{hash}.mp4"  
-  contrast: 1.0  # mean +- contrast * mean
+  contrast: 0.035  # mean +- contrast * mean
   mean: 128  # Mean luminance in  cd/m2 and adaptation level
   intensity: null  # intensity overrides contrast and mean if provided as a tuple like (0, 255)
   background: "mean"  # "mean", "intensity_min", "intensity_max" or value.
