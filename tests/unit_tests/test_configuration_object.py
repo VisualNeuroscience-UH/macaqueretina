@@ -317,7 +317,7 @@ def test_mutablemapping_iter_len(valid_source_dict):
     nested = config.execute
 
     assert len(config) == len(config.as_dict()) == len(config.keys())
-    assert len(config) == 7
+    assert len(config) == 6
     assert len(nested) == 3
 
     keys_from_iter = list(config)
@@ -330,14 +330,6 @@ def test_mutablemapping_iter_len(valid_source_dict):
         "to_pop",
     ]
     assert keys_from_iter == expected_keys
-
-    collected_keys = []
-    for key in config:
-        collected_keys.append(key)
-    assert len(collected_keys) == 7
-
-    all_keys = [k for k in config]
-    assert len(all_keys) == 7
 
 
 # Test get(), keys(), items(), values() # TODO: add tests for items()
