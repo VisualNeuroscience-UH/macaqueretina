@@ -17,8 +17,6 @@ import scipy.sparse as scprs
 import yaml
 from brian2.input.timedarray import TimedArray
 
-from macaqueretina.project.project_utilities_module import ProjectDecorators
-
 
 class DataIO:
     def __init__(self, config) -> None:
@@ -445,7 +443,6 @@ class DataIO:
             array = hdf5_file_handle["array"][...]
         return array
 
-    @ProjectDecorators.method_profiler()
     def _write_frames_to_mp4_videofile(self, pl_fullpath_filename, stimulus):
         """Write frames to videofile"""
 

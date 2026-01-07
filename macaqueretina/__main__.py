@@ -10,6 +10,8 @@ import sys
 import time
 from pathlib import Path
 
+import matplotlib.pyplot as plt
+
 # Third party
 import yaml
 
@@ -97,3 +99,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    plt.show()
