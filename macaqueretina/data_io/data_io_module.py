@@ -17,6 +17,8 @@ import scipy.sparse as scprs
 import yaml
 from brian2.input.timedarray import TimedArray
 
+from macaqueretina.project.project_utilities_module import ProjectDecorators
+
 
 class DataIO:
     def __init__(self, config) -> None:
@@ -389,15 +391,6 @@ class DataIO:
     def load_dict_from_hdf5(self, filename):
         """
         Load a dictionary from hdf5 file.
-
-        Parameters
-        ----------
-        filename: hdf5 file name
-
-        Returns
-        -------
-        dict
-            The dictionary loaded from the hdf5 file.
         """
         with h5py.File(filename, "r") as h5file:
             return self._recursively_load_dict_contents_from_group(h5file, "/")
@@ -452,16 +445,16 @@ class DataIO:
             array = hdf5_file_handle["array"][...]
         return array
 
+    @ProjectDecorators.method_profiler()
     def _write_frames_to_mp4_videofile(self, pl_fullpath_filename, stimulus):
         """Write frames to videofile"""
 
         # Convert frames to uint8
-        frames = stimulus.frames.copy()
+        frames = stimulus.frames
 
         if frames.dtype != np.uint8:
             # Scale the frames to 8-bit depth
             frames = (frames / frames.max()) * 255
-
             frames = np.around(frames).astype(np.uint8)
 
             print("The mp4 videofile for viewing is saved as uint8 type.")
@@ -470,17 +463,21 @@ class DataIO:
         fourcc = cv2.VideoWriter_fourcc(*stimulus.options["codec"])
         fullpath_filename = str(pl_fullpath_filename)
         print(f"Saving video to {fullpath_filename}")
+
+        frames = np.ascontiguousarray(frames)
+
+        # Signature: path, codec, fps, size, turn to grayscale
         video = cv2.VideoWriter(
             fullpath_filename,
             fourcc,
             float(stimulus.options["fps"]),
             (stimulus.options["image_width"], stimulus.options["image_height"]),
             isColor=False,
-        )  # path, codec, fps, size. Note, the isColor the flag is currently supported on Windows only
+        )
 
         # Write frames to videofile frame-by-frame
-        for index in np.arange(frames.shape[0]):
-            video.write(frames[index, :, :])
+        for frame in frames:
+            video.write(frame)
 
         video.release()
 
@@ -571,8 +568,6 @@ class DataIO:
 
         filename_mp4 = Path(f"{fullpath_filename.stem}.mp4")
         fullpath_filename_mp4 = Path.joinpath(fullpath_filename.parent, filename_mp4)
-        if not fullpath_filename_mp4.is_file():
-            self._write_frames_to_mp4_videofile(fullpath_filename_mp4, stimulus)
 
         filename_hdf5 = Path(f"{fullpath_filename.stem}.hdf5")
         fullpath_filename_hdf5 = Path.joinpath(fullpath_filename.parent, filename_hdf5)
@@ -585,6 +580,9 @@ class DataIO:
             }
 
             self.save_dict_to_hdf5(fullpath_filename_hdf5, stimulus_dict)
+
+        if not fullpath_filename_mp4.is_file():
+            self._write_frames_to_mp4_videofile(fullpath_filename_mp4, stimulus)
 
     def load_stimulus_from_videofile(self, filename):
         """

@@ -5,14 +5,16 @@ from pathlib import Path
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
+import torch
 from cv2 import resize
 from scipy.ndimage import rotate
 from scipy.signal import resample
+from torchvision.transforms.functional import rotate
 
 plt.rcParams["image.cmap"] = "gray"
 
 """
-This module creates the visual stimuli. 
+This module creates the visual stimuli.
 
 Input: stimulus definition, image (formats jpg, png) or video (formats avi, mp4)
 Output: video stimulus frames in hdf5 (reloading) and mp4 (viewing)
@@ -95,16 +97,13 @@ class VideoBaseClass:
         """
 
         raw_min_value = np.min(self.options["raw_intensity"])
+        raw_max_value = np.max(self.options["raw_intensity"])
         raw_peak_to_peak = np.ptp(self.options["raw_intensity"])
         frames = self.frames
 
         # Rotation may exceed min and max values by antialiasing
-        frames[frames < np.min(self.options["raw_intensity"])] = np.min(
-            self.options["raw_intensity"]
-        )
-        frames[frames > np.max(self.options["raw_intensity"])] = np.max(
-            self.options["raw_intensity"]
-        )
+        frames[frames < raw_min_value] = raw_min_value
+        frames[frames > raw_max_value] = raw_max_value
 
         if self.options["intensity"] is not None:
             Lmax = np.max(self.options["intensity"])
@@ -117,24 +116,52 @@ class VideoBaseClass:
 
         peak_to_peak = Lmax - Lmin
 
-        # Scale values
-        # Shift to 0
         frames = frames - raw_min_value
-        # Scale to 1
         frames = frames / raw_peak_to_peak
-
-        # Final scale
         frames = frames * peak_to_peak
-
-        # Final offset
         frames = frames + Lmin
 
-        # Here was rounding "to avoid unnecessary errors" but the
-        # frames = np.round(frames, 1), was problematic with low intensity stimuli.
-        # In case of problems, consider rounding to 3 decimal places.
+        self.frames = frames
 
-        # Return
-        self.frames = frames.astype(self.options["dtype"])
+    def _rotate(self, frames: np.ndarray, orientation: float) -> np.ndarray:
+        """
+        Rotate frames using PyTorch and GPU acceleration.
+
+        Parameters:
+        -----------
+        frames: np.ndarray
+            Input array of shape [time points, height, width].
+        orientation: float
+            Rotation angle in degrees.
+
+        Returns:
+        -------
+            Rotated frames as a numpy array.
+        """
+        # Convert numpy array to PyTorch tensor and move to GPU
+        frames_tensor = torch.from_numpy(frames).to(
+            self.config.device, dtype=torch.float16
+        )
+
+        # Reshape to [time_points, 1, height, width] for batch processing
+        frames_tensor = frames_tensor.unsqueeze(1)
+
+        # Rotate each frame in the batch
+        rotated_frames_tensor = rotate(frames_tensor, angle=orientation)
+
+        # Remove the channel dimension and convert back to numpy
+        rotated_frames = rotated_frames_tensor.squeeze(1).cpu().numpy()
+
+        # idx = 50
+        # plt.figure()
+        # plt.imshow(frames[idx, ...])
+        # plt.colorbar()
+        # plt.figure()
+        # plt.imshow(rotated_frames[idx, ...])
+        # plt.colorbar()
+        # plt.show()
+
+        return rotated_frames
 
     def _prepare_grating(self, grating_type="sine"):
         """Create temporospatial grating based on specified grating type."""
@@ -154,7 +181,7 @@ class VideoBaseClass:
         # scipy.ndimage.rotate cannot handle 16 bit data => float32
         frames = np.zeros(
             (n_frames, image_height_diameter, image_width_diameter)
-        ).astype(np.float32)
+        ).astype(np.float16)
 
         # Specific part for sine grating
         if grating_type == "sine":
@@ -205,7 +232,8 @@ class VideoBaseClass:
                 frames[frame] = np.where(relative_bar_coords < 1, 1, -1)
 
         # Common post-processing: Rotate and cut to original dimensions
-        frames = rotate(frames, orientation, axes=(2, 1), reshape=False)
+        # rotate(frames, orientation, axes=(2, 1), reshape=False, output=frames, order=3)
+        frames = self._rotate(frames, orientation)
 
         marginal_height = (diameter - image_height) // 2
         marginal_width = (diameter - image_width) // 2
@@ -260,9 +288,14 @@ class VideoBaseClass:
         return mask
 
     def _combine_background(self, mask):
-        self.frames_background = np.ones(self.frames.shape) * self.options["background"]
-        self.frames_background[:, mask] = self.frames[:, mask]
-        self.frames = self.frames_background
+        frames = self.frames
+        shape = self.frames.shape
+        background = self.options["background"]
+
+        frames_background = np.ones(shape) * background
+        frames_background[:, mask] = frames[:, mask]
+
+        self.frames = frames_background
 
     def _prepare_temporal_sine_pattern(self):
         """Prepare temporal sine pattern"""
@@ -812,7 +845,6 @@ class VisualStimulus(VideoBaseClass):
 
         self._config = config
         self._data_io = data_io
-
         self.get_xy_from_npz = get_xy_from_npz
 
     @property
@@ -923,10 +955,7 @@ class VisualStimulus(VideoBaseClass):
         # Call StimulusPattern class method to get patterns (numpy array)
         # self.frames updated according to the pattern
         # Direct call to class.method() requires the self as argument
-        # Slow
-        # start_time = time.time()
         eval(f'StimulusPattern.{self.options["pattern"]}(self)')
-        # print(f"Step 4: {time.time() - start_time}s")
 
         # Now only the stimulus is scaled. The baseline and bg comes from options
         self._scale_intensity()
@@ -965,10 +994,7 @@ class VisualStimulus(VideoBaseClass):
         self.video_height_deg = self.video_height / self.pix_per_deg
 
         stimulus_video = self
-        # Slow
-        # start_time = time.time()
         self.data_io.save_stimulus_to_videofile(video_file_name, stimulus_video)
-        # print(f"Step 8: {time.time() - start_time}s")
 
         return stimulus_video
 
@@ -1250,5 +1276,4 @@ class AnalogInput:
         idx = np.random.choice(Nmosaic_units, size=Nx, replace=False)
         w_coord, z_coord = w_coord[idx], z_coord[idx]
 
-        return w_coord, z_coord
         return w_coord, z_coord
