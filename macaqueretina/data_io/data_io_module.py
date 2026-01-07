@@ -256,8 +256,6 @@ class DataIO:
                 data = np.float32(image)  # 16 bit to save space and memory
         elif filename_extension in [".avi", ".mp4"]:
             data = cv2.VideoCapture(str(data_fullpath_filename))
-            # video_data = cv2.VideoCapture(str(data_fullpath_filename))
-            # data = self._video_capture2numpy_array(video_data)
         elif filename_extension in [".npy"]:
             data = np.load(data_fullpath_filename)
         elif filename_extension in [".npz"]:
@@ -276,29 +274,6 @@ class DataIO:
         else:
             return data
 
-    # def _video_capture2numpy_array(self, video_data):
-    #     """
-    #     Convert video data to numpy array
-    #     :param video_data: cv2.VideoCapture object
-    #     :return: numpy array
-    #     """
-
-    #     frames = []
-
-    #     # Read frames in a loop
-    #     while True:
-    #         ret, frame = video_data.read()
-    #         if not ret:
-    #             break
-    #         frames.append(frame)
-
-    #     # Release the VideoCapture object
-    #     video_data.release()
-    #     # Convert list of frames to a numpy array
-    #     data = np.array(frames)
-
-    #     return data
-
     def save_dict_to_hdf5(self, filename, dic):
         """
         Save a dictionary to an hdf5 file.
@@ -309,15 +284,8 @@ class DataIO:
             The filename for the hdf5 file to be saved.
         dic : dict
             The dictionary to be saved.
-
-        Notes
-        -----
-        The function opens an hdf5 file and calls the helper method
-        _recursively_save_dict_contents_to_group to store the dictionary contents
-        into the hdf5 file.
         """
         with h5py.File(filename, "w") as h5file:
-            # self._recursively_save_dict_contents_to_group(h5file, "/", dic)
             self._recursively_save_dict_contents_to_group(h5file, "/", dic)
 
     def save_dict_to_yaml(self, filename, dic, overwrite=True):
@@ -355,7 +323,7 @@ class DataIO:
         return data
 
     def _recursively_save_dict_contents_to_group(
-        self, h5file, path, dic, compression="gzip", compression_opts=9
+        self, h5file, path, dic, compression="lzf", compression_opts=9
     ):
         """
         Recursively save dictionary contents to a group in an hdf5 file.
@@ -369,21 +337,12 @@ class DataIO:
         dic : dict
             The dictionary whose contents need to be saved.
         compression : str, optional
-            The compression strategy to be used while saving data. Default is 'gzip'.
-        compression_opts : int, optional
-            Specifies a compression preset if gzip is used. Default is 9.
+            The compression strategy to be used while saving data. Default is 'lzf' for speed.
 
         Raises
         ------
         ValueError
             If an unsupported datatype is provided in the dictionary, a ValueError is raised.
-
-        Notes
-        -----
-        This function saves all non-None and non-dictionary items in the input dictionary
-        into an hdf5 group. The function calls itself recursively for dictionary items
-        in the input dictionary. For numerical data (types np.uint64, np.float64, int, float,
-        tuple, np.ndarray), gzip compression is used by default.
         """
 
         for key, item in dic.items():
@@ -401,7 +360,6 @@ class DataIO:
                         path + key,
                         data=np.array([item]),
                         compression=compression,
-                        compression_opts=compression_opts,
                     )
                 elif isinstance(item, str):
                     # For string type, we create a special dtype=h5py.string_dtype() dataset
@@ -415,14 +373,12 @@ class DataIO:
                         path + key,
                         data=np.array(list(item)),
                         compression=compression,
-                        compression_opts=compression_opts,
                     )
                 elif isinstance(item, np.ndarray):
                     h5file.create_dataset(
                         path + key,
                         data=item,
                         compression=compression,
-                        compression_opts=compression_opts,
                     )
                 elif isinstance(item, type):
                     continue
