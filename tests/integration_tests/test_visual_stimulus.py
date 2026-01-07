@@ -83,7 +83,8 @@ def test_make_stimulus_video(
         stimulus_config.input_folder = test_root / "mock_data"
         mr.config.external_stimulus_parameters.stimulus_file = "test_image.jpg"
     if pattern in ["natural_video"]:
-        pytest.skip("Not fully implemented yet")
+        stimulus_config.input_folder = test_root / "mock_data"
+        mr.config.external_stimulus_parameters.stimulus_file = "test_video_small.avi"
 
     # Generate stimulus
     stimulus_video = mr.make_stimulus()

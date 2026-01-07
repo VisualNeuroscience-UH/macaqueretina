@@ -140,7 +140,7 @@ class VideoBaseClass:
         """
         # Convert numpy array to PyTorch tensor and move to GPU
         frames_tensor = torch.from_numpy(frames).to(
-            self.config.device, dtype=torch.float16
+            self.config.device, dtype=torch.float32
         )
 
         # Reshape to [time_points, 1, height, width] for batch processing
@@ -151,15 +151,6 @@ class VideoBaseClass:
 
         # Remove the channel dimension and convert back to numpy
         rotated_frames = rotated_frames_tensor.squeeze(1).cpu().numpy()
-
-        # idx = 50
-        # plt.figure()
-        # plt.imshow(frames[idx, ...])
-        # plt.colorbar()
-        # plt.figure()
-        # plt.imshow(rotated_frames[idx, ...])
-        # plt.colorbar()
-        # plt.show()
 
         return rotated_frames
 
