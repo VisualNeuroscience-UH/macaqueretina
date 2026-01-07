@@ -12,14 +12,10 @@ from scipy.signal import resample
 plt.rcParams["image.cmap"] = "gray"
 
 """
-This module creates the visual stimuli. Stimuli include patches of sinusoidal gratings at different orientations
-and spatial frequencies. The duration can be defined in seconds and size (radius), and center location (x,y)
-in degrees.
+This module creates the visual stimuli. 
 
-Input: stimulus definition
-Output: video stimulus frames
-
-Formats .avi .mov .mp4 ?
+Input: stimulus definition, image (formats jpg, png) or video (formats avi, mp4)
+Output: video stimulus frames in hdf5 (reloading) and mp4 (viewing)
 """
 
 
@@ -723,11 +719,11 @@ class StimulusPattern:
         req_video_n_frames = int(target_n_frames * (video_fps / target_fps))
 
         if video_height < req_video_height:
-            raise ImportError("Input video less than requested height in pixels")
+            raise ImportError("Input video too small for requested height in pixels")
         if video_width < req_video_width:
-            raise ImportError("Input video less than requested width in pixels")
+            raise ImportError("Input video too narrow for requested width in pixels")
         if video_n_frames < req_video_n_frames:
-            raise ImportError("Input video less than requested n frames")
+            raise ImportError("Input video shorter than requested n frames")
 
         video_frames = np.zeros((video_n_frames, video_height, video_width))
 
@@ -747,7 +743,7 @@ class StimulusPattern:
         )
         print(
             "From which we used %d height %d width, %d frames."
-            % (req_video_height, req_video_width, target_n_frames)
+            % (req_video_height, req_video_width, req_video_n_frames)
         )
         print(
             "To get movie with dimensions %d height %d width, %d frames at %d fps."

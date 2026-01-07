@@ -245,9 +245,8 @@ class DataIO:
                 data.set_index("Unnamed: 0", inplace=True)
                 data.index.name = None
         elif filename_extension in [".jpg", ".png"]:
-            image = cv2.imread(
-                str(data_fullpath_filename), 0
-            )  # The 0-flag calls for grayscale. Comes in as uint8 type
+            # The 0-flag calls for grayscale. Comes in as uint8 type
+            image = cv2.imread(str(data_fullpath_filename), 0)
 
             # Normalize image intensity to 0-1, if RGB value
             if np.ptp(image) > 1:
