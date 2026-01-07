@@ -1,4 +1,5 @@
 # Built-in
+import functools
 import inspect
 from pathlib import Path
 
@@ -380,3 +381,42 @@ class PrintableMixin:
         methods_info = "\nMethods:\n" + ",\n".join(methods)
 
         return class_info + attributes_info + methods_info
+
+
+class ProjectDecorators:
+    @staticmethod
+    def method_profiler():
+        def decorator(func):
+            def wrapper(*args, **kwargs):
+                import cProfile
+                import pstats
+                import time
+
+                start_time = time.time()
+
+                profiler = cProfile.Profile()
+                profiler.enable()
+
+                # Execute the function
+                result = func(*args, **kwargs)
+
+                end_time = time.time()
+                print(
+                    "Total time taken: ",
+                    time.strftime(
+                        "%H hours %M minutes %S seconds",
+                        time.gmtime(end_time - start_time),
+                    ),
+                )
+
+                profiler.disable()
+                stats = pstats.Stats(profiler).sort_stats("tottime")
+                stats.print_stats(20)
+
+                return result
+
+            # Apply functools.wraps to preserve function metadata
+            functools.update_wrapper(wrapper, func)
+            return wrapper
+
+        return decorator
