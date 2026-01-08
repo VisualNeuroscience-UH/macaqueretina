@@ -25,17 +25,17 @@ mr.construct_retina()
 ## Build and run experiment ###
 ###############################
 
-exp_variables = ["contrast", "spatial_frequency"]
+exp_variables = ["contrast", "temporal_frequency"]
 mr.config.experiment_parameters = {
     "exp_variables": exp_variables,
-    "min_max_values": [[0, 1.0], [0.1, 40.0]],
+    "min_max_values": [[0, 1.0], [0.2, 60.0]],
     "n_steps": [10, 16],
     "logarithmic": [True, True],
     "n_sweeps": 1,
     "distributions": {"uniform": None},
 }
 
-filename = mr.experiment.build_and_run(build_without_run=False)
+filename = mr.experiment.build_and_run(build_without_run=True)
 
 ########################################
 ## Analyze and visualize experiment ###
@@ -44,7 +44,7 @@ filename = mr.experiment.build_and_run(build_without_run=False)
 my_analysis_options = {
     "exp_variables": exp_variables,
     "t_start_ana": 0.5,
-    "t_end_ana": 6.5,
+    "t_end_ana": 12.5,
 }
 mr.analysis.analyze_experiment(filename, my_analysis_options)
 
@@ -56,7 +56,7 @@ mr.viz.contrast_sensitivity(
     ["contrast", "spatial_frequency"],
     xlog=True,
     ylog=True,
-    xlim=[0.1, 10],
+    xlim=[0.1, 100],
     ylim=[1, 200],
     savefigname=f"F1_unit_{output_folder}.eps",
 )
