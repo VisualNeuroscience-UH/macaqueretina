@@ -35,30 +35,30 @@ mr.config.experiment_parameters = {
     "distributions": {"uniform": None},
 }
 
-filename = mr.experiment.build_and_run(build_without_run=True)
+filename = mr.experiment.build_and_run(build_without_run=False)
 
-# ########################################
-# ## Analyze and visualize experiment ###
-# ########################################
+########################################
+## Analyze and visualize experiment ###
+########################################
 
-# my_analysis_options = {
-#     "exp_variables": exp_variables,
-#     "t_start_ana": 0.5,
-#     "t_end_ana": 6.5,
-# }
-# mr.analysis.analyze_experiment(filename, my_analysis_options)
+my_analysis_options = {
+    "exp_variables": exp_variables,
+    "t_start_ana": 0.5,
+    "t_end_ana": 6.5,
+}
+mr.analysis.analyze_experiment(filename, my_analysis_options)
 
-# #########################################
+#########################################
 
-# # Contrast sensitivity
-# mr.viz.contrast_sensitivity(
-#     filename,
-#     ["contrast", "spatial_frequency"],
-#     xlog=True,
-#     ylog=True,
-#     xlim=[0.1, 10],
-#     ylim=[1, 200],
-#     savefigname=f"F1_unit_{output_folder}.eps",
-# )
+# Contrast sensitivity
+mr.viz.contrast_sensitivity(
+    filename,
+    ["contrast", "spatial_frequency"],
+    xlog=True,
+    ylog=True,
+    xlim=[0.1, 10],
+    ylim=[1, 200],
+    savefigname=f"F1_unit_{output_folder}.eps",
+)
 
 # plt.show()
