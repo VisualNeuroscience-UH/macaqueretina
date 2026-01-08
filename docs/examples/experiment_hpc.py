@@ -53,7 +53,7 @@ filename = mr.experiment.build_and_run(build_without_run=True)
 # # Contrast sensitivity
 # mr.viz.contrast_sensitivity(
 #     filename,
-#     ["contrast", "spatial_frequency"],
+#     ["contrast", "temporal_frequency"],
 #     xlog=True,
 #     ylog=True,
 #     xlim=[0.1, 100],
