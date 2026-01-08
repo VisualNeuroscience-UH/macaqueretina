@@ -3374,6 +3374,96 @@ class Viz:
         ]
         return exp_variables
 
+    def show_fr4c_response(
+        self,
+        filename,
+        exp_variables,
+        xlog=False,
+        ylog=False,
+        xlim=None,
+        ylim=None,
+        savefigname=None,
+    ):
+        """
+        Plot the mean firing rate response curve.
+        """
+
+        data_folder = self.config.output_folder
+        cond_names_string = "_".join(exp_variables)
+
+        experiment_df = pd.read_csv(data_folder / filename, index_col=0)
+        data_df = pd.read_csv(
+            data_folder / f"{cond_names_string}_F1F2_population_means.csv", index_col=0
+        )
+        data_df = data_df[data_df["F_peak"] == "F1"]
+        data_df = data_df.drop(columns=["sweep", "F_peak"])
+
+        contrast_levels_s = experiment_df.loc[:, "contrast"]
+        contrast_levels_s = pd.to_numeric(contrast_levels_s)
+        contrast_levels_s = contrast_levels_s.round(decimals=3)
+
+        data_df = data_df.T
+        data_df.columns = ["firing_rate"]
+        data_df["contrast"] = contrast_levels_s
+        data_df["temporal_frequency"] = experiment_df["temporal_frequency"].round(
+            decimals=1
+        )
+
+        # Loop frequency parameter, fit naka_rushton
+        # Parameters: Rmax: float, c50: float, baseline: float
+        Rmax = data_df["firing_rate"].values.max()
+        p0 = (Rmax, 0.5, 0.0)
+        bounds = ((0, 0, 0), (Rmax * 2, 100, Rmax))
+
+        fit_function = self.naka_rushton
+
+        temporal_frequencies = data_df["temporal_frequency"].unique()
+
+        parameters = np.zeros((3, len(temporal_frequencies)))
+        x_fit = np.linspace(0, 1.0, 100)
+        y_fit = np.zeros((100, len(temporal_frequencies)))
+
+        for idx, this_freq in enumerate(temporal_frequencies):
+            df = data_df[data_df["temporal_frequency"] == this_freq]
+            x_data = df["contrast"].values
+            y_data = df["firing_rate"].values
+            popt, _ = opt.curve_fit(
+                fit_function,
+                x_data,
+                y_data,
+                p0=p0,
+                bounds=bounds,
+            )
+            y_fit[:, idx] = fit_function(x_fit, *popt)
+            parameters[:, idx] = popt
+
+        fig, ax = plt.subplots(1, 1, figsize=(8, 4))
+
+        x_data = data_df["contrast"].values
+        y_data = data_df["firing_rate"].values
+
+        for freq, y in zip(temporal_frequencies, y_fit.T):
+            ax.plot(x_fit, y, label=f"{freq:.1f} Hz")
+
+        ax.plot(x_data, y_data, "k.", markersize=5)
+
+        ax.set_title(f"{cond_names_string} response function (population mean)")
+
+        if xlim:
+            ax.set_xlim(xlim)
+        if ylim:
+            ax.set_ylim(ylim)
+
+        if xlog:
+            ax.set_xscale("log")
+        if ylog:
+            ax.set_yscale("log")
+
+        ax.legend()
+
+        if savefigname:
+            self._figsave(figurename=savefigname)
+
     def fr_response(
         self, filename, exp_variables, xlog=False, ylog=False, savefigname=None
     ):
