@@ -28,7 +28,7 @@ mr.construct_retina()
 exp_variables = ["contrast", "spatial_frequency"]
 mr.config.experiment_parameters = {
     "exp_variables": exp_variables,
-    "min_max_values": [[0.0, 1.0], [0.1, 40.0]],
+    "min_max_values": [[0, 1.0], [0.1, 40.0]],
     "n_steps": [10, 16],
     "logarithmic": [True, True],
     "n_sweeps": 1,

@@ -183,12 +183,30 @@ class Experiment(VideoBaseClass):
         The values include n_steps between the corresponding min_max_values. The steps
         can be linear or logarithmic
         """
+
         if logarithmic:
-            values = np.logspace(
-                np.log10(min_max_values[0]),
-                np.log10(min_max_values[1]),
-                n_steps,
-            )
+
+            def _count_log(min_value, max_value, steps):
+                return np.logspace(np.log10(min_value), np.log10(max_value), steps)
+
+            min_value = min_max_values[0]
+            max_value = min_max_values[1]
+
+            if min_value < 0:
+                raise ValueError(
+                    "Negative values are not allowed for logarithmic experiment_parameters"
+                )
+            elif min_value == 0:
+                values_ = _count_log((max_value / 1e2), max_value, n_steps)
+                values = np.zeros(n_steps)
+                values[1:] = _count_log(values_[0], max_value, n_steps - 1)
+                print("""
+                NOTE: logarithmic experiment_parameters initial value is 0,
+                which is passed as such, the value next to min becomes max / 100,
+                and np.logspace(max / 100, max, steps - 1) thereafter.
+                """)
+            elif min_value > 0:
+                values = _count_log(min_value, max_value, n_steps)
         else:
             values = np.linspace(min_max_values[0], min_max_values[1], n_steps)
 
@@ -297,6 +315,11 @@ class Experiment(VideoBaseClass):
                 cond_metadata_key[option] = self._get_cond_metadata_values(
                     logarithmic[idx], min_max_values[idx], n_steps[idx]
                 )
+
+            formatted_values = [f"{v:.2f}" for v in cond_metadata_key[option]]
+            print(
+                f"Variable: {option}, values: { ", ".join(map(str, formatted_values))}"
+            )
 
         # Return cond_options -- a dict with all keywords matching visual_stimulus_module.VisualStimulus
         # and values being a list of values to replace the corresponding keyword in the stimulus
@@ -513,18 +536,11 @@ class Experiment(VideoBaseClass):
             input_options["stimulus_video_name"] = stimulus_video_name
 
             if not build_without_run:
-                # Replace options with input_options
                 self._replace_options(input_options)
 
-                # Try loading existing file, if not found, create stimulus
-                # try:
-                #     stim = self.data_io.load_stimulus_from_videofile(
-                #         stimulus_video_name
-                #     )
-                # except FileNotFoundError:
                 stim = self.stimulate.make_stimulus_video(self.options)
-                # self.options["raw_intensity"] = stim.options["raw_intensity"]
 
+                # Build filename
                 gc_type = self.config.retina_parameters["gc_type"]
                 response_type = self.config.retina_parameters["response_type"]
                 filename_prefix = f"Response_{gc_type}_{response_type}_"
