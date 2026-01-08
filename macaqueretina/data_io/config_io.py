@@ -255,25 +255,25 @@ class Configuration(MutableMapping):
         """Supports config.values() (behaves like built-in dict)."""
         return self._data.values()
 
-    # def pop(self, key: str, default=_SENTINEL):
-    #     """Supports config.pop("param") (behaves like built-in dict)."""
-    #     if default is _SENTINEL:
-    #         out = self._data.pop(key)
-    #     else:
-    #         out = self._data.pop(key, default)
-    #     self._notify_changed(self._path + (key,), None)
-    #     return out
+    def pop(self, key: str, default=_SENTINEL):
+        """Supports config.pop("param") (behaves like built-in dict)."""
+        if default is _SENTINEL:
+            out = self._data.pop(key)
+        else:
+            out = self._data.pop(key, default)
+        # self._notify_changed(self._path + (key,), None)
+        return out
 
-    # def popitem(self):
-    #     """Supports config.popitem() (behaves like built-in dict)."""
-    #     k, v = self._data.popitem()
-    #     self._notify_changed(self._path + (k,), None)
-    #     return (k, v)
+    def popitem(self):
+        """Supports config.popitem() (behaves like built-in dict)."""
+        k, v = self._data.popitem()
+        # self._notify_changed(self._path + (k,), None)
+        return (k, v)
 
-    # def clear(self):
-    #     """Supports config.clear() to remove all params (behaves like built-in dict)."""
-    #     self._data.clear()
-    #     self._notify_changed(self._path, None)
+    def clear(self):
+        """Supports config.clear() to remove all params (behaves like built-in dict)."""
+        self._data.clear()
+        # self._notify_changed(self._path, None)
 
     def update(self, other: Mapping[str, Any] | None = None, /, **kwargs):
         """
