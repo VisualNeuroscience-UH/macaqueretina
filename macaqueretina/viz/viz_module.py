@@ -3461,6 +3461,25 @@ class Viz:
 
         ax.legend()
 
+        # Prepare table data
+        table_data = []
+        for idx, freq in enumerate(temporal_frequencies):
+            Rmax, c50, baseline = parameters[:, idx]
+            table_data.append(
+                [f"{freq:.1f} Hz", f"{Rmax:.2f}", f"{c50:.2f}", f"{baseline:.2f}"]
+            )
+
+        # Add table
+        table = ax.table(
+            cellText=table_data,
+            colLabels=["Freq", "Rmax", "c50", "Baseline"],
+            loc="center left",
+            bbox=[0.05, 0.65, 0.4, 0.3],
+            cellLoc="center",
+            edges="open",
+        )
+        table.scale(1, 1.5)
+
         if savefigname:
             self._figsave(figurename=savefigname)
 
