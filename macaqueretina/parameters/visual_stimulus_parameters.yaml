@@ -11,7 +11,7 @@ visual_stimulus_parameters:
   stimulus_form: "circular"
   stimulus_position: [0.0, 0.0]  # relative to stimulus center in retina
   stimulus_size: 1.5  # 2.2,  # deg, radius for circle, sidelen/2 for rectangle.
-  temporal_frequency: 5  # 0.01,  # 4.0,  # 40,  # Hz
+  temporal_frequency: 2  # 0.01,  # 4.0,  # 40,  # Hz
   spatial_frequency: 2  # cpd
   orientation: 90  # degrees
   phase_shift: 0  # math.pi + 0.1,  # radians
@@ -24,8 +24,9 @@ visual_stimulus_parameters:
 
 # For external video and image input. See visual_stimulus_module.VideoBaseClass for more options.
 external_stimulus_parameters:
-  stimulus_file: "test_video_large.avi"  
-  # stimulus_file: "test_image.jpg"  
-  pix_per_deg: 60  # Video test
+  ext_stimulus_file: "urban4_time60.avi"  
+  # ext_stimulus_file: "nature4_orig30.avi"  
+  # ext_stimulus_file: "nature4_orig29.avi"  
+  # ext_stimulus_file: "test_image.jpg"  
+  ext_pix_per_deg: 60  # Video test
   # pix_per_deg: 30  # VanHateren_1998_ProcRSocLondB 2 arcmin per pixel
-  fps: 25
