@@ -10,6 +10,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 import brian2 as b2
 import brian2.units as b2u
 import brian2cuda  # noqa: F401
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import scipy.fftpack as fftpack
@@ -1451,7 +1452,6 @@ class TemporalModelSubunit(TemporalModelBase):
         Tuple[Any, Any]
             A tuple containing the updated visual signal object and the ganglion cell object.
         """
-        vs = self._create_dynamic_contrast(vs, gcs)
         vs = self.cones.create_signal(vs)
         vs = self.bipolars.create_signal(vs)
         return vs, gcs
@@ -1751,7 +1751,6 @@ class ConcreteSimulationBuilder(SimulationBuildInterface):
         firing_rates_light = firing_rates_light[:, :, np.newaxis]
 
         # Noise component
-        noise_fr_std = params_all.Mean.values.std()
         gc_noise_raw = vs.gc_synaptic_noise_raw
         mu = np.mean(gc_noise_raw.flatten())
         sigma = np.std(gc_noise_raw.flatten())
@@ -1759,7 +1758,8 @@ class ConcreteSimulationBuilder(SimulationBuildInterface):
         # z-score normalization
         gc_noise_normalized = (gc_noise_raw - mu) / sigma
 
-        # scale to empirical std
+        # scale noise std to Fano factor 1 std of the requested noise mean fr
+        noise_fr_std = np.sqrt(vs.noise_fr_mean)
         gc_noise_empirical_std = gc_noise_normalized * noise_fr_std
         firing_rates_cone_noise = gc_noise_empirical_std + vs.noise_fr_mean
 
@@ -2257,6 +2257,7 @@ class ConcreteSimulationBuilder(SimulationBuildInterface):
         """
         vs = self.vs
         vs.stimulus_cropped_adapted = vs.stimulus_cropped / vs.mean_luminance - 1.0
+        # TODO: Tarkista
         self.vs = vs
 
     def get_noise(self) -> None:
@@ -2958,8 +2959,8 @@ class ConeProduct(ReceptiveFieldsBase):
         minp = np.round(np.min(cone_input_R)).astype(int)
         maxp = np.round(np.max(cone_input_R)).astype(int)
 
-        print(f"\nLuminance range: {minl * ff:.3f} to {maxl * ff:.3f} cd/m²")
-        print(f"\nR* range: {minp} to {maxp} photoisomerizations/cone/s")
+        print(f"Luminance range: {minl * ff:.3f} to {maxl * ff:.3f} cd/m²")
+        print(f"R* range: {minp} to {maxp} photoisomerizations/cone/s")
 
         # Update visual stimulus photodiode response
         vs.photodiode_response = vs.photodiode_response * ff
@@ -2973,7 +2974,7 @@ class ConeProduct(ReceptiveFieldsBase):
 
         background_R = background_R * ff
 
-        print(f"\nbackground_R* {background_R:.0f} photoisomerizations/cone/s")
+        print(f"background_R* {background_R:.0f} photoisomerizations/cone/s")
 
         tvec = vs.tvec
         dt = vs.video_dt
@@ -2983,7 +2984,7 @@ class ConeProduct(ReceptiveFieldsBase):
             cone_input_R, params_dict, dt, duration, tvec, pad_value=background_R
         )
 
-        print(f"\nCone signal min:{cone_signal_u.min():.1f} {params_dict['unit']}")
+        print(f"Cone signal min:{cone_signal_u.min():.1f} {params_dict['unit']}")
         print(f"Cone signal max:{cone_signal_u.max():.1f} {params_dict['unit']}")
 
         vs.cone_signal = cone_signal
@@ -3249,7 +3250,6 @@ class BipolarProduct(ReceptiveFieldsBase):
 
         gc_center_input = _compute_gc_input(bipolar_to_gcs_cen_weights)
         gc_surround_input = _compute_gc_input(bipolar_to_gcs_sur_weights)
-
         gc_activation = gc_center_input - gc_surround_input
 
         if self.target_gc_for_multiple_trials is not None:

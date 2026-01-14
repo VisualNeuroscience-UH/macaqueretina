@@ -16,11 +16,10 @@ from scipy.spatial import Voronoi
 from shapely.geometry import Polygon as ShapelyPolygon
 from tqdm import tqdm
 
-from macaqueretina.project.project_utilities_module import PrintableMixin
-from macaqueretina.retina.retina_math_module import RetinaMath
-
 # Local
 from .rf_repulsion_utils import apply_rf_repulsion
+from macaqueretina.project.project_utilities_module import PrintableMixin
+from macaqueretina.retina.retina_math_module import RetinaMath
 
 
 class Retina(PrintableMixin):
@@ -155,11 +154,9 @@ class Retina(PrintableMixin):
         self.model_density: float = retina_parameters["model_density"]
 
         # Turn list to numpy array and deg to mm
-        self.ecc_lim_mm: np.ndarray = (
-            np.asarray(ecc_limits_deg).astype(float) / self.deg_per_mm
-        )
+        self.ecc_lim_mm = np.asarray(ecc_limits_deg).astype(float) / self.deg_per_mm
         self.ecc_limit_for_dd_fit_mm: float = ecc_limit_for_dd_fit / self.deg_per_mm
-        self.polar_lim_deg: np.ndarray = np.asarray(pol_limits_deg).astype(float)
+        self.polar_lim_deg = np.asarray(pol_limits_deg).astype(float)
 
         self.proportion_of_parasol_gc_type: float = retina_parameters[
             "proportion_of_parasol_gc_type"
@@ -2319,15 +2316,15 @@ class TemporalModelBase(ABC):
             The updated retina model instance with cones linked to ganglion cells.
         """
         print("Connecting cones to ganglion cells for shared cone noise...")
-        cone_pos_mm: np.ndarray = ret.cone_optimized_pos_mm
+        cone_pos_mm = ret.cone_optimized_pos_mm
         sd_cone: float = ret.cone_general_parameters[f"cone2gc_{ret.gc_type}"] / 1000
         cutoff_distance: float = (
             ret.cone_general_parameters["cone2gc_cutoff_SD"] * sd_cone
         )
 
         # Normalize center activation to probability distribution
-        img_cen: np.ndarray = gc.img * gc.img_mask  # N, H, W
-        img_prob: np.ndarray = img_cen / np.sum(img_cen, axis=(1, 2))[:, None, None]
+        img_cen = gc.img * gc.img_mask  # N, H, W
+        img_prob = img_cen / np.sum(img_cen, axis=(1, 2))[:, None, None]
 
         n_cones = cone_pos_mm.shape[0]
         n_gcs = img_prob.shape[0]
@@ -2780,8 +2777,8 @@ class TemporalModelSubunit(TemporalModelBase):
         unit_type: str = ret.gc_type
 
         # Load the parasol data, but set target_RI_values to 0 for midgets (always linear).
-        g_sur_values: np.ndarray = ret.experimental_archive["g_sur_values"]
-        target_RI_values: np.ndarray = ret.experimental_archive["target_RI_values"]
+        g_sur_values = ret.experimental_archive["g_sur_values"]
+        target_RI_values = ret.experimental_archive["target_RI_values"]
 
         if unit_type == "midget":
             target_RI_values = target_RI_values * 0
@@ -2795,9 +2792,9 @@ class TemporalModelSubunit(TemporalModelBase):
         # Scale g_sur_values to g_sur_range
         g_sur_min: float = np.min(g_sur_values)
         g_sur_max: float = np.max(g_sur_values)
-        g_sur_scaled: np.ndarray = (g_sur_values - g_sur_min) / (
-            g_sur_max - g_sur_min
-        ) * (g_sur_range[1] - g_sur_range[0]) + g_sur_range[0]
+        g_sur_scaled = (g_sur_values - g_sur_min) / (g_sur_max - g_sur_min) * (
+            g_sur_range[1] - g_sur_range[0]
+        ) + g_sur_range[0]
 
         # Exclude the first value as an outlier.
         popt, _ = opt.curve_fit(RI_function, g_sur_scaled[1:], target_RI_values[1:])
@@ -2862,28 +2859,22 @@ class TemporalModelSubunit(TemporalModelBase):
 
         print("Connecting cones to bipolar cells...")
 
-        cone_pos_mm: np.ndarray = ret.cone_optimized_pos_mm
-        bipo_pos_mm: np.ndarray = ret.bipolar_optimized_pos_mm
+        cone_pos_mm = ret.cone_optimized_pos_mm
+        bipo_pos_mm = ret.bipolar_optimized_pos_mm
         selected_bipolars_df: pd.DataFrame = ret.selected_bipolars_df
-        bipo_cen_sd_mm: float = (
-            ret.bipolar_general_parameters["cone2bipo_cen_sd"] / 1000
-        )
-        bipo_sur_sd_mm: float = (
-            ret.bipolar_general_parameters["cone2bipo_sur_sd"] / 1000
-        )
-        bipo_sur2cen_amp_ratio: float = ret.bipolar_general_parameters[
-            "bipo_sub_sur2cen"
-        ]
-        cutoff_SD_sur: float = (
+        bipo_cen_sd_mm = ret.bipolar_general_parameters["cone2bipo_cen_sd"] / 1000
+        bipo_sur_sd_mm = ret.bipolar_general_parameters["cone2bipo_sur_sd"] / 1000
+        bipo_sur2cen_amp_ratio = ret.bipolar_general_parameters["bipo_sub_sur2cen"]
+        cutoff_SD_sur = (
             ret.cone_general_parameters["cone2bipo_cutoff_SD"] * bipo_sur_sd_mm
         )
 
-        cone_reshaped: np.ndarray = cone_pos_mm[:, np.newaxis, :]
-        bipo_reshaped: np.ndarray = bipo_pos_mm[np.newaxis, :, :]
+        cone_reshaped = cone_pos_mm[:, np.newaxis, :]
+        bipo_reshaped = bipo_pos_mm[np.newaxis, :, :]
 
-        squared_diffs: np.ndarray = (cone_reshaped - bipo_reshaped) ** 2
-        squared_distances: np.ndarray = squared_diffs.sum(axis=2)
-        distances: np.ndarray = np.sqrt(squared_distances).astype(np.float64)
+        squared_diffs = (cone_reshaped - bipo_reshaped) ** 2
+        squared_distances = squared_diffs.sum(axis=2)
+        distances = np.sqrt(squared_distances).astype(np.float64)
 
         min_range, max_range, average = _extract_range_and_average_from(
             selected_bipolars_df
@@ -2896,10 +2887,10 @@ class TemporalModelSubunit(TemporalModelBase):
         )
 
         # Get indices of ascending distances for each bipolar cell.
-        ascending_distances_from_bipolars: np.ndarray = np.argsort(distances, axis=0)
+        ascending_distances_from_bipolars = np.argsort(distances, axis=0)
 
         # Initialize null_idx with True (exclude all initially).
-        null_idx: np.ndarray = np.ones_like(distances, dtype=bool)
+        null_idx = np.ones_like(distances, dtype=bool)
 
         # Mark the top n_bipolar_dendritic_contacts shortest distances as False (include them).
         for j in range(ascending_distances_from_bipolars.shape[1]):
@@ -2908,15 +2899,15 @@ class TemporalModelSubunit(TemporalModelBase):
             ]
             null_idx[null_column, j] = False
 
-        G_cen: np.ndarray = np.exp(-((distances / bipo_cen_sd_mm) ** 2))
-        G_sur: np.ndarray = np.exp(-((distances / bipo_sur_sd_mm) ** 2))
+        G_cen = np.exp(-((distances / bipo_cen_sd_mm) ** 2))
+        G_sur = np.exp(-((distances / bipo_sur_sd_mm) ** 2))
 
         G_cen[null_idx] = 0
         G_sur[distances > cutoff_SD_sur] = 0
 
         # Assert no column-wise zero sums.
-        G_cen_sum: np.ndarray = G_cen.sum(axis=0)
-        G_sur_sum: np.ndarray = G_sur.sum(axis=0)
+        G_cen_sum = G_cen.sum(axis=0)
+        G_sur_sum = G_sur.sum(axis=0)
         assert not any(
             G_cen_sum == 0
         ), "Zero sum in cone to bipolar center, aborting..."
@@ -2924,11 +2915,11 @@ class TemporalModelSubunit(TemporalModelBase):
             G_sur_sum == 0
         ), "Zero sum in cone to bipolar surround, aborting..."
 
-        G_cen_probability: np.ndarray = G_cen / G_cen_sum[np.newaxis, :]
-        G_sur_probability: np.ndarray = G_sur / G_sur_sum[np.newaxis, :]
+        G_cen_probability = G_cen / G_cen_sum[np.newaxis, :]
+        G_sur_probability = G_sur / G_sur_sum[np.newaxis, :]
 
-        G_cen_weight: np.ndarray = G_cen_probability
-        G_sur_weight: np.ndarray = G_sur_probability * bipo_sur2cen_amp_ratio
+        G_cen_weight = G_cen_probability
+        G_sur_weight = G_sur_probability * bipo_sur2cen_amp_ratio
 
         ret.cones_to_bipolars_center_weights = G_cen_weight
         ret.cones_to_bipolars_surround_weights = G_sur_weight
@@ -2939,43 +2930,61 @@ class TemporalModelSubunit(TemporalModelBase):
         self,
         ret: Retina,
         gc: Any,
-        mask: np.ndarray,
         X_grid_cen_mm: np.ndarray,
         Y_grid_cen_mm: np.ndarray,
     ) -> np.ndarray:
         """
         Link bipolar units to ganglion cells worker function.
         """
-        bipo_pos_mm: np.ndarray = ret.bipolar_optimized_pos_mm
-        n_bipos: int = bipo_pos_mm.shape[0]
+        bipo_pos_mm = ret.bipolar_optimized_pos_mm
+        n_bipos = bipo_pos_mm.shape[0]
 
-        rf_div: float = ret.bipolar_general_parameters["bipo2gc_div"]
-        sd_bipo: np.ndarray = gc.df.den_diam_um / rf_div
+        rf_div = ret.bipolar_general_parameters["bipo2gc_div"]
+        sd_bipo = gc.df.den_diam_um / rf_div
         sd_bipo = sd_bipo / 1000  # Convert from micrometers to millimeters.
         sd_bipo = sd_bipo.values[:, None, None]  # Shape: (N, 1, 1).
-        cutoff_SD: np.ndarray = (
-            ret.bipolar_general_parameters["bipo2gc_cutoff_SD"] * sd_bipo
-        )
+        cutoff_mm = ret.bipolar_general_parameters["bipo2gc_cutoff_SD"] * sd_bipo
 
-        weights: np.ndarray = np.zeros((n_bipos, gc.n_units))
+        weights = np.zeros((n_bipos, gc.n_units))
 
-        # Normalize center activation to probability distribution.
-        img_masked: np.ndarray = gc.img * mask  # Shape: (N, H, W).
+        def _connect(X_grid_cen_mm, Y_grid_cen_mm, cutoff_mm, sd_bipo):
+            n_gcs = X_grid_cen_mm.shape[0]
+            desc_str = f"Calculating {n_bipos} x {n_gcs} connections"
+            weights_ = np.zeros((n_bipos, n_gcs))
+            for this_bipo in tqdm(range(n_bipos), desc=desc_str):
+                this_bipo_pos = bipo_pos_mm[this_bipo]
+                dist_x_mtx = X_grid_cen_mm - this_bipo_pos[0]
+                dist_y_mtx = Y_grid_cen_mm - this_bipo_pos[1]
+                dist_mtx = np.sqrt(dist_x_mtx**2 + dist_y_mtx**2)
 
-        desc_str = f"Calculating {n_bipos} x {gc.n_units} connections"
-        for this_bipo in tqdm(range(n_bipos), desc=desc_str):
-            this_bipo_pos = bipo_pos_mm[this_bipo]
-            dist_x_mtx = X_grid_cen_mm - this_bipo_pos[0]
-            dist_y_mtx = Y_grid_cen_mm - this_bipo_pos[1]
-            dist_mtx = np.sqrt(dist_x_mtx**2 + dist_y_mtx**2)
+                # Drop weight as a Gaussian function of distance with sd = sd_bipo.
+                probability = np.exp(-((dist_mtx**2) / (2 * sd_bipo**2)))
+                probability[dist_mtx > cutoff_mm] = 0
 
-            # Drop weight as a Gaussian function of distance with sd = sd_bipo.
-            probability = np.exp(-((dist_mtx**2) / (2 * sd_bipo**2)))
-            probability[dist_mtx > cutoff_SD] = 0
+                weights_mtx = probability
+                weights_[this_bipo, :] = weights_mtx.sum(axis=(1, 2))
+            return weights_
 
-            weights_mtx = probability * img_masked
-            # weights_mtx = probability * img_prob
-            weights[this_bipo, :] = weights_mtx.sum(axis=(1, 2))
+        weights = _connect(X_grid_cen_mm, Y_grid_cen_mm, cutoff_mm, sd_bipo)
+
+        # For tiny receptive fields no bipolars may survive the cutoff_mm. Rerun these.
+        max_allowed_SD = cutoff_mm.mean() + 3 * cutoff_mm.std()
+        while not all(weights.sum(axis=0)):
+            indices = np.where(weights.sum(axis=0) == 0)[0]
+            print(
+                f"{len(indices)} gcs with no input from bipolars, their cutoff distance *= 1.3"
+            )
+            cutoff_mm[indices, ...] *= 1.3
+            if cutoff_mm[indices, ...].max() > max_allowed_SD:
+                raise ValueError(
+                    "Bipolar to gc cutoff distance exceed max allowed distance"
+                )
+            weights[:, indices] = _connect(
+                X_grid_cen_mm[indices],
+                Y_grid_cen_mm[indices],
+                cutoff_mm[indices],
+                sd_bipo[indices],
+            )
 
         return weights
 
@@ -3001,26 +3010,26 @@ class TemporalModelSubunit(TemporalModelBase):
         print("Connecting bipolar units to ganglion cells...")
 
         # link gc center
-        weights_cen = self._link_bipo_to_gc(
-            ret, gc, gc.img_mask, gc.X_grid_cen_mm, gc.Y_grid_cen_mm
-        )
+        weights_cen = self._link_bipo_to_gc(ret, gc, gc.X_grid_cen_mm, gc.Y_grid_cen_mm)
 
         # Normalize weights so that the input to each ganglion cell center sums to 1.0.
-        weights_out_cen: np.ndarray = weights_cen / weights_cen.sum(axis=0)[None, :]
+        weights_cen_norm = weights_cen / weights_cen.sum(axis=0)[None, :]
 
-        ret.bipolar_to_gcs_cen_weights = weights_out_cen
+        ret.bipolar_to_gcs_cen_weights = weights_cen_norm
 
         # link gc surround
-        weights_sur = self._link_bipo_to_gc(
-            ret, gc, gc.img_mask_sur, gc.X_grid_sur_mm, gc.Y_grid_sur_mm
-        )
+        weights_sur = self._link_bipo_to_gc(ret, gc, gc.X_grid_sur_mm, gc.Y_grid_sur_mm)
 
-        # Coming from RF img, where surround is negative. We want positive weights.
-        weights_sur = weights_sur * -1
+        # Normalize surround according to sur/cen spatial RF volume ratio.
+        cen = gc.img * gc.img_mask  # Shape: (N, H, W).
+        sur = gc.img * gc.img_mask_sur
+        cen_vol = cen.sum(axis=(1, 2))
+        sur_vol = sur.sum(axis=(1, 2)) * -1  # Flip negative surrounds
+        weight_sur_sum_target = sur_vol / cen_vol  # cen weights are one, see above
+        weight_sur_sum = weights_sur.sum(axis=0)
+        coefficients = weight_sur_sum_target / weight_sur_sum
 
-        # Normalize to center weight = 1
-        weights_out_sur: np.ndarray = weights_sur / weights_cen.sum(axis=0)[None, :]
-        ret.bipolar_to_gcs_sur_weights = weights_out_sur
+        ret.bipolar_to_gcs_sur_weights = weights_sur * coefficients[None, :]
 
         return ret
 
