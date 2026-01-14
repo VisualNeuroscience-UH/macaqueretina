@@ -1,6 +1,6 @@
 visual_stimulus_parameters:
-  image_height: 120  
-  image_width: 120  
+  image_height: 240  
+  image_width: 240  
   pix_per_deg: 60
   dtype_name: "float16"  # low contrast needs "float16", for performance, use "uint8",
   fps: 300  # >=200 for good dynamic model integration
@@ -10,14 +10,14 @@ visual_stimulus_parameters:
   pattern: "sine_grating"  # One of the StimulusPattern s
   stimulus_form: "circular"
   stimulus_position: [0.0, 0.0]  # relative to stimulus center in retina
-  stimulus_size: 0.8  # 2.2,  # deg, radius for circle, sidelen/2 for rectangle.
+  stimulus_size: 1.5  # 2.2,  # deg, radius for circle, sidelen/2 for rectangle.
   temporal_frequency: 5  # 0.01,  # 4.0,  # 40,  # Hz
-  spatial_frequency: 1  # cpd
+  spatial_frequency: 2  # cpd
   orientation: 90  # degrees
   phase_shift: 0  # math.pi + 0.1,  # radians
   stimulus_video_name: null # if null, defaults to f"{stimulus_folder}_{hash}.mp4"  
-  contrast: 1.0  # mean +- contrast * mean
-  mean: 200  # Mean luminance in  cd/m2 and adaptation level
+  contrast: 0.035  # mean +- contrast * mean
+  mean: 128  # Mean luminance in  cd/m2 and adaptation level
   intensity: null  # intensity overrides contrast and mean if provided as a tuple like (0, 255)
   background: "mean"  # "mean", "intensity_min", "intensity_max" or value.
   ND_filter: 0.0  # 0.0, log10 neutral density filter factor, can be negative
