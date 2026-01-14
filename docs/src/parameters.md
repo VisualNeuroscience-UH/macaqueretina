@@ -106,9 +106,8 @@ For chirp stimulus, additional parameter is:
 ***NOTE***: if you ask for too high spatial or temporal frequency in relation to pixels per degree or fps, respectively, will result in aliasing without warning
 
 ### external_stimulus_parameters
-- ***stimulus_file***:  **str** | filename for an image or video file  
-- ***pix_per_deg***: **int** | resolution for external stimuli  
-- ***fps***. **int** | frames per second for external videos  
+- ***ext_stimulus_file***:  **str** | filename for an image or video file  
+- ***ext_pix_per_deg***: **int** | resolution for external stimuli  
 Put stimlus image and video files e.g. to the input_folder.
 
 ## simulation_parameters.yaml

@@ -79,6 +79,10 @@ class VideoBaseClass:
         # Get resolution
         options["pix_per_deg"] = 60
 
+        # For external image and video files
+        options["ext_pix_per_deg"] = None
+        options["ext_stimulus_file"] = None
+
         options["baseline_start_seconds"] = 0
         options["baseline_end_seconds"] = 0
         options["stimulus_video_name"] = None
@@ -695,7 +699,7 @@ class StimulusPattern:
 
         After this integration, the method updates the raw intensity values based on the new data.
         """
-        image_file_name = self.config.external_stimulus_parameters["stimulus_file"]
+        image_file_name = self.config.external_stimulus_parameters["ext_stimulus_file"]
         self.image = self.data_io.load_data(image_file_name)
 
         # resize image by specifying custom width and height
@@ -722,14 +726,14 @@ class StimulusPattern:
 
         target_fps = self.options["fps"]
         target_pix_per_deg = self.options["pix_per_deg"]
-        video_pix_per_deg = self.config.external_stimulus_parameters["pix_per_deg"]
+        video_pix_per_deg = self.config.external_stimulus_parameters["ext_pix_per_deg"]
 
         target_height = self.frames.shape[1]
         target_width = self.frames.shape[2]
         target_n_frames = self.frames.shape[0]
 
         # Get external input video
-        video_file_name = self.config.external_stimulus_parameters["stimulus_file"]
+        video_file_name = self.config.external_stimulus_parameters["ext_stimulus_file"]
         video_cap = self.data_io.load_data(video_file_name)
 
         video_height = int(video_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
@@ -895,6 +899,12 @@ class VisualStimulus(VideoBaseClass):
             self.config.visual_stimulus_parameters = options
 
         visual_stimulus_parameters = self.config.visual_stimulus_parameters
+
+        match visual_stimulus_parameters.pattern:
+            case "natural_image" | "natural_video":
+                self.config.visual_stimulus_parameters.update(
+                    self.config.external_stimulus_parameters
+                )
 
         # Load stimulus if it exists, identified by hash of parameters. Otherwise, make new stimulus and save.
         video_hash = self.config.visual_stimulus_parameters.hash()

@@ -218,11 +218,10 @@ class VisualStimulusParameters(BaseConfigModel):
 
 
 class StimulusMetadataParameters(BaseConfigModel):
-    stimulus_file: Path
-    pix_per_deg: int = Field(
+    ext_stimulus_file: str
+    ext_pix_per_deg: int = Field(
         default=30, description="VanHateren_1998_ProcRSocLondB 2 arcmin per pixel"
     )
-    fps: int = 25
 
 
 class SimulationParameters(BaseConfigModel):

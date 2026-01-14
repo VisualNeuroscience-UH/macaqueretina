@@ -2255,8 +2255,10 @@ class ConcreteSimulationBuilder(SimulationBuildInterface):
         and contrast 1 reaching [-1, 1].
         """
         vs = self.vs
+
+        # Adapt stimulus [0, 255] to mean zero, [-1, 1]
         vs.stimulus_cropped_adapted = vs.stimulus_cropped / vs.mean_luminance - 1.0
-        # TODO: Tarkista
+
         self.vs = vs
 
     def get_noise(self) -> None:
@@ -2786,7 +2788,7 @@ class ConeProduct(ReceptiveFieldsBase):
             constant_values=((0, 0), (pad_value_u, 0)),
         )
 
-        print("\nConvolving cone signal matrices...")
+        print("Convolving cone signal matrices...")
         y_mtx = convolve(cone_input_padded, Ky_2D_kernel, mode="full", method="fft")[
             :, pad_length : pad_length + len(tvec)
         ]
@@ -2798,7 +2800,7 @@ class ConeProduct(ReceptiveFieldsBase):
         y_mtx_u = y_mtx * b2u.second**-1
         z_mtx_u = z_mtx * b2u.second**-1
 
-        print("\nRunning Brian code for cones...")
+        print("Running Brian code for cones...")
         y_mtx_ta = b2.TimedArray(y_mtx_u.T, dt=dt)  # noqa: F841
         z_mtx_ta = b2.TimedArray(z_mtx_u.T, dt=dt)  # noqa: F841
         # In original Clark model, the response is defined as r(t) = V(t) - Vrest
@@ -2897,7 +2899,7 @@ class ConeProduct(ReceptiveFieldsBase):
         self.cone_response = cone_response
 
         # Save the cone response to output folder
-        filename = self.config.external_stimulus_parameters["stimulus_file"]
+        filename = self.config.external_stimulus_parameters["ext_stimulus_file"]
         self.data_io.save_cone_response_to_hdf5(filename, cone_response)
 
     # Public functions

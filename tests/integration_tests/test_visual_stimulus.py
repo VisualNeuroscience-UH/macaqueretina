@@ -81,10 +81,12 @@ def test_make_stimulus_video(
         stimulus_config.visual_stimulus_parameters.direction = "increment"
     if pattern in ["natural_image"]:
         stimulus_config.input_folder = test_root / "mock_data"
-        mr.config.external_stimulus_parameters.stimulus_file = "test_image.jpg"
+        mr.config.external_stimulus_parameters.ext_stimulus_file = "test_image.jpg"
     if pattern in ["natural_video"]:
         stimulus_config.input_folder = test_root / "mock_data"
-        mr.config.external_stimulus_parameters.stimulus_file = "test_video_small.avi"
+        mr.config.external_stimulus_parameters.ext_stimulus_file = (
+            "test_video_small.avi"
+        )
 
     # Generate stimulus
     stimulus_video = mr.make_stimulus()
