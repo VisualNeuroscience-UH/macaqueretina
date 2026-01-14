@@ -10,7 +10,6 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 import brian2 as b2
 import brian2.units as b2u
 import brian2cuda  # noqa: F401
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import scipy.fftpack as fftpack
