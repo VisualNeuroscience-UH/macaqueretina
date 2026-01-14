@@ -77,7 +77,7 @@ retina_parameters_extend:
     bipo2gc_cutoff_SD: 2  # Multiplier for above value
     cone2bipo_cen_sd: 10  # um, Turner_2018_eLife
     cone2bipo_sur_sd: 150
-    bipo_sub_sur2cen: 0.9  # Surround / Center amplitude ratio.
+    bipo_sub_sur2cen: 0.9  # Surround / Center amplitude ratio for bipolar subunits (cone => bipo connection).
 
   # Recovery function from Berry_1998_JNeurosci, Uzzell_2004_JNeurophysiol
   # abs and rel refractory estimated from Uzzell_2004_JNeurophysiol,
