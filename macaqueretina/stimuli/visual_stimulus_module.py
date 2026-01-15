@@ -1,4 +1,5 @@
 # Built-in
+from fractions import Fraction
 from pathlib import Path
 
 # Third-party
@@ -8,7 +9,7 @@ import numpy as np
 import torch
 from cv2 import resize
 from scipy.ndimage import rotate
-from scipy.signal import resample
+from scipy.signal import resample_poly
 from torchvision.transforms.functional import rotate
 
 plt.rcParams["image.cmap"] = "gray"
@@ -475,7 +476,11 @@ class VideoBaseClass:
         return frames_resampled
 
     def _temporal_resample(
-        self, frames: np.ndarray, req_video_n_frames: int, target_n_frames: int
+        self,
+        frames: np.ndarray,
+        req_video_n_frames: int,
+        target_n_frames: int,
+        mean_value=128,
     ) -> np.ndarray:
         """
         Temporal resampling of frames
@@ -488,13 +493,29 @@ class VideoBaseClass:
             Requested N frames from input video
         target_n_frames: int
             Target N frames
+        mean_value: float
+            Stimulus mean value for padding during resampling
         """
-
-        frames_resampled = resample(
-            frames[:req_video_n_frames], target_n_frames, axis=0
+        ratio = target_n_frames / req_video_n_frames
+        fraction = Fraction(ratio).limit_denominator()
+        up = fraction.numerator
+        down = fraction.denominator
+        resampled_frames = resample_poly(
+            frames[:req_video_n_frames, ...],
+            up=up,
+            down=down,
+            axis=0,
+            padtype="constant",
+            cval=mean_value,
+            window=("hann",),
         )
 
-        return frames_resampled
+        if resampled_frames.shape[0] != target_n_frames:
+            raise ValueError(
+                f"Temporal resampling error: got {resampled_frames.shape[0]} frames, expected {target_n_frames} frames"
+            )
+
+        return resampled_frames
 
 
 class StimulusPattern:
@@ -760,8 +781,9 @@ class StimulusPattern:
             video_frames, req_video_height, req_video_width, target_height, target_width
         )
 
+        mean_value = self.config.visual_stimulus_parameters.mean
         self.frames = self._temporal_resample(
-            video_frames_res, req_video_n_frames, target_n_frames
+            video_frames_res, req_video_n_frames, target_n_frames, mean_value=mean_value
         )
         self.fps = target_fps
 
