@@ -2927,7 +2927,7 @@ class Viz:
             and other information to analyze.
         """
         gc_responses_to_show = self.project_data.simulate_retina["gc_responses_to_show"]
-        gc_synaptic_noise = gc_responses_to_show["gc_synaptic_noise"]
+        gc_synaptic_noise = gc_responses_to_show["gc_synaptic_noise_raw"]
         n_sweeps = gc_responses_to_show["n_sweeps"]
         n_gcs = gc_responses_to_show["n_units"]
 
@@ -2939,7 +2939,8 @@ class Viz:
 
         fig, ax = plt.subplots(1, 2, figsize=(10, 5))
         ax[0].hist(gc_synaptic_noise.flatten(), 100)
-        ax[1].imshow(cov_matrix_mean, cmap="viridis")
+        cbar = plt.colorbar(ax[1].imshow(cov_matrix_mean, cmap="viridis"), ax=ax[1])
+        cbar.set_label("Covariance")
 
         if savefigname is not None:
             plt.savefig(savefigname)
@@ -2986,15 +2987,9 @@ class Viz:
             for spiketrain in adjusted_spiketrains
         ]
 
-        # Change to arrays
-
-        mean_spike_rates = np.array(spike_rates)
-        # sd_spike_rates = np.std(spike_rates)
-
-        # Plotting
         fig, ax = plt.subplots(1, 1, figsize=(12, 6))
         ax.hist(
-            mean_spike_rates,
+            np.array(spike_rates),
             bins="auto",
             color="skyblue",
             alpha=0.7,
@@ -3004,10 +2999,7 @@ class Viz:
         ax.set_title("Mean Spike Rates")
         ax.set_xlabel("Spike Rate (Hz)")
         ax.set_ylabel("Frequency")
-
-        # for a in ax:
         ax.legend()
-
         plt.tight_layout()
 
         if savefigname is not None:
