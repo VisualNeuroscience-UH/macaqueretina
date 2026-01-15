@@ -1129,3 +1129,60 @@ class Analysis:
         )
         csv_save_path = data_folder / filename_out
         df.to_csv(csv_save_path)
+
+    def compute_cross_correlogram(
+        self,
+        spike_train_1,
+        spike_train_2,
+        bin_size=0.005,
+        window_size=0.1,
+        normalize=True,
+    ):
+        """
+        Compute the cross-correlogram (CCG) of two spike trains.
+
+        Parameters
+        ----------
+        spike_train_1: array-like
+            Timestamps of spikes in the first train.
+        spike_train_2: array-like
+            Timestamps of spikes in the second train.
+        bin_size: float
+            Size of each bin in the CCG (default: 0.001 seconds).
+        window_size: float
+            Total time window for the CCG (default: 0.1 seconds).
+        normalize: bool
+            If True, normalizes the CCG by the number of spikes (default: True).
+
+        Returns
+        -------
+        tuple
+            (lags, ccg) where `lags` are the time lags and `ccg` is the cross-correlogram.
+        """
+
+        # Convert spike trains to binary vectors
+        max_time = max(np.max(spike_train_1), np.max(spike_train_2))
+        bins = np.arange(0, max_time + bin_size, bin_size)
+        spike_vec_1, _ = np.histogram(spike_train_1, bins=bins)
+        spike_vec_2, _ = np.histogram(spike_train_2, bins=bins)
+
+        # Compute cross-correlation
+        ccg = correlate(spike_vec_1, spike_vec_2, mode="full")
+
+        # Compute lags in milliseconds
+        n_lags = len(ccg)
+        lags = np.linspace(-window_size, window_size, n_lags)
+
+        # Normalize if requested
+        if normalize:
+            n_spikes_1 = len(spike_train_1)
+            n_spikes_2 = len(spike_train_2)
+            ccg = ccg / (n_spikes_1 * n_spikes_2 * bin_size)
+
+        # Crop to the specified window
+        center = len(ccg) // 2
+        half_window = int(window_size / bin_size)
+        ccg = ccg[center - half_window : center + half_window]
+        lags = lags[center - half_window : center + half_window]
+
+        return lags, ccg
