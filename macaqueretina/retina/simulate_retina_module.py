@@ -1864,24 +1864,13 @@ class ConcreteSimulationBuilder(SimulationBuildInterface):
                 "Missing valid spike_generator_model, check simulation_parameters parameters, aborting..."
             )
 
-        # Save brian state
-        net.store()
-        # all_spiketrains = []
         spikearrays = []
-        t_start = []
-        t_end = []
-
-        net.restore()  # Restore the initial state
-        t_start.append(net.t)
         net.run(duration)
-        t_end.append(net.t)
 
         spiketrains = list(spike_monitor.spike_trains().values())
-        # all_spiketrains.extend(spiketrains)
 
-        # Cxsystem spikemon save natively supports multiple monitors
-        spikearrays.append(deepcopy(spike_monitor.it[0].__array__()))
-        spikearrays.append(deepcopy(spike_monitor.it[1].__array__()))
+        spikearrays.append(spike_monitor.it[0].__array__())
+        spikearrays.append(spike_monitor.it[1].__array__())
 
         return spikearrays, spiketrains
 
@@ -3042,6 +3031,11 @@ class ConeProduct(ReceptiveFieldsBase):
     def connect_cone_noise_to_gcs(
         self, vs: "VisualSignal", n_sweeps: int
     ) -> "VisualSignal":
+        if n_sweeps != vs.cone_noise.shape[2]:
+            raise ValueError(
+                "Number of sweeps does not match the existing cone noise. Remove cone noise file from output folder..."
+            )
+
         # Calculate the synaptic noise for ganglion cells
         print("\nUsing PyTorch for connecting cone noise to ganglion cells...")
 
