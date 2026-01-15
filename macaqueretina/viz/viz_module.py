@@ -2437,7 +2437,7 @@ class Viz:
         y_data = df[peak_column].values
         Rmax = y_data.max()
         p0 = (Rmax, 0.5, 0.0)
-        bounds = ((0, 0, 0), (Rmax * 2, 100, Rmax))
+        bounds = (-np.inf, np.inf)
 
         fit_function = self.naka_rushton
         inverse_fit_function = self.naka_rushton_inverse
