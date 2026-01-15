@@ -4605,7 +4605,6 @@ class ConcreteRetinaBuilder(RetinaBuilder):
         # # Quality control: check that the fitted dendritic diameter is close to the original data
         # # Frechette_2005_JNeurophysiol datasets: 9.7 mm (45°); 9.0 mm (41°); 8.4 mm (38°)
         # # Estimate the orginal data eccentricity from the fit to full eccentricity range
-        # # TODO: move to integration tests
         # exp_rad = self.exp_cen_radius_mm * 2 * 1000
         # self.ecc_limit_for_dd_fit_mm = np.inf
         # dd_ecc_params_full = self._fit_dd_vs_ecc()
