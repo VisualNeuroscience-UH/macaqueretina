@@ -1744,7 +1744,7 @@ class ConcreteSimulationBuilder(SimulationBuildInterface):
         # Signal component
         gain_name = "A_cen" if gcs.gc_type == "midget" else "A"
         gc_gain_raw = params_all[gain_name].values
-        gc_gain_adjusted = gc_gain_raw * gcs.gc_gain_adjustment
+        gc_gain_adjusted = gc_gain_raw * gcs.gain_galibration
         firing_rates_light = vs.generator_potentials * gc_gain_adjusted[:, np.newaxis]
         firing_rates_light = firing_rates_light[:, :, np.newaxis]
 
@@ -3396,14 +3396,14 @@ class GanglionCellProduct(ReceptiveFieldsBase):
         unit_indices = np.arange(self.n_units)
         self.unit_indices = np.atleast_1d(unit_indices)
 
-        self._set_gc_gain_adjustment()
+        self._set_gain_galibration()
 
-    def _set_gc_gain_adjustment(self) -> None:
+    def _set_gain_galibration(self) -> None:
         """
         Set gain adjustment for ganglion cells.
 
         """
-        self.gc_gain_adjustment = self.retina_parameters["calibrated_gain"]
+        self.gain_galibration = self.retina_parameters["calibrated_gain"]
 
     def link_gcs_to_vs(self, vs: Any) -> None:
         """
