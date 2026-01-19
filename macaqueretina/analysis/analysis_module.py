@@ -58,7 +58,7 @@ class Analysis:
                 data_scaled = data_std * (feat_max - feat_min) + feat_min
         return data_scaled
 
-    def _get_spikes_by_interval(self, data, sweep, t_start, t_end):
+    def get_spikes_by_interval(self, data, sweep, t_start, t_end):
         key_name = f"spikes_{sweep}"
         data_by_trial = data[key_name]
 
@@ -73,14 +73,14 @@ class Analysis:
         return spike_units, spike_times
 
     def _analyze_meanfr(self, data, sweep, t_start, t_end):
-        units, times = self._get_spikes_by_interval(data, sweep, t_start, t_end)
+        units, times = self.get_spikes_by_interval(data, sweep, t_start, t_end)
         N_neurons = data["n_units"]
         mean_fr = times.size / (N_neurons * (t_end - t_start))
 
         return mean_fr
 
     def _analyze_sd_fr(self, data, sweep, t_start, t_end):
-        units, times = self._get_spikes_by_interval(data, sweep, t_start, t_end)
+        units, times = self.get_spikes_by_interval(data, sweep, t_start, t_end)
         delta_time = t_end - t_start
         unique, counts = np.unique(units, return_counts=True)
         unitwise_fr = counts / delta_time
@@ -89,7 +89,7 @@ class Analysis:
         return sd_fr
 
     def _analyze_unit_fr(self, data, sweep, t_start, t_end):
-        units, times = self._get_spikes_by_interval(data, sweep, t_start, t_end)
+        units, times = self.get_spikes_by_interval(data, sweep, t_start, t_end)
         N_neurons = data["n_units"]
 
         # Get firing rate for each neuron
@@ -105,7 +105,7 @@ class Analysis:
         self, data, sweep, t_start, t_end, temp_freq, bins_per_cycle=32
     ):
         # Analyze the peak-to-peak firing rate across units.
-        units, times = self._get_spikes_by_interval(data, sweep, t_start, t_end)
+        units, times = self.get_spikes_by_interval(data, sweep, t_start, t_end)
         times = times / b2u.second
 
         N_neurons = data["n_units"]
@@ -182,7 +182,7 @@ class Analysis:
 
         """
 
-        units, times = self._get_spikes_by_interval(data, sweep, t_start, t_end)
+        units, times = self.get_spikes_by_interval(data, sweep, t_start, t_end)
         N_neurons = data["n_units"]
 
         # Prepare for saving all spectra
@@ -319,7 +319,7 @@ class Analysis:
         temp_freq,
         bins_per_cycle=8,
     ):
-        units, times = self._get_spikes_by_interval(data, sweep, t_start, t_end)
+        units, times = self.get_spikes_by_interval(data, sweep, t_start, t_end)
         times = times / b2u.second
         N_neurons = data["n_units"]
 
@@ -474,7 +474,7 @@ class Analysis:
             The units to analyze.
         """
         # Get spike data limited to requested time interval, single sweep
-        units, times = self._get_spikes_by_interval(data, sweep, t_start, t_end)
+        units, times = self.get_spikes_by_interval(data, sweep, t_start, t_end)
 
         n_units = len(unit_vec)
         spike_events = np.zeros((n_units, len(bins) - 1))
