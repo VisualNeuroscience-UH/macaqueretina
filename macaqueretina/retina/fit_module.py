@@ -266,7 +266,7 @@ class FitDoGTemplate(ABC, RetinaMath, PrintableMixin):
             self.nan_idx = fits_df[fits_df.isna().any(axis=1)].index.values
             if len(self.nan_idx) > 0:
                 good_mask[self.nan_idx] = 0
-                print(rf"\Marked cells {self.nan_idx} with failed fits")
+                print(f"Marked cells {self.nan_idx} with failed fits")
 
         good_mask_df = pd.DataFrame(good_mask, columns=["good_filter_data"])
 
