@@ -724,15 +724,15 @@ class DataIO:
             The stem of the filename for the saved file. Default is "data_values".
         """
 
-        if isinstance(output_path, str):
-            output_path = Path(output_path)
+        output_path = Path(output_path)
+        filename_stem = Path(filename_stem)
 
         output_path.mkdir(parents=True, exist_ok=True)
-
-        if filename_stem.endswith(".npz"):
+        # breakpoint()
+        if filename_stem.suffix == ".npz":
             filename = filename_stem
         else:
-            filename = filename_stem + ".npz"
+            filename = filename_stem.stem + ".npz"
 
         # Construct the filename for saving
         npz_filename = output_path / filename
