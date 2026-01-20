@@ -49,7 +49,7 @@ retina_parameters_extend:
     cone2gc_parasol: 27  # um 27
     cone2gc_cutoff_SD: 3  # 3 SD is 99.7% of Gaussian
     cone2bipo_cutoff_SD: 1
-    cone_noise_wc: [14, 160]  # lorenzian freqs, Angueyra_2013_NatNeurosci Fig1
+    cone_noise_wc: [24, 200] # [14, 160]  # lorenzian freqs, Angueyra_2013_NatNeurosci Fig1
 
   # Parameters from Angueyra_2022_JNeurosci, model according to Clark_2013_PLoSComputBiol
   # Light intensity photons/microm^2/second
