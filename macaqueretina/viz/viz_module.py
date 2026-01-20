@@ -3782,7 +3782,7 @@ class Viz:
                 )
                 t_min = -baseline_start_seconds
                 t_max = duration_seconds + baseline_end_seconds
-                units, times = self.ana._get_spikes_by_interval(
+                units, times = self.ana.get_spikes_by_interval(
                     data_dict, sweep_idx, 0, duration_tot
                 )
                 # Shift times by baseline start
