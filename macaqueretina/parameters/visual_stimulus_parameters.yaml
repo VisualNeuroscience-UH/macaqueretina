@@ -24,9 +24,5 @@ visual_stimulus_parameters:
 
 # For external video and image input. See visual_stimulus_module.VideoBaseClass for more options.
 external_stimulus_parameters:
-  ext_stimulus_file: "urban4_time60.avi"  
-  # ext_stimulus_file: "nature4_orig30.avi"  
-  # ext_stimulus_file: "nature4_orig29.avi"  
-  # ext_stimulus_file: "test_image.jpg"  
-  ext_pix_per_deg: 60  # Video test
-  # pix_per_deg: 30  # VanHateren_1998_ProcRSocLondB 2 arcmin per pixel
+  ext_stimulus_file: "urban4_orig60.avi"  
+  ext_pix_per_deg: 60  # Video test 30  # VanHateren_1998_ProcRSocLondB 2 arcmin per pixel
