@@ -1066,7 +1066,7 @@ class Viz:
             label="Scaled cone response",
         )
 
-        ax.set_ylim([0.001, 0.3])
+        ax.set_ylim([0.001, 1.0])
 
         ax.set_xscale("log")
         ax.set_yscale("log")
