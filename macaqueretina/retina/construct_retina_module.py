@@ -2780,6 +2780,7 @@ class TemporalModelSubunit(TemporalModelBase):
         g_sur_values = ret.experimental_archive["g_sur_values"]
         target_RI_values = ret.experimental_archive["target_RI_values"]
 
+        # Set midget units to linear (RI = 0, no rectification)
         if unit_type == "midget":
             target_RI_values = target_RI_values * 0
 
