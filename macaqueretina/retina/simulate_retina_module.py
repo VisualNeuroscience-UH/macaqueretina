@@ -9,6 +9,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 import brian2 as b2
 import brian2.units as b2u
 import brian2cuda  # noqa: F401
+import matplotlib.pyplot as plt  # noqa: F401
 import numpy as np
 import pandas as pd
 import scipy.fftpack as fftpack
@@ -3209,9 +3210,7 @@ class BipolarProduct(ReceptiveFieldsBase):
 
         # [n_timepoints, n_gcs].  Inverts RI: neg_scaler zero is strong rectifier, whereas neg_scaler one is linear
         neg_scaler = 1 - RI.T
-        ##########################################################################
-
-        signal_input = subunit_sum.T
+        bipo_signal_input = subunit_sum.T
 
         ############## Ganglion cell activation computation ######################
         # Loop over time points. Expand NegScaler(tp) to [NB,NGC]
@@ -3219,28 +3218,18 @@ class BipolarProduct(ReceptiveFieldsBase):
         # Take dot product of signal input [timepoint] and neg_scaler_expanded[timepoint]
 
         def _compute_gc_input(bipo_to_gc_weights):
-            n_bipo = bipo_to_gc_weights.shape[0]
-            n_gc = bipo_to_gc_weights.shape[1]
-            n_tp = signal_input.shape[0]
+            # Bipolar unit nonlinearity
+            neg_scaler_bipo = neg_scaler @ bipo_to_gc_weights.T
 
-            gc_input_negative = np.zeros((n_tp, n_gc))
-
-            for tp in range(n_tp):
-                neg_scaler_expanded = np.tile(neg_scaler[tp, :], (n_bipo, 1))
-                # Scale connection weights with nonlinearity scaling
-                bipo_to_gc_weights_adjusted = bipo_to_gc_weights * neg_scaler_expanded
-
-                # Nonlinear summation to negative signal input
-                gc_input_negative[tp, :] = (
-                    np.where(signal_input[tp, :] < 0, signal_input[tp, :], 0)
-                    @ bipo_to_gc_weights_adjusted
-                )
-
-            # Linear summation for positive signal input
-            gc_input_positive = (
-                np.where(signal_input > 0, signal_input, 0) @ bipo_to_gc_weights
+            bipo_output_negative = (
+                np.where(bipo_signal_input < 0, bipo_signal_input, 0) * neg_scaler_bipo
             )
-            return gc_input_positive + gc_input_negative
+            bipo_output_positive = np.where(bipo_signal_input > 0, bipo_signal_input, 0)
+
+            bipo_output = bipo_output_positive + bipo_output_negative
+            gc_input = bipo_output @ bipo_to_gc_weights
+
+            return gc_input
 
         gc_center_input = _compute_gc_input(bipolar_to_gcs_cen_weights)
         gc_surround_input = _compute_gc_input(bipolar_to_gcs_sur_weights)
