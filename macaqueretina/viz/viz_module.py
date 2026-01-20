@@ -5068,11 +5068,16 @@ class Viz:
             data=df,
             ci=95,
         )
+        # Set title = savefigname
+        plt.title(savefigname if savefigname else "Frequency Spectra")
 
         if xlog:
             plt.xscale("log")
         if ylog:
             plt.yscale("log")
+
+        if savefigname:
+            self._figsave(figurename=savefigname)
 
 
 class VizResponse:

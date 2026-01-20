@@ -189,7 +189,6 @@ class Analysis:
         gaussian_kernel = windows.gaussian(len(spike_vec), std=gaussian_std / bin_size)
         gaussian_kernel /= np.sum(gaussian_kernel)  # Normalize the kernel
         smoothed_spike_train = np.convolve(spike_vec, gaussian_kernel, mode="same")
-
         frequencies, power_spectral_density = self.analyze_frequency_spectra(
             signal=smoothed_spike_train, sampling_frequency=sampling_frequency
         )
@@ -209,7 +208,7 @@ class Analysis:
             scaling="density",
         )
 
-        return frequencies, power_spectral_density
+        return frequencies[:-1], power_spectral_density[:-1]
 
     def _get_F1F2_amplitude_and_phase(
         self, data, sweep, t_start, t_end, temp_freq, phase_shift=0, bins_per_cycle=8

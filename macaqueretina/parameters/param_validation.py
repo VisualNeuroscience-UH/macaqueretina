@@ -104,21 +104,6 @@ class RetinaParameters(BaseConfigModel):
 
     @computed_field
     @property
-    def noise_gain(self) -> float:
-        """Dynamically compute noise_gain based on gc_type and response_type."""
-        if self.gain_calibration is None:
-            raise ValueError("gain_calibration not set in RetinaParameters")
-
-        return getattr(
-            getattr(
-                self.gain_calibration.noise_fr_mean_table,
-                self.response_type,
-            ),
-            self.gc_type,
-        )
-
-    @computed_field
-    @property
     def calibrated_gain(self) -> float:
         """Dynamically compute calibrated_gain based on gc_type and response_type."""
         if self.gain_calibration is None:
