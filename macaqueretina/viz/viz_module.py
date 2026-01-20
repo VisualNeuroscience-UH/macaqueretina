@@ -5022,6 +5022,58 @@ class Viz:
         except Exception as e:
             print(f"Error occurred while fitting data: {e}")
 
+    def show_frequency_spectra(
+        self,
+        frequencies: np.ndarray,
+        spectra: np.ndarray,
+        unit: str = "spikes",
+        xlog: bool = True,
+        ylog: bool = False,
+        savefigname: str = None,
+    ):
+        """
+        Show the frequency spectra of a signal.
+
+        Parameters
+        ----------
+        frequencies : 1D np.ndarray
+            The frequency bins.
+        spectra : np.ndarray
+            The power spectral density values.
+        unit : str, optional
+            The unit of the spectra. Default is "spikes" (binned & smoothed spike train).
+        xlog : bool
+            Whether to use a logarithmic scale for the x-axis.
+        ylog : bool
+            Whether to use a logarithmic scale for the y-axis.
+        savefigname : str, optional
+            The name of the file to save the figure. If None, the figure
+            will not be saved.
+        """
+
+        plt.figure(figsize=(10, 5))
+        df = pd.DataFrame(
+            spectra, columns=(unit_id for unit_id in range(spectra.shape[1]))
+        )
+        df["Frequency (Hz)"] = frequencies
+        df = pd.melt(
+            df,
+            id_vars=["Frequency (Hz)"],
+            var_name="Unit ID",
+            value_name=f"Power Spectral Density ({unit}**2/Hz)",
+        )
+        sns.lineplot(
+            x="Frequency (Hz)",
+            y=f"Power Spectral Density ({unit}**2/Hz)",
+            data=df,
+            ci=95,
+        )
+
+        if xlog:
+            plt.xscale("log")
+        if ylog:
+            plt.yscale("log")
+
 
 class VizResponse:
     """
