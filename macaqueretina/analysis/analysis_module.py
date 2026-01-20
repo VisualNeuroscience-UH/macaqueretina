@@ -4,9 +4,10 @@ from pathlib import Path
 
 # Third-party
 import brian2.units as b2u
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from scipy.signal import correlate
+from scipy.signal import correlate, welch, windows
 from scipy.stats import pearsonr
 
 
@@ -152,7 +153,65 @@ class Analysis:
 
         return peak2peak_fr
 
-    def _fourier_amplitude_and_phase(
+    def analyze_frequency_spectra_spiketrain(
+        self,
+        spike_train,
+        max_time,
+        bin_size=0.005,
+        gaussian_std=0.01,
+    ):
+        """
+        Analyze the frequency spectra of a smoothed spike train.
+
+        Parameters
+        ----------
+        spike_train : array-like
+            Timestamps of spikes in the train.
+        max_time : float
+            The maximum time to consider for the spike train.
+        bin_size : float, optional
+            Size of each bin for the spike train histogram.
+        gaussian_std : float, optional
+            Standard deviation for the Gaussian smoothing kernel.
+
+        Returns
+        -------
+        tuple
+            (frequencies, power_spectral_density) where `frequencies` are the frequency bins and `power_spectral_density` is the PSD.
+        """
+
+        # Convert spike train to a binary vector
+        bins = np.arange(0, max_time + bin_size, bin_size)
+        spike_vec, _ = np.histogram(spike_train, bins=bins)
+        sampling_frequency = 1 / bin_size
+
+        # Smooth the spike train with a Gaussian kernel
+        gaussian_kernel = windows.gaussian(len(spike_vec), std=gaussian_std / bin_size)
+        gaussian_kernel /= np.sum(gaussian_kernel)  # Normalize the kernel
+        smoothed_spike_train = np.convolve(spike_vec, gaussian_kernel, mode="same")
+
+        frequencies, power_spectral_density = self.analyze_frequency_spectra(
+            signal=smoothed_spike_train, sampling_frequency=sampling_frequency
+        )
+
+        return frequencies, power_spectral_density
+
+    def analyze_frequency_spectra(
+        self,
+        signal,
+        sampling_frequency,
+    ):
+        """ """
+
+        frequencies, power_spectral_density = welch(
+            signal,
+            fs=sampling_frequency,
+            scaling="density",
+        )
+
+        return frequencies, power_spectral_density
+
+    def _get_F1F2_amplitude_and_phase(
         self, data, sweep, t_start, t_end, temp_freq, phase_shift=0, bins_per_cycle=8
     ):
         """
@@ -173,7 +232,7 @@ class Analysis:
         phase_shift : float, optional
             The phase shift (in radians) to be applied. Default is 0.
         bins_per_cycle : int, optional
-            The number of bins per cycle to use for the spike rate. The default is 16.
+            The number of bins per cycle to use for the spike rate.
 
         Returns
         -------
@@ -780,7 +839,7 @@ class Analysis:
                     phase_F1,
                     phase_F2,
                     N_neurons,
-                ) = self._fourier_amplitude_and_phase(
+                ) = self._get_F1F2_amplitude_and_phase(
                     data_dict, this_sweep, t_start, t_end, temp_freq, phase_shift
                 )
                 F_unit_compiled[:, idx, this_sweep, 0] = ampl_F1
