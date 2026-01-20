@@ -4,7 +4,7 @@ from pathlib import Path
 
 # Third-party
 import brian2.units as b2u
-import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt  # noqa: F401
 import numpy as np
 import pandas as pd
 from scipy.signal import correlate, welch, windows
