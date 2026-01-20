@@ -2475,7 +2475,7 @@ class TemporalModelBase(ABC):
             The updated retina model instance populated with the fitting results, including cone noise parameters
             in linear scale, raw frequency and power data, and the fitted cone noise power spectrum.
         """
-        # Interpolate cone response at 400 k photoisomerization background
+        # Interpolate cone response at 4 k photoisomerization background
         ret.cone_frequency_data = ret.experimental_archive["cone_frequency_data"]
         ret.cone_power_data = ret.experimental_archive["cone_power_data"]
 
