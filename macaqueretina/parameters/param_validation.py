@@ -80,12 +80,13 @@ class RetinaParameters(BaseConfigModel):
     spatial_model_type: Literal["DOG", "VAE"]
     temporal_model_type: Literal["fixed", "dynamic", "subunit"]
     dog_model_type: Literal["ellipse_fixed", "ellipse_independent", "circular"]
-    ecc_limits_deg: list[float, float] = Field(
-        default=[4.5, 5.5], description="eccentricity in degrees"
+    ecc_limits_deg: tuple[float, float] = Field(
+        default=(4.5, 5.5), description="eccentricity in degrees"
     )
-    pol_limits_deg: list[float, float] = Field(
-        default=[-1.5, 1.5], description="polar angle in degrees"
+    pol_limits_deg: tuple[float, float] = Field(
+        default=(-1.5, 1.5), description="polar angle in degrees"
     )
+
     model_density: float = Field(
         le=1.0,
         default=1.0,
