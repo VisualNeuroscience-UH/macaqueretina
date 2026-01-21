@@ -497,7 +497,7 @@ class Viz:
 
         return np.array(boundary_polygon)
 
-    def visualize_mosaic(self, savefigname=None):
+    def visualize_mosaic(self, df: pd.DataFrame = None, savefigname=None):
         """
         Visualize the mosaic of ganglion cells in retinal mm coordinates.
 
@@ -506,12 +506,17 @@ class Viz:
 
         Parameters
         ----------
+        df : pd.DataFrame, optional
+            DataFrame containing ganglion cell data. If None, data is loaded from the mosaic file.
         savefigname : str, optional
             The name of the file to save the figure. If None, the figure is not saved.
         """
 
-        mosaic_file = self.config.retina_parameters["mosaic_file"]
-        gc_df = self.data_io.load_data(mosaic_file)
+        if df is None:
+            mosaic_file = self.config.retina_parameters["mosaic_file"]
+            gc_df = self.data_io.load_data(mosaic_file)
+        else:
+            gc_df = df
 
         ecc_mm = gc_df["pos_ecc_mm"].to_numpy()
         pol_deg = gc_df["pos_polar_deg"].to_numpy()
@@ -2909,6 +2914,47 @@ class Viz:
             ax[0].set_xlim(time_range)
             ax[1].set_xlim(time_range)
         if savefigname:
+            plt.savefig(savefigname)
+
+    def show_corr_mtx(self, x: np.ndarray, y: np.ndarray, savefigname=None):
+        """
+        Display correlation matrix of two numpy arrays. Dimensions are (N_observations, N_features).
+
+        Parameters
+        ----------
+        x : np.ndarray
+            First input array of shape (N_observations, N_features_x).
+        y : np.ndarray
+            Second input array of shape (N_observations, N_features_y).
+        savefigname : str, optional
+            The name of the file where the figure will be saved. If None, the figure is not saved.
+
+        """
+
+        if x.ndim != 2 or y.ndim != 2:
+            raise ValueError("Input arrays x and y must be 2-dimensional.")
+
+        if x.shape[0] != y.shape[0]:
+            raise ValueError(
+                "Number of observations (first dimension) must be the same for x and y."
+            )
+
+        n_features_x = x.shape[1]
+        n_features_y = y.shape[1]
+        corr_matrix = np.zeros((n_features_x, n_features_y))
+
+        for i in range(n_features_x):
+            for j in range(n_features_y):
+                corr_matrix[i, j] = np.corrcoef(x[:, i], y[:, j])[0, 1]
+
+        cmap = plt.get_cmap("coolwarm")
+
+        plt.figure()
+        plt.imshow(corr_matrix, cmap=cmap, vmin=-1, vmax=1)
+        plt.colorbar(label="Correlation coefficient")
+        plt.title(savefigname if savefigname else "Correlation Matrix")
+
+        if savefigname is not None:
             plt.savefig(savefigname)
 
     def show_gc_noise_hist_cov_mtx(self, savefigname=None):
