@@ -654,8 +654,15 @@ class DataIO:
     def load_cone_response_from_hdf5(self, filename):
         """
         Load cone response from hdf5 file.
-        :param filename: hdf5 file name
-        :return: cone response
+
+        Parameters
+        ----------
+        filename : str
+            The name of the hdf5 file to be loaded.
+        Returns
+        -------
+        cone_response : np.ndarray
+            The loaded cone response data.
         """
 
         parent_path = self.config.output_folder
@@ -728,7 +735,6 @@ class DataIO:
         filename_stem = Path(filename_stem)
 
         output_path.mkdir(parents=True, exist_ok=True)
-        # breakpoint()
         if filename_stem.suffix == ".npz":
             filename = filename_stem
         else:
@@ -741,7 +747,6 @@ class DataIO:
             return
 
         # Save all items in the dictionary as separate arrays in an NPZ file
-        # np.savez(npz_filename, **data_dict)
         np.savez_compressed(npz_filename, allow_pickle=True, **data_dict)
 
     def _save_spikes_for_cxsystem(
