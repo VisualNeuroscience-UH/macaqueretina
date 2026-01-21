@@ -125,8 +125,8 @@ plt.show()
 #### Show unity data
 First, let's make a bigger retina.
 ```python
-mr.config.retina_parameters.ecc_limits_deg = [3.5, 6.5]  
-mr.config.retina_parameters.pol_limits_deg = [-15, 15]  
+mr.config.retina_parameters.ecc_limits_deg = (3.5, 6.5)  
+mr.config.retina_parameters.pol_limits_deg = (-15, 15)  
 mr.construct_retina()
 ```
 Then, get and show Unity region, i.e. where exactly one unit centre overlaps with the retina region. The uniformity index is the proportion of total unity region divided by total retina region.

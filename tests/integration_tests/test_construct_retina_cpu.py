@@ -14,8 +14,8 @@ def retina_config():
     Fixture to reset and provide the retina configuration.
     While returned as retina_config, this will keep the reference to mr.config.
     """
-    mr.config.retina_parameters.ecc_limits_deg = [4.5, 5.5]
-    mr.config.retina_parameters.pol_limits_deg = [-1.5, 1.5]
+    mr.config.retina_parameters.ecc_limits_deg = (4.5, 5.5)
+    mr.config.retina_parameters.pol_limits_deg = (-1.5, 1.5)
     mr.config.retina_parameters.force_retina_build = True
     mr.config.retina_parameters.gc_type = "parasol"
     mr.config.retina_parameters.response_type = "on"
@@ -66,8 +66,8 @@ def test_retina_construction(
     retina_config.retina_parameters.dog_model_type = dog_model_type
 
     if gc_type == "parasol":
-        mr.config.retina_parameters.ecc_limits_deg = [4.0, 6.0]
-        mr.config.retina_parameters.pol_limits_deg = [-2, 2]
+        mr.config.retina_parameters.ecc_limits_deg = (4.0, 6.0)
+        mr.config.retina_parameters.pol_limits_deg = (-2, 2)
 
     mr.config.output_folder = Path(tmp_path)
     ret, gc = mr.construct_retina(return_objects_do_not_save=True)

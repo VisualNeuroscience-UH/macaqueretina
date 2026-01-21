@@ -14,8 +14,8 @@ def retina_config():
     Fixture to reset and provide the retina configuration.
     While returned as retina_config, this will keep the reference to mr.config.
     """
-    mr.config.retina_parameters.ecc_limits_deg = [4.4, 5.6]
-    mr.config.retina_parameters.pol_limits_deg = [-1.6, 1.6]
+    mr.config.retina_parameters.ecc_limits_deg = (4.4, 5.6)
+    mr.config.retina_parameters.pol_limits_deg = (-1.6, 1.6)
     mr.config.retina_parameters.force_retina_build = True
     mr.config.retina_parameters.gc_type = "parasol"
     mr.config.retina_parameters.response_type = "on"

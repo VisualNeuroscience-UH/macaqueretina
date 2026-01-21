@@ -26,7 +26,7 @@ model_root_path/
 ### retina_parameters.yaml
 These are the core retina parameters. These are used to generate a unique hash in retina-related filenames, so that you can avoid rebuilding when you re-run the pipeline with the same retna parameters. Available options for each parameter are documented in the yaml file besides the keys.
 
-The core parameters include the ganglion cell and response types, spatial and temporal model types, and dog model type (used both DOG model build and VAE model quantification). The retina segment is defined as `ecc_limits_deg: [start, stop]` and the polar segment size as `pol_limits_deg: [start, stop]`. At the moment polar rotation is not fully applied, so you need to keep your retina centered at the horizontal meridian eg by `pol_limits_deg: [-1.5, 1.5]`.
+The core parameters include the ganglion cell and response types, spatial and temporal model types, and dog model type (used both DOG model build and VAE model quantification). The retina segment is defined as `ecc_limits_deg: (start, stop)` and the polar segment size as `pol_limits_deg: (start, stop)`. At the moment polar rotation is not fully applied, so you need to keep your retina centered at the horizontal meridian eg by `pol_limits_deg: (-1.5, 1.5)`.
 
 - ***model_density*** : **float** [0...1.0]  | 1.0 builds the retina patch with 100% density of ganglion cells according to literature.
 

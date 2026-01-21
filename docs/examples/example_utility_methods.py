@@ -126,8 +126,8 @@ print(mr.config.simulation_parameters)
 # ######################################
 # ###        Show unity data         ###
 # ######################################
-# mr.config.retina_parameters.ecc_limits_deg = [3.5, 6.5]  # eccentricity in degrees
-# mr.config.retina_parameters.pol_limits_deg = [-15, 15]  # polar angle in degrees
+# mr.config.retina_parameters.ecc_limits_deg = (3.5, 6.5)  # eccentricity in degrees
+# mr.config.retina_parameters.pol_limits_deg = (-15, 15)  # polar angle in degrees
 # mr.construct_retina()
 
 # mr.simulate_retina(unity=True)
