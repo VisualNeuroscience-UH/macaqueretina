@@ -147,7 +147,7 @@ retina_parameters_extend:
   receptive_field_repulsion_parameters:
     change_rate: 0.005
     cooling_rate: 0.999  # each iteration change_rate = change_rate * cooling_rate
-    border_repulsion_stength: 5
+    border_repulsion_stength: 2
     show_repulsion_progress: False  # True False
     show_only_unit: null  # null or int for unit idx
     show_skip_steps: 5
