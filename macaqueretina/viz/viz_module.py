@@ -547,12 +547,6 @@ class Viz:
         polygon = Polygon(boundary_polygon, closed=True, fill=None, edgecolor="r")
         ax.add_patch(polygon)
 
-        ax.plot(
-            xcoord.flatten(),
-            ycoord.flatten(),
-            "b.",
-            label=self.config.retina_parameters["gc_type"],
-        )
         # Ellipse parameters: Ellipse(xy, width, height, angle=0, **kwargs). Only possible one at the time, unfortunately.
         for index in np.arange(len(xcoord)):
             ellipse_center_x = xcoord[index]
