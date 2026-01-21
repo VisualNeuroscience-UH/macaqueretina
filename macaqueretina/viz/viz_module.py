@@ -5029,6 +5029,8 @@ class Viz:
         unit: str = "spikes",
         xlog: bool = True,
         ylog: bool = False,
+        xlim: tuple[float, float] = None,
+        ylim: tuple[float, float] = None,
         savefigname: str = None,
     ):
         """
@@ -5046,6 +5048,10 @@ class Viz:
             Whether to use a logarithmic scale for the x-axis.
         ylog : bool
             Whether to use a logarithmic scale for the y-axis.
+        xlim : tuple of float, optional
+            The limits for the x-axis. If None, the limits will be determined automatically.
+        ylim : tuple of float, optional
+            The limits for the y-axis. If None, the limits will be determined automatically.
         savefigname : str, optional
             The name of the file to save the figure. If None, the figure
             will not be saved.
@@ -5068,7 +5074,12 @@ class Viz:
             data=df,
             ci=95,
         )
-        # Set title = savefigname
+
+        if xlim:
+            plt.xlim(xlim)
+        if ylim:
+            plt.ylim(ylim)
+
         plt.title(savefigname if savefigname else "Frequency Spectra")
 
         if xlog:
