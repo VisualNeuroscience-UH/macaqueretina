@@ -147,9 +147,9 @@ class Retina(PrintableMixin):
             "receptive_field_repulsion_parameters"
         ]
 
-        ecc_limits_deg: list[float] = retina_parameters["ecc_limits_deg"]
-        ecc_limit_for_dd_fit: float = retina_parameters["ecc_limit_for_dd_fit"]
-        pol_limits_deg: list[float] = retina_parameters["pol_limits_deg"]
+        ecc_limits_deg = retina_parameters["ecc_limits_deg"]
+        ecc_limit_for_dd_fit = retina_parameters["ecc_limit_for_dd_fit"]
+        pol_limits_deg = retina_parameters["pol_limits_deg"]
 
         self.model_density: float = retina_parameters["model_density"]
 
@@ -5190,9 +5190,7 @@ class ConstructRetina(PrintableMixin):
         gc_type = self.config.retina_parameters["gc_type"]
         response_type = self.config.retina_parameters["response_type"]
 
-        self.config.retina_parameters["mosaic_filename"] = (
-            gc_type + "_" + response_type + "_" + hashstr + "_mosaic.csv"
-        )
+        mosaic_filename = gc_type + "_" + response_type + "_" + hashstr + "_mosaic.csv"
         self.config.retina_parameters["spatial_rfs_file"] = (
             gc_type + "_" + response_type + "_" + hashstr + "_spatial_rfs.npz"
         )
@@ -5203,10 +5201,10 @@ class ConstructRetina(PrintableMixin):
             gc_type + "_" + response_type + "_" + hashstr + "_metadata.yaml"
         )
 
-        self.mosaic_filename = self.config.retina_parameters["mosaic_filename"]
-        self.config.retina_parameters["mosaic_file"] = self.config.retina_parameters[
-            "mosaic_filename"
-        ]
+        self.mosaic_filename = self.config.retina_parameters["mosaic_file"] = (
+            mosaic_filename
+        )
+
         self.spatial_rfs_file_filename = self.config.retina_parameters[
             "spatial_rfs_file"
         ]
@@ -5384,5 +5382,4 @@ class ConstructRetina(PrintableMixin):
 
         filepath = output_path.joinpath(self.mosaic_filename)
         print(f"Saving model mosaic to {filepath}")
-        gc.df.to_csv(filepath)
         gc.df.to_csv(filepath)

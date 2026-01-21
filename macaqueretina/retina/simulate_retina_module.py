@@ -1724,7 +1724,7 @@ class ConcreteSimulationBuilder(SimulationBuildInterface):
         self, vs: "VisualSignal", gcs: "GanglionCellProduct", n_sweeps: int
     ) -> "VisualSignal":
         """
-        Convert generator potentials to firing rates with added noise.
+        Convert generator potentials to ganglion cell firing rates with added noise.
 
         Parameters
         ----------
@@ -1757,7 +1757,7 @@ class ConcreteSimulationBuilder(SimulationBuildInterface):
         # z-score normalization
         gc_noise_normalized = (gc_noise_raw - mu) / sigma
 
-        # scale noise std to Fano factor 1 std of the requested noise mean fr
+        # Scale noise std to Fano factor 1 std of the requested noise mean fr
         noise_fr_std = np.sqrt(vs.noise_fr_mean)
         gc_noise_empirical_std = gc_noise_normalized * noise_fr_std
         firing_rates_cone_noise = gc_noise_empirical_std + vs.noise_fr_mean
