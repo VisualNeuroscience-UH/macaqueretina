@@ -200,7 +200,16 @@ class Analysis:
         signal,
         sampling_frequency,
     ):
-        """ """
+        """
+        Analyze the frequency spectra of a continuous signal using Welch's method.
+
+        Parameters
+        ----------
+        signal : array-like
+            The input signal to analyze.
+        sampling_frequency : float
+            The sampling frequency of the signal.
+        """
 
         frequencies, power_spectral_density = welch(
             signal,
