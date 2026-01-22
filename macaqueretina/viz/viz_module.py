@@ -2917,29 +2917,39 @@ class Viz:
         Parameters
         ----------
         x : np.ndarray
-            First input array of shape (N_observations, N_features_x).
+            First input array of shape (N_sweeps, N_observations, N_features_x).
         y : np.ndarray
-            Second input array of shape (N_observations, N_features_y).
+            Second input array of shape (N_sweeps, N_observations, N_features_y).
         savefigname : str, optional
             The name of the file where the figure will be saved. If None, the figure is not saved.
-
         """
+        if x.ndim != 3 or y.ndim != 3:
+            raise ValueError("Input arrays x and y must be 3-dimensional.")
 
-        if x.ndim != 2 or y.ndim != 2:
-            raise ValueError("Input arrays x and y must be 2-dimensional.")
+        if x.shape[1] != y.shape[1]:
+            raise ValueError("Number of observations must be the same for x and y.")
 
-        if x.shape[0] != y.shape[0]:
-            raise ValueError(
-                "Number of observations (first dimension) must be the same for x and y."
+        n_sweeps, n_observations, n_features_x = x.shape
+        _, _, n_features_y = y.shape
+
+        # Initialize the correlation matrix
+        corr_matrix = np.zeros((n_sweeps, n_features_x, n_features_y))
+
+        for sweep in range(n_sweeps):
+            # Compute correlation matrix for the current sweep
+            sweep_corr = np.corrcoef(
+                np.vstack(
+                    [x[sweep, :, i] for i in range(n_features_x)]
+                    + [y[sweep, :, j] for j in range(n_features_y)]
+                )
             )
+            # Extract the cross-correlation block
+            corr_matrix[sweep, :, :] = sweep_corr[
+                :n_features_x, n_features_x : n_features_x + n_features_y
+            ]
 
-        n_features_x = x.shape[1]
-        n_features_y = y.shape[1]
-        corr_matrix = np.zeros((n_features_x, n_features_y))
-
-        for i in range(n_features_x):
-            for j in range(n_features_y):
-                corr_matrix[i, j] = np.corrcoef(x[:, i], y[:, j])[0, 1]
+        # Average across sweeps
+        corr_matrix = np.mean(corr_matrix, axis=0)
 
         cmap = plt.get_cmap("coolwarm")
 
