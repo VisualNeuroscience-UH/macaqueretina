@@ -492,7 +492,7 @@ class Analysis:
 
         return phase_np_reset
 
-    def _correlation_lags(self, in1_len, in2_len, mode="full"):
+    def correlation_lags(self, in1_len, in2_len, mode="full"):
         # Copied from scipy.signal correlation_lags, mode full or same
 
         if mode == "full":
@@ -515,37 +515,24 @@ class Analysis:
 
         return lags
 
-    def _get_cross_correlation_trial(
-        self, data, sweep, t_start, t_end, bins, lags, unit_vec
-    ):
+    def get_spike_events(self, units, times, bins, n_units):
         """
-        Calculate cross correlation between units for a single sweep. For each unit, calculate
-        cross correlation with all other units. The cross correlation is normalized to provide
-        correlation coefficients.
+        Get spike events matrix for all units.
 
         Parameters
         ----------
-        data : dict
-            The data dictionary containing the spike information.
-        sweep : int
-            The sweep number to analyze.
-        t_start : float
-            The start time of the interval (in seconds) to analyze.
-        t_end : float
-            The end time of the interval (in seconds) to analyze.
+        units : numpy.ndarray of ints
+            The unit IDs for each spike time.
+        times : numpy.ndarray of floats
+            The spike times.
         bins : numpy.ndarray
             The bins to use for binning the spike times.
-        lags : numpy.ndarray
-            The lags to use for cross correlation.
-        unit_vec : numpy.ndarray of ints
-            The units to analyze.
+        n_units : int
+            The number of units.
         """
-        # Get spike data limited to requested time interval, single sweep
-        units, times = self.get_spikes_by_interval(data, sweep, t_start, t_end)
 
-        n_units = len(unit_vec)
         spike_events = np.zeros((n_units, len(bins) - 1))
-        for this_idx, this_unit in enumerate(unit_vec):
+        for this_unit in range(n_units):
             unit_mask = units == this_unit
             times_unit = times[unit_mask]
 
@@ -553,67 +540,128 @@ class Analysis:
             spike_counts, _ = np.histogram(times_unit, bins=bins)
 
             # Convert spike count to boolean. More than one in one bin becomes one.
-            spike_events[this_idx] = spike_counts > 0
+            spike_events[this_unit] = spike_counts > 0
 
+        return spike_events
+
+    def get_spike_event_correlation(self, y, x):
+        """
+        Calculate cross correlation between two units for a single sweep.
+
+        Parameters
+        ----------
+        y : numpy.ndarray
+            The spike events for the first unit.
+        x : numpy.ndarray
+            The spike events for the second unit.
+        """
+
+        y_scaled = self.scaler(y, feature_range=[0, 1])
+        x_scaled = self.scaler(x, feature_range=[0, 1])
+
+        # Standard deviations of the signals
+        std_y = np.std(y_scaled)
+        std_x = np.std(x_scaled)
+
+        # Cross-correlation function
+        raw_ccf = correlate(y_scaled, x_scaled, mode="full", method="direct")
+
+        # Normalization factor for each lag
+        lag_counts = np.correlate(
+            np.ones_like(y_scaled), np.ones_like(x_scaled), mode="full"
+        )
+        normalization = std_y * std_x * lag_counts
+
+        # Normalized correlation coefficient for each lag
+        ccf = raw_ccf / normalization
+        ccoef = pearsonr(y_scaled, x_scaled)[0]
+
+        return ccf, ccoef
+
+    def get_spike_correlation_for_sweep(self, units, times, bins, lags, n_units):
+        """
+        Calculate cross correlation between units for a single sweep. For each unit, calculate
+        cross correlation with all other units. The cross correlation is normalized to provide
+        correlation coefficients.
+
+        Parameters
+        ----------
+        units : numpy.ndarray of ints
+            The unit IDs for each spike time.
+        times : numpy.ndarray of floats
+            The spike times.
+        bins : numpy.ndarray
+            The bins to use for binning the spike times.
+        lags : numpy.ndarray
+            The lags to use for cross correlation.
+        n_units : int
+            The number of units.
+        """
+
+        spike_events = self.get_spike_events(units, times, bins, n_units)
         ccf = np.zeros((n_units, n_units, len(lags)))
         ccoef = np.zeros((n_units, n_units))
 
         # Calculate cross correlation between all pairs of units
         for y_idx in range(n_units):
             for x_idx in range(n_units):
-                y = spike_events[y_idx]
-                y_scaled = self.scaler(y)
-                x = spike_events[x_idx]
-                x_scaled = self.scaler(x)
-
-                # Standard deviations of the signals
-                std_y = np.std(y_scaled)
-                std_x = np.std(x_scaled)
-
-                # Cross-correlation function
-                raw_ccf = correlate(y_scaled, x_scaled, mode="full", method="direct")
-
-                # Normalization factor for each lag
-                lag_counts = np.correlate(
-                    np.ones_like(y_scaled), np.ones_like(x_scaled), mode="full"
+                this_ccf, this_ccoef = self.get_spike_event_correlation(
+                    spike_events[y_idx], spike_events[x_idx]
                 )
-                normalization = std_y * std_x * lag_counts
-
-                # Normalized correlation coefficient for each lag
-                ccf[y_idx, x_idx, :] = raw_ccf / normalization
-                ccoef[y_idx, x_idx] = pearsonr(y_scaled, x_scaled)[0]
+                ccf[y_idx, x_idx, :] = this_ccf
+                ccoef[y_idx, x_idx] = this_ccoef
 
         return ccf, ccoef
 
-    def _calc_dist_mtx(self, x_vec, y_vec, unit_vec):
-        n_units = unit_vec.shape[0]
-        dist_mtx = np.zeros((n_units, n_units))
-        for i in range(n_units):
-            for j in range(n_units):
+    def calc_dist_mtx(self, x_vec1, y_vec1, x_vec2, y_vec2):
+        """
+        Calculate the pairwise distance matrix between two sets of units.
+
+        Parameters:
+        x_vec1 (np.ndarray): x-positions of the first set of units.
+        y_vec1 (np.ndarray): y-positions of the first set of units.
+        x_vec2 (np.ndarray): x-positions of the second set of units.
+        y_vec2 (np.ndarray): y-positions of the second set of units.
+
+        Returns:
+        np.ndarray: Distance matrix of shape (n_units1, n_units2).
+        """
+        n_units1 = x_vec1.shape[0]
+        n_units2 = x_vec2.shape[0]
+        dist_mtx = np.zeros((n_units1, n_units2))
+
+        for i in range(n_units1):
+            for j in range(n_units2):
                 dist_mtx[i, j] = np.sqrt(
-                    (x_vec[i] - x_vec[j]) ** 2 + (y_vec[i] - y_vec[j]) ** 2
+                    (x_vec1[i] - x_vec2[j]) ** 2 + (y_vec1[i] - y_vec2[j]) ** 2
                 )
         return dist_mtx
 
-    def _create_dist_ccoef_df(self, dist_mtx, ccoef_mtx_mean, unit_vec):
+    def create_dist_ccoef_df(self, dist_mtx, ccoef_mtx_mean, unit_vec=None):
         # Initialize an empty list to store the tuples
         data_list = []
+        if unit_vec is None:
+            unit_vec_i = np.arange(dist_mtx.shape[0])
+            unit_vec_j = np.arange(dist_mtx.shape[1])
+        else:  # Assumes square matrix
+            unit_vec_i = unit_vec
+            unit_vec_j = unit_vec
 
         # Iterate over the upper triangle of dist_mtx to avoid duplicates
         for i in range(dist_mtx.shape[0]):
             for j in range(i + 1, dist_mtx.shape[1]):
-                yx_name = f"unit pair {unit_vec[i]}-{unit_vec[j]}"
-                yx_idx = np.array([i, j])
+                ij_name = f"unit pair {unit_vec_i[i]}-{unit_vec_j[j]}"
+                ij_idx = np.array([i, j])
                 distance = dist_mtx[i, j]
                 ccoef = ccoef_mtx_mean[i, j]
-                data_list.append((yx_name, yx_idx, distance, ccoef))
+                data_list.append((ij_name, ij_idx, distance, ccoef))
 
         # Sort the list by distance
         sorted_data_list = sorted(data_list, key=lambda x: x[2])
 
         # Convert the list to a DataFrame
         distance_df = pd.DataFrame(
-            sorted_data_list, columns=["yx_name", "yx_idx", "distance_mm", "ccoef"]
+            sorted_data_list, columns=["ij_name", "ij_idx", "distance_mm", "ccoef"]
         )
 
         return distance_df
@@ -624,9 +672,9 @@ class Analysis:
 
         # Iterate over each unit in unit_vec.
         for idx, _unit in enumerate(unit_vec):
-            # Filter distance_df to find the rows where the unit index is either yx_idx[0] or yx_idx[1]
+            # Filter distance_df to find the rows where the unit index is either ij_idx[0] or ij_idx[1]
             # Note that we are looking at index, not the unit number
-            filtered_df = distance_df[distance_df["yx_idx"].apply(lambda x: idx in x)]  # noqa: B023
+            filtered_df = distance_df[distance_df["ij_idx"].apply(lambda x: idx in x)]  # noqa: B023
 
             # If the filtered_df is not empty, find the nearest neighbor
             if not filtered_df.empty:
@@ -640,8 +688,57 @@ class Analysis:
 
         return neighbors_df
 
-    def unit_correlation(
-        self, filename, my_analysis_options, gc_type, response_type, gc_units
+    def get_dist_ccf_df(self, data_dict, n_sweeps, t_start, t_end, unit_vec, bin_width):
+        bins = np.linspace(t_start, t_end, int((t_end - t_start) / bin_width))
+        lags = self.correlation_lags(len(bins) - 1, len(bins) - 1)
+        # Convert lags to seconds
+        lags = lags * bin_width
+
+        n_units = len(unit_vec)
+        # Cross-correlation matrix [sweep, unit_y, unit_x, lags]
+        ccf_mtx = np.zeros((n_sweeps, n_units, n_units, len(lags)))
+        # Correlation coefficient matrix [sweep, unit_y, unit_x]
+        ccoef_mtx = np.zeros((n_sweeps, n_units, n_units))
+
+        # Loop conditions
+        for this_sweep in range(n_sweeps):
+            # Get spike data limited to requested time interval, single sweep
+            units, times = self.get_spikes_by_interval(
+                data_dict, this_sweep, t_start, t_end
+            )
+            # Cross correlation, normalized to correlation coefficient
+            ccf, ccoef = self.get_spike_correlation_for_sweep(
+                units, times, bins, lags, n_units
+            )
+            ccf_mtx[this_sweep, ...] = ccf
+            ccoef_mtx[this_sweep, ...] = ccoef
+
+        ccf_mtx_mean = np.mean(ccf_mtx, axis=0)
+        ccf_mtx_SEM = np.std(ccf_mtx, axis=0) / np.sqrt(ccf_mtx.shape[0])
+        ccoef_mtx_mean = np.mean(ccoef_mtx, axis=0)
+
+        # Load mosaic
+        gc_dataframe = self.data_io.load_data(
+            filename=self.config.retina_parameters["mosaic_file"]
+        )
+        # Get xy coords from dataframe
+        pos_ecc_mm = gc_dataframe["pos_ecc_mm"].values
+        pos_polar_deg = gc_dataframe["pos_polar_deg"].values
+        x_vec, y_vec = self.pol2cart(pos_ecc_mm, pos_polar_deg)
+
+        # Calculate distances between unit_vec units
+        dist_mtx = self.calc_dist_mtx(x_vec, y_vec, x_vec, y_vec)
+        dist_df = self.create_dist_ccoef_df(dist_mtx, ccoef_mtx_mean, unit_vec)
+
+        return dist_df, ccf_mtx_mean, ccf_mtx_SEM, lags
+
+    def spike_correlation_experiment(
+        self,
+        filename: str,
+        my_analysis_options: dict,
+        gc_type: str,
+        response_type: str,
+        gc_units: tuple = None,
     ):
         """
         Analyze noise correlation in neural responses based on experimental variables.
@@ -661,13 +758,13 @@ class Analysis:
             The type of ganglion cell under analysis.
         response_type : str, on or off
             The type of response being analyzed.
-        gc_units : list or None
-            A list of ganglion cell unit indexes for analysis. If None, all units are analyzed.
+        gc_units : tuple or None
+            A tuple of ganglion cell unit indexes for analysis. If None, all units are analyzed.
 
         Raises
         ------
         ValueError
-            If `gc_units` is neither None nor a list.
+            If `gc_units` is neither None nor a tuple.
         AssertionError
             If the number of trials is not equal across conditions.
         """
@@ -687,13 +784,6 @@ class Analysis:
         ), "Not equal number of trials, aborting..."
         n_sweeps = n_sweeps_vec[0]
 
-        bin_width = 0.01  # seconds
-
-        bins = np.linspace(t_start, t_end, int((t_end - t_start) / bin_width))
-        lags = self._correlation_lags(len(bins) - 1, len(bins) - 1)
-        # Convert lags to seconds
-        lags = lags * bin_width
-
         cond_name = cond_names[0]
         filename_prefix = f"Response_{gc_type}_{response_type}_"
         filename = Path(data_folder) / (filename_prefix + cond_name + ".gz")
@@ -708,38 +798,10 @@ class Analysis:
         else:
             raise ValueError("gc_units must be None or a list")
 
-        # Cross-correlation matrix [sweep, unit_y, unit_x, lags]
-        ccf_mtx = np.zeros((n_sweeps, n_units, n_units, len(lags)))
-        # Correlation coefficient matrix [sweep, unit_y, unit_x]
-        ccoef_mtx = np.zeros((n_sweeps, n_units, n_units))
-
-        # Loop conditions
-        for this_sweep in range(n_sweeps):
-            # Cross correlation, normalized to correlation coefficient
-            ccf, ccoef = self._get_cross_correlation_trial(
-                data_dict, this_sweep, t_start, t_end, bins, lags, unit_vec
-            )
-            ccf_mtx[this_sweep, ...] = ccf
-            ccoef_mtx[this_sweep, ...] = ccoef
-
-        ccf_mtx_mean = np.mean(ccf_mtx, axis=0)
-        ccf_mtx_SEM = np.std(ccf_mtx, axis=0) / np.sqrt(ccf_mtx.shape[0])
-        ccoef_mtx_mean = np.mean(ccoef_mtx, axis=0)
-
-        # Load mosaic
-        gc_dataframe = self.data_io.load_data(
-            filename=self.config.retina_parameters["mosaic_file"]
+        bin_width = 0.01  # seconds
+        dist_df, ccf_mtx_mean, ccf_mtx_SEM, lags = self.get_dist_ccf_df(
+            data_dict, n_sweeps, t_start, t_end, unit_vec, bin_width
         )
-        # Get xy coords from dataframe
-        pos_ecc_mm = gc_dataframe["pos_ecc_mm"].values
-        pos_polar_deg = gc_dataframe["pos_polar_deg"].values
-        x_vec, y_vec = self.pol2cart(pos_ecc_mm, pos_polar_deg)
-
-        # Calculate distances between unit_vec units
-        dist_mtx = self._calc_dist_mtx(x_vec, y_vec, unit_vec)
-        dist_df = self._create_dist_ccoef_df(dist_mtx, ccoef_mtx_mean, unit_vec)
-        neigbor_df = self._create_neighbors_df(dist_df, unit_vec)
-        neighbor_unique_df = neigbor_df.drop_duplicates(subset=["yx_name"])
 
         # Save results
         filename_out = f"{cond_names_string}_correlation.npz"
@@ -752,13 +814,64 @@ class Analysis:
             unit_vec=unit_vec,
         )
 
+        filename_out = f"{cond_names_string}_correlation_distances.csv"
+        csv_save_path = data_folder / filename_out
+        dist_df.to_csv(csv_save_path, index=False)
+
+        neigbor_df = self._create_neighbors_df(dist_df, unit_vec)
+        neighbor_unique_df = neigbor_df.drop_duplicates(subset=["ij_name"])
         filename_out = f"{cond_names_string}_correlation_neighbors.csv"
         csv_save_path = data_folder / filename_out
         neighbor_unique_df.to_csv(csv_save_path, index=False)
 
-        filename_out = f"{cond_names_string}_correlation_distances.csv"
-        csv_save_path = data_folder / filename_out
-        dist_df.to_csv(csv_save_path, index=False)
+        plt.plot(dist_df["distance_mm"], dist_df["ccoef"], "o", alpha=0.3)
+        plt.show()
+
+    def continuous_signal_correlation_mtx(self, x: np.ndarray, y: np.ndarray):
+        """
+        Analyze correlation matrix of two numpy arrays. Dimensions are (N_observations, N_features).
+
+        Parameters
+        ----------
+        x : np.ndarray
+            First input array of shape (N_sweeps, N_observations, N_features_x).
+        y : np.ndarray
+            Second input array of shape (N_sweeps, N_observations, N_features_y).
+        Returns
+        -------
+        np.ndarray
+            Correlation matrix of shape (N_features_x, N_features_y).
+
+        """
+        if x.ndim != 3 or y.ndim != 3:
+            raise ValueError("Input arrays x and y must be 3-dimensional.")
+
+        if x.shape[1] != y.shape[1]:
+            raise ValueError("Number of observations must be the same for x and y.")
+
+        n_sweeps, n_observations, n_features_x = x.shape
+        _, _, n_features_y = y.shape
+
+        # Initialize the correlation matrix
+        corr_matrix = np.zeros((n_sweeps, n_features_x, n_features_y))
+
+        for sweep in range(n_sweeps):
+            # Compute correlation matrix for the current sweep
+            sweep_corr = np.corrcoef(
+                np.vstack(
+                    [x[sweep, :, i] for i in range(n_features_x)]
+                    + [y[sweep, :, j] for j in range(n_features_y)]
+                )
+            )
+            # Extract the cross-correlation block
+            corr_matrix[sweep, :, :] = sweep_corr[
+                :n_features_x, n_features_x : n_features_x + n_features_y
+            ]
+
+        # Average across sweeps
+        corr_matrix = np.mean(corr_matrix, axis=0)
+
+        return corr_matrix
 
     def analyze_experiment(self, filename, my_analysis_options):
         """
@@ -1196,60 +1309,3 @@ class Analysis:
         )
         csv_save_path = data_folder / filename_out
         df.to_csv(csv_save_path)
-
-    def compute_cross_correlogram(
-        self,
-        spike_train_1,
-        spike_train_2,
-        bin_size=0.005,
-        window_size=0.1,
-        normalize=True,
-    ):
-        """
-        Compute the cross-correlogram (CCG) of two spike trains.
-
-        Parameters
-        ----------
-        spike_train_1: array-like
-            Timestamps of spikes in the first train.
-        spike_train_2: array-like
-            Timestamps of spikes in the second train.
-        bin_size: float
-            Size of each bin in the CCG (default: 0.001 seconds).
-        window_size: float
-            Total time window for the CCG (default: 0.1 seconds).
-        normalize: bool
-            If True, normalizes the CCG by the number of spikes (default: True).
-
-        Returns
-        -------
-        tuple
-            (lags, ccg) where `lags` are the time lags and `ccg` is the cross-correlogram.
-        """
-
-        # Convert spike trains to binary vectors
-        max_time = max(np.max(spike_train_1), np.max(spike_train_2))
-        bins = np.arange(0, max_time + bin_size, bin_size)
-        spike_vec_1, _ = np.histogram(spike_train_1, bins=bins)
-        spike_vec_2, _ = np.histogram(spike_train_2, bins=bins)
-
-        # Compute cross-correlation
-        ccg = correlate(spike_vec_1, spike_vec_2, mode="full")
-
-        # Compute lags in milliseconds
-        n_lags = len(ccg)
-        lags = np.linspace(-window_size, window_size, n_lags)
-
-        # Normalize if requested
-        if normalize:
-            n_spikes_1 = len(spike_train_1)
-            n_spikes_2 = len(spike_train_2)
-            ccg = ccg / (n_spikes_1 * n_spikes_2 * bin_size)
-
-        # Crop to the specified window
-        center = len(ccg) // 2
-        half_window = int(window_size / bin_size)
-        ccg = ccg[center - half_window : center + half_window]
-        lags = lags[center - half_window : center + half_window]
-
-        return lags, ccg
