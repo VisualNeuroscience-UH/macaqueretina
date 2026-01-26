@@ -544,7 +544,9 @@ class Analysis:
 
         return spike_events
 
-    def get_spike_event_correlation(self, y, x):
+    def get_spike_event_correlation(
+        self, y: np.ndarray, x: np.ndarray, lags: np.ndarray = None
+    ):
         """
         Calculate cross correlation between two units for a single sweep.
 
@@ -554,10 +556,15 @@ class Analysis:
             The spike events for the first unit.
         x : numpy.ndarray
             The spike events for the second unit.
+        lags : numpy.ndarray, optional
+            The lags to use for cross correlation. If None, defaults to [0].
         """
+        # TODO: Implement lags functionality
+        if lags is None:
+            lags = [0]
 
-        y_scaled = self.scaler(y, feature_range=[0, 1])
-        x_scaled = self.scaler(x, feature_range=[0, 1])
+        y_scaled = self.scaler(y, feature_range=[-1, 1])
+        x_scaled = self.scaler(x, feature_range=[-1, 1])
 
         # Standard deviations of the signals
         std_y = np.std(y_scaled)
@@ -606,7 +613,7 @@ class Analysis:
         for y_idx in range(n_units):
             for x_idx in range(n_units):
                 this_ccf, this_ccoef = self.get_spike_event_correlation(
-                    spike_events[y_idx], spike_events[x_idx]
+                    spike_events[y_idx], spike_events[x_idx], lags=lags
                 )
                 ccf[y_idx, x_idx, :] = this_ccf
                 ccoef[y_idx, x_idx] = this_ccoef
