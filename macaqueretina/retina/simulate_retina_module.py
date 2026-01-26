@@ -2956,7 +2956,21 @@ class ConeProduct(ReceptiveFieldsBase):
         vs.photodiode_response = vs.photodiode_response * ff
         vs.photodiode_Rstar_range = [minp, maxp]
 
-        # Update mean value
+        # Get cone idx closest to photodiode response at the center of the video
+        retina_center = self.retina_parameters.retina_center
+        stimulus_position = vs.stimulus_video.options["stimulus_position"]
+        stimulus_center_deg = (
+            stimulus_position[0] + retina_center.real,
+            stimulus_position[1] + retina_center.imag,
+        )
+        cone_dist_to_center = cone_pos_deg - stimulus_center_deg
+        cone_dist_to_center_mag = np.sqrt(
+            cone_dist_to_center[:, 0] ** 2 + cone_dist_to_center[:, 1] ** 2
+        )
+        closest_cone_idx = np.argmin(cone_dist_to_center_mag)
+        vs.photodiode_cone_idx = closest_cone_idx
+
+        # Update background value
         background = vs.options_from_videofile["background"]
         background_R = self.get_photoisomerizations_from_luminance(
             background, lambda_nm=lambda_nm, A_pupil=A_pupil
@@ -3831,6 +3845,7 @@ class SimulateRetina(RetinaMath):
             cone_responses_to_show["photodiode_Rstar_range"] = (
                 vs.photodiode_Rstar_range,
             )
+            cone_responses_to_show["photodiode_cone_idx"] = vs.photodiode_cone_idx
 
         self.project_data.simulate_retina["cone_responses_to_show"] = (
             cone_responses_to_show

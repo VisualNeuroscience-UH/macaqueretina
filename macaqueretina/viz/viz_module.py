@@ -2574,6 +2574,8 @@ class Viz:
 
         Parameters
         ----------
+        sweep_idx : int, optional
+            The index of the sweep to be visualized. Default is 0.
         savefigname : str, optional
             The name of the file where the figure will be saved. If None, the figure is not saved.
 
@@ -2602,6 +2604,8 @@ class Viz:
         ]
         if "cone_signal" in cone_responses_to_show.keys():
             cone_signal = cone_responses_to_show["cone_signal"]
+            photodiode_cone_idx = cone_responses_to_show["photodiode_cone_idx"]
+
         photodiode_to_show = self.project_data.simulate_retina["photodiode_to_show"]
         photodiode_response = photodiode_to_show["photodiode_response"]
 
@@ -2670,14 +2674,14 @@ class Viz:
 
         # Plot cone signal axis ticks to left and photoreceptor to right
         if "cone_signal" in cone_responses_to_show.keys():
-            cone_signal_mean = cone_signal.mean(axis=0)
-            ax[2].plot(tvec, cone_signal_mean, label="cone_signal")
+            cone_signal_to_show = cone_signal[photodiode_cone_idx, :]
+            ax[2].plot(tvec, cone_signal_to_show, label="Cone signal@center")
         ax[2].set_xlim([0, duration / b2u.second])
         ax[2].set_ylabel("Cone signal")
         ax[2].set_xlabel("Time (s)")
         ax[2].legend()
         ax2 = ax[2].twinx()
-        ax2.plot(tvec, photodiode_response, label="Photodiode", color="r")
+        ax2.plot(tvec, photodiode_response, label="Photodiode@center", color="r")
         ax2.set_ylabel("cd/m2")
         ax2.legend()
 
@@ -2685,7 +2689,14 @@ class Viz:
             self._figsave(figurename=savefigname)
 
     def show_all_generator_potentials(self, savefigname=None):
-        """ """
+        """
+        Visualize ganglion cell (gc) generator potentials based on the data in the SimulateRetina object.
+
+        Parameters
+        ----------
+        savefigname : str, optional
+            The name of the file where the figure will be saved. If None, the figure is not saved.
+        """
         gc_responses_to_show = self.project_data.simulate_retina["gc_responses_to_show"]
 
         duration = gc_responses_to_show["duration"]
@@ -2698,6 +2709,7 @@ class Viz:
         ]
         if "cone_signal" in cone_responses_to_show.keys():
             cone_signal = cone_responses_to_show["cone_signal"]
+            photodiode_cone_idx = cone_responses_to_show["photodiode_cone_idx"]
         photodiode_to_show = self.project_data.simulate_retina["photodiode_to_show"]
         photodiode_response = photodiode_to_show["photodiode_response"]
 
@@ -2721,14 +2733,14 @@ class Viz:
 
         # Plot cone signal axis ticks to left and photoreceptor to right
         if "cone_signal" in cone_responses_to_show.keys():
-            cone_signal_mean = cone_signal.mean(axis=0)
-            ax[2].plot(tvec, cone_signal_mean, label="cone_signal")
+            cone_signal_to_show = cone_signal[photodiode_cone_idx, :]
+            ax[2].plot(tvec, cone_signal_to_show, label="Cone signal@center")
         ax[2].set_xlim([0, duration / b2u.second])
         ax[2].set_ylabel("Cone signal")
         ax[2].set_xlabel("Time (s)")
         ax[2].legend()
         ax2 = ax[2].twinx()
-        ax2.plot(tvec, photodiode_response, label="Photodiode", color="r")
+        ax2.plot(tvec, photodiode_response, label="Photodiode@center", color="r")
         ax2.set_ylabel("cd/m2")
         ax2.legend()
 
