@@ -1065,7 +1065,8 @@ class Viz:
             label="Scaled cone response",
         )
 
-        ax.set_ylim([0.001, 1.0])
+        # ax.set_ylim([1e-3, 1e1])
+        ax.set_xlim([1e0, 6e2])
 
         ax.set_xscale("log")
         ax.set_yscale("log")
@@ -2910,47 +2911,7 @@ class Viz:
         if savefigname:
             plt.savefig(savefigname)
 
-    def show_corr_mtx(self, x: np.ndarray, y: np.ndarray, savefigname=None):
-        """
-        Display correlation matrix of two numpy arrays. Dimensions are (N_observations, N_features).
-
-        Parameters
-        ----------
-        x : np.ndarray
-            First input array of shape (N_sweeps, N_observations, N_features_x).
-        y : np.ndarray
-            Second input array of shape (N_sweeps, N_observations, N_features_y).
-        savefigname : str, optional
-            The name of the file where the figure will be saved. If None, the figure is not saved.
-        """
-        if x.ndim != 3 or y.ndim != 3:
-            raise ValueError("Input arrays x and y must be 3-dimensional.")
-
-        if x.shape[1] != y.shape[1]:
-            raise ValueError("Number of observations must be the same for x and y.")
-
-        n_sweeps, n_observations, n_features_x = x.shape
-        _, _, n_features_y = y.shape
-
-        # Initialize the correlation matrix
-        corr_matrix = np.zeros((n_sweeps, n_features_x, n_features_y))
-
-        for sweep in range(n_sweeps):
-            # Compute correlation matrix for the current sweep
-            sweep_corr = np.corrcoef(
-                np.vstack(
-                    [x[sweep, :, i] for i in range(n_features_x)]
-                    + [y[sweep, :, j] for j in range(n_features_y)]
-                )
-            )
-            # Extract the cross-correlation block
-            corr_matrix[sweep, :, :] = sweep_corr[
-                :n_features_x, n_features_x : n_features_x + n_features_y
-            ]
-
-        # Average across sweeps
-        corr_matrix = np.mean(corr_matrix, axis=0)
-
+    def show_corr_mtx(self, corr_matrix: np.ndarray, savefigname=None):
         cmap = plt.get_cmap("coolwarm")
 
         plt.figure()
@@ -2958,8 +2919,8 @@ class Viz:
         plt.colorbar(label="Correlation coefficient")
         plt.title(savefigname if savefigname else "Correlation Matrix")
 
-        if savefigname is not None:
-            plt.savefig(savefigname)
+        if savefigname:
+            self._figsave(figurename=savefigname)
 
     def show_gc_noise_hist_cov_mtx(self, savefigname=None):
         """
@@ -3941,7 +3902,7 @@ class Viz:
         if savefigname:
             self._figsave(figurename=savefigname)
 
-    def show_unit_correlation(
+    def show_spike_correlation_experiment(
         self, filename, exp_variables, time_window=None, savefigname=None
     ):
         """ """
@@ -5078,7 +5039,7 @@ class Viz:
         spectra: np.ndarray,
         unit: str = "spikes",
         xlog: bool = True,
-        ylog: bool = False,
+        ylog: bool = True,
         xlim: tuple[float, float] = None,
         ylim: tuple[float, float] = None,
         savefigname: str = None,
@@ -5107,7 +5068,7 @@ class Viz:
             will not be saved.
         """
 
-        plt.figure(figsize=(10, 5))
+        plt.figure()
         df = pd.DataFrame(
             spectra, columns=(unit_id for unit_id in range(spectra.shape[1]))
         )
@@ -5131,6 +5092,54 @@ class Viz:
             plt.ylim(ylim)
 
         plt.title(savefigname if savefigname else "Frequency Spectra")
+
+        if xlog:
+            plt.xscale("log")
+        if ylog:
+            plt.yscale("log")
+
+        if savefigname:
+            self._figsave(figurename=savefigname)
+
+    def show_cross_correlation_vs_distance(
+        self,
+        distance_df: pd.DataFrame,
+        xlog: bool = False,
+        ylog: bool = False,
+        xlim: tuple[float, float] = None,
+        ylim: tuple[float, float] = None,
+        savefigname: str = None,
+    ):
+        """
+        Show the spike cross-correlation as a function of distance.
+
+        Parameters
+        ----------
+        distance_df : pd.DataFrame
+            DataFrame containing columns "distance_mm" and "ccoef".
+        xlog : bool
+            Whether to use a logarithmic scale for the x-axis.
+        ylog : bool
+            Whether to use a logarithmic scale for the y-axis.
+        xlim : tuple of float, optional
+            The limits for the x-axis. If None, the limits will be determined automatically.
+        ylim : tuple of float, optional
+            The limits for the y-axis. If None, the limits will be determined automatically.
+        savefigname : str, optional
+            The name of the file to save the figure. If None, the figure will not be saved.
+        """
+
+        plt.figure(figsize=(10, 5))
+        sns.displot(data=distance_df, x="distance_mm", y="ccoef", kind="kde", fill=True)
+
+        if xlim:
+            plt.xlim(xlim)
+        if ylim:
+            plt.ylim(ylim)
+
+        plt.title(savefigname if savefigname else "Unit Correlation vs Distance")
+        plt.xlabel("Distance (mm)")
+        plt.ylabel("Correlation Coefficient")
 
         if xlog:
             plt.xscale("log")
