@@ -77,7 +77,7 @@ retina_parameters_extend:
     bipo2gc_cutoff_SD: 2  # Multiplier for above value
     cone2bipo_cen_sd: 10  # um, Turner_2018_eLife
     cone2bipo_sur_sd: 150
-    bipo_sub_sur2cen: 0.9  # Surround / Center amplitude ratio for bipolar subunits (cone => bipo connection).
+    bipo_sub_sur2cen: 0.5  # Surround / Center amplitude ratio for bipolar subunits (cone => bipo connection).
 
   # Recovery function from Berry_1998_JNeurosci, Uzzell_2004_JNeurophysiol
   # abs and rel refractory estimated from Uzzell_2004_JNeurophysiol,
@@ -101,7 +101,7 @@ retina_parameters_extend:
   # None : initial random placement. Nonvarying with fixed seed above.
   # Good for testing, speed and memory.
   gc_placement_parameters:
-    algorithm: "force"  # "voronoi" or "force" or None
+    algorithm: "force"  # "voronoi" or "force" or null
     n_iterations: 30  # v 20, f 5000
     change_rate: 0.0005  # f 0.001, v 0.5
     unit_repulsion_stregth: 10  # 10 f only
@@ -113,7 +113,7 @@ retina_parameters_extend:
     show_skip_steps: 1  # v 1, f 100
 
   cone_placement_parameters:
-    algorithm: "force"  # "voronoi" or "force" or None
+    algorithm: "force"  # "voronoi" or "force" or null
     n_iterations: 15  # v 20, f 300
     change_rate: 0.0005  # f 0.0005, v 0.5
     unit_repulsion_stregth: 2  # 10 f only
@@ -126,7 +126,7 @@ retina_parameters_extend:
 
 
   bipolar_placement_parameters:
-    algorithm: "force"  # "voronoi" or "force" or None
+    algorithm: "force"  # "voronoi" or "force" or null
     n_iterations: 15  # v 20, f 300
     change_rate: 0.0005  # f 0.0005, v 0.5
     unit_repulsion_stregth: 2  # 10 f only
