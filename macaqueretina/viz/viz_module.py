@@ -392,16 +392,15 @@ class Viz:
             self._figsave(figurename=title + "_" + savefigname)
 
     # ConstructRetina visualization
-    def show_gc_positions(self):
+    def show_gc_positions(self, gc):
         """
         Show retina unit positions and receptive fields
 
         ConstructRetina call.
         """
 
-        ecc_mm = self.construct_retina.gc_df["pos_ecc_mm"].to_numpy()
-        pol_deg = self.construct_retina.gc_df["pos_polar_deg"].to_numpy()
-
+        ecc_mm = gc.df["pos_ecc_mm"].to_numpy()
+        pol_deg = gc.df["pos_polar_deg"].to_numpy()
         # to cartesian
         xcoord, ycoord = self.pol2cart(ecc_mm, pol_deg)
 
@@ -410,7 +409,6 @@ class Viz:
             xcoord.flatten(),
             ycoord.flatten(),
             "b.",
-            label=self.construct_retina.gc_type,
         )
         ax.axis("equal")
         ax.legend()
@@ -2401,7 +2399,6 @@ class Viz:
         self,
         threshold: float,
         folder_pattern: str,
-        gain_multiplier: float = 1.0,
         savefigname: str | None = None,
     ) -> None:
         """
@@ -2414,15 +2411,13 @@ class Viz:
             The threshold value for gain calibration.
         folder_pattern : str
             The folder pattern to search for gain calibration data.
-        gain_multiplier : float, optional
-            The gain applied to the signal. Default is 1.0.
         savefigname : str, optional
             The name of the file where the figure will be saved. If None, the figure is not saved.
         """
 
         # Data wrangling for gain calibration experiment
         df, peak_column, most_frequent_peak_idx = self.ana.get_gain_calibration_df(
-            folder_pattern, gain_multiplier=gain_multiplier
+            folder_pattern
         )
 
         # Raise warning if threshold is not in the range of peak values
