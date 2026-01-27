@@ -373,7 +373,7 @@ class RetinaParametersExtend(BaseConfigModel):
 
     class BipolarGeneralParameters(BaseConfigModel):
         bipo2gc_div: int = 6
-        bipo2gc_cutoff_SD: int = 2
+        bipo2gc_cutoff_SD: float = 2.0
         cone2bipo_cen_sd: int = 10
         cone2bipo_sur_sd: int = 150
         bipo_sub_sur2cen: float = 0.9
