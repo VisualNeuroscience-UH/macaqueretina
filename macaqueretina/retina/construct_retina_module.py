@@ -2929,22 +2929,23 @@ class TemporalModelSubunit(TemporalModelBase):
     def _link_bipo_to_gc(
         self,
         ret: Retina,
-        gc: Any,
+        img_mask: np.ndarray,
         X_grid_mm: np.ndarray,
         Y_grid_mm: np.ndarray,
+        den_diam_um: np.ndarray,
     ) -> np.ndarray:
         """
         Link bipolar units to ganglion cells worker function.
         """
         bipo_pos_mm = ret.bipolar_optimized_pos_mm
 
-        X_grid_mm_masked = gc.img_mask * X_grid_mm
+        X_grid_mm_masked = img_mask * X_grid_mm
         X_grid_mm_masked[X_grid_mm_masked == 0] = np.nan
-        Y_grid_mm_masked = gc.img_mask * Y_grid_mm
+        Y_grid_mm_masked = img_mask * Y_grid_mm
         Y_grid_mm_masked[Y_grid_mm_masked == 0] = np.nan
 
         rf_div = ret.bipolar_general_parameters["bipo2gc_div"]
-        sd_bipo = gc.df.den_diam_um / rf_div
+        sd_bipo = den_diam_um / rf_div
         sd_bipo = sd_bipo / 1000  # Convert from micrometers to millimeters.
         sd_bipo = sd_bipo.values[:, None, None]  # Shape: (N, 1, 1).
         cutoff_mm = ret.bipolar_general_parameters["bipo2gc_cutoff_SD"] * sd_bipo
@@ -2989,6 +2990,7 @@ class TemporalModelSubunit(TemporalModelBase):
                 cutoff_mm[zero_input_gcs],
                 sd_bipo[zero_input_gcs],
             )
+            np.nan_to_num(weights, copy=False, nan=0.0)
 
         return weights
 
@@ -3014,15 +3016,20 @@ class TemporalModelSubunit(TemporalModelBase):
         print("Connecting bipolar units to ganglion cells...")
 
         # link gc center
-        weights_cen = self._link_bipo_to_gc(ret, gc, gc.X_grid_cen_mm, gc.Y_grid_cen_mm)
+        weights_cen = self._link_bipo_to_gc(
+            ret, gc.img_mask, gc.X_grid_cen_mm, gc.Y_grid_cen_mm, gc.df.den_diam_um
+        )
 
         # Normalize weights so that the input to each ganglion cell center sums to 1.0.
         weights_cen_norm = weights_cen / weights_cen.sum(axis=0)[None, :]
+        np.nan_to_num(weights_cen_norm, copy=False, nan=0.0)
 
         ret.bipolar_to_gcs_cen_weights = weights_cen_norm
 
         # link gc surround
-        weights_sur = self._link_bipo_to_gc(ret, gc, gc.X_grid_sur_mm, gc.Y_grid_sur_mm)
+        weights_sur = self._link_bipo_to_gc(
+            ret, gc.img_mask_sur, gc.X_grid_sur_mm, gc.Y_grid_sur_mm, gc.df.den_diam_um
+        )
 
         # Normalize surround according to sur/cen spatial RF volume ratio.
         cen = gc.img * gc.img_mask  # Shape: (N, H, W).
@@ -3032,6 +3039,9 @@ class TemporalModelSubunit(TemporalModelBase):
         weight_sur_sum_target = sur_vol / cen_vol  # cen weights are one, see above
         weight_sur_sum = weights_sur.sum(axis=0)
         coefficients = weight_sur_sum_target / weight_sur_sum
+
+        np.nan_to_num(coefficients, copy=False, nan=0.0)
+        np.nan_to_num(weights_sur, copy=False, nan=0.0)
 
         ret.bipolar_to_gcs_sur_weights = weights_sur * coefficients[None, :]
 
