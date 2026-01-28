@@ -2979,9 +2979,10 @@ class TemporalModelSubunit(TemporalModelBase):
             )
             cutoff_mm[zero_input_gcs, ...] *= 1.3
             if cutoff_mm[zero_input_gcs, ...].max() > max_allowed_SD:
-                raise ValueError(
-                    "Bipolar to gc cutoff distance exceed max allowed distance"
+                print(
+                    f"NOTE! {len(zero_input_gcs)} gcs with no input from bipolars, dead unit(s)"
                 )
+                break
             weights[:, zero_input_gcs] = _connect(
                 X_grid_mm_masked[zero_input_gcs, ...],
                 Y_grid_mm_masked[zero_input_gcs, ...],
