@@ -1055,7 +1055,7 @@ class Analysis:
             csv_save_path = data_folder / filename_out
             F_unit_phase_df.to_csv(csv_save_path)
 
-    def get_gain_calibration_df(self, folder_pattern, gain_multiplier=1.0):
+    def get_gain_calibration_df(self, folder_pattern):
         """
         Data wrangling for gain calibration experiment.
 
@@ -1064,10 +1064,6 @@ class Analysis:
         folder_pattern : str
             Data for distinct gains are expected to be in different folders, with gain
             value position marked with asterisk, e.g. 'parasol_on_DOG_fixed_c0p035_g*_sf2p0'
-        gain_multiplier : float
-            Coefficient multiplying the gain value integer in folder_pattern. This coefficient
-            needs to be used in the simulations, too. Allows compensation for potential
-            large variability in gian.
 
         Returns:
         -------
@@ -1113,7 +1109,7 @@ class Analysis:
             # Step 3: Extract the numeric part from the corresponding element
             gain = corresponding_element.lstrip("gain")
             gain = gain.replace("p", ".")
-            this_df["gain"] = float(gain) * gain_multiplier
+            this_df["gain"] = float(gain)
             df = pd.concat([df, this_df], axis=0, ignore_index=True)
 
         # select dataframe columns whose names include substring "tf"
