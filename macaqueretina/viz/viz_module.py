@@ -1762,7 +1762,7 @@ class Viz:
         else:
             raise ValueError("Either gc_list or n_samples must be provided.")
 
-        fig, ax = plt.subplots(1, len(gc_list), figsize=(12, 10))
+        fig, ax = plt.subplots(len(gc_list), 1, figsize=(12, 10))
         if len(gc_list) == 1:
             ax = [ax]
 
@@ -1797,6 +1797,7 @@ class Viz:
             for bipolar_pos, prob in zip(bipolar_positions, connection_probs):
                 ax[idx].scatter(*bipolar_pos, alpha=prob, color="blue")
 
+            # GC mask pixel point locations
             mask = gc_img_mask[this_sample, ...]
             x_mm = X_grid_cen_mm[this_sample, ...] * mask
             y_mm = Y_grid_cen_mm[this_sample, ...] * mask
@@ -1804,8 +1805,6 @@ class Viz:
             y_mm = y_mm[y_mm != 0]
 
             ax[idx].plot(x_mm, y_mm, ".g", label="RF center pixel midpoints")
-
-            # Add DoG_patch to the plot
             ax[idx].add_patch(DoG_patch)
 
             ax[idx].set_xlabel("X Position (mm)")
@@ -1814,7 +1813,6 @@ class Viz:
                 f"Ganglion cell {this_sample} and connected {n_connected} bipolars, relative conn prob"
             )
             ax[idx].legend()
-            # Set equal aspect ratio
             ax[idx].set_aspect("equal", adjustable="box")
 
         if savefigname:
@@ -1855,7 +1853,7 @@ class Viz:
         else:
             raise ValueError("Either bipo_list or n_samples must be provided.")
 
-        fig, ax = plt.subplots(1, len(bipo_list), figsize=(12, 10))
+        fig, ax = plt.subplots(len(bipo_list), 1, figsize=(12, 10))
         cmap = cm.coolwarm
         divnorm = colors.TwoSlopeNorm(vmin=weights.min(), vcenter=0, vmax=weights.max())
         if len(bipo_list) == 1:
