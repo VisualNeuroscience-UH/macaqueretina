@@ -4,7 +4,11 @@ Parameters are changed via environment variables using __main__.py when invoking
 The environment variables are set in SLURM job script.
 """
 
-# import matplotlib.pyplot as plt
+import time
+
+start_time = time.time()
+
+import matplotlib.pyplot as plt
 import numpy as np
 
 import macaqueretina as mr
@@ -18,16 +22,17 @@ mr.config.stimulus_folder.mkdir(parents=True, exist_ok=True)
 # Output folder
 retina_parameters = mr.config.retina_parameters
 gains = np.logspace(np.log10(0.1), np.log10(16), 10)  # 0.1
-gains = np.round(gains, 2)
+gain_multiplier = 2.0
+gains = np.round(gains * gain_multiplier, 1)
+contrast = str(mr.config.visual_stimulus_parameters.contrast).replace(".", "p")
+sf = str(mr.config.visual_stimulus_parameters.spatial_frequency).replace(".", "p")
 
 for calibrated_gain in gains:
     ###############################
     ## Build and run experiment ###
     ###############################
 
-    mr.config.retina_parameters.calibrated_gain = np.round(calibrated_gain, 1)
-    contrast = str(mr.config.visual_stimulus_parameters.contrast).replace(".", "p")
-    sf = str(mr.config.visual_stimulus_parameters.spatial_frequency).replace(".", "p")
+    mr.config.retina_parameters.calibrated_gain = calibrated_gain
     gain = str(calibrated_gain).replace(".", "p")
     output_folder = f"{retina_parameters.gc_type}_{retina_parameters.response_type}_{retina_parameters.spatial_model_type}_{retina_parameters.temporal_model_type}_c{contrast}_g{gain}_sf{sf}"
     print(f"\n{output_folder=}\n")
@@ -63,7 +68,7 @@ for calibrated_gain in gains:
     }
     mr.analysis.analyze_experiment(filename, my_analysis_options)
 
-##########################################
+#########################################
 
 # # Contrast sensitivity
 # filename = "exp_metadata_contrast_spatial_frequency_0f60a89182e4.csv"
@@ -77,12 +82,49 @@ for calibrated_gain in gains:
 # )
 
 # Gain calibration
-threshold = 10
-folder_pattern = "midget_off_VAE_fixed_c0p114_g*_sf5p0"
-# folder_pattern = "parasol_on_DOG_fixed_c0p035_g*_sf2p0"
-gain_multiplier = 1.0
-mr.viz.show_gain_calibration(
-    threshold, folder_pattern, gain_multiplier=gain_multiplier, savefigname=None
-)
+# TÄHÄN JÄIT: GP NÄYTTÄÄ OK, MUTTA SPIKE RATE JÄÄ PIENEKSI. INVERSIO?
+# threshold = 10
+# folder_pattern = "midget_on_VAE_subunit_c0p114_g*_sf5p0_bs2c1p5"
+# folder_pattern = "midget_on_VAE_subunit_c0p114_g*_sf5p0_bs2c1p0"
+# folder_pattern = "midget_on_VAE_subunit_c0p114_g*_sf5p0_bs2c0p9"
+# folder_pattern = "midget_on_VAE_subunit_c0p114_g*_sf5p0_bs2c0p5"
+# folder_pattern = "midget_on_VAE_subunit_c0p114_g*_sf5p0_bs2c0p1"
 
+# folder_pattern = "midget_off_DOG_subunit_c0p114_g*_sf5p0_bs2c1p5"
+# folder_pattern = "midget_off_DOG_subunit_c0p114_g*_sf5p0_bs2c1p0"
+# folder_pattern = "midget_off_DOG_subunit_c0p114_g*_sf5p0_bs2c0p9"
+# folder_pattern = "midget_off_DOG_subunit_c0p114_g*_sf5p0_bs2c0p5"
+# folder_pattern = "midget_off_DOG_subunit_c0p114_g*_sf5p0_bs2c0p1"
+
+# folder_pattern = "midget_off_VAE_subunit_c0p114_g*_sf5p0_bs2c1p5"
+# folder_pattern = "midget_off_VAE_subunit_c0p114_g*_sf5p0_bs2c1p0"
+# folder_pattern = "midget_off_VAE_subunit_c0p114_g*_sf5p0_bs2c0p9"
+# folder_pattern = "midget_off_VAE_subunit_c0p114_g*_sf5p0_bs2c0p5"
+# folder_pattern = "midget_off_VAE_subunit_c0p114_g*_sf5p0_bs2c0p1"
+
+# folder_pattern = "parasol_on_VAE_subunit_c0p035_g*_sf2p0_bs2c1p5"
+# folder_pattern = "parasol_on_VAE_subunit_c0p035_g*_sf2p0_bs2c1p0"
+# folder_pattern = "parasol_on_VAE_subunit_c0p035_g*_sf2p0_bs2c0p9"
+# folder_pattern = "parasol_on_VAE_subunit_c0p035_g*_sf2p0_bs2c0p5"
+# folder_pattern = "parasol_on_VAE_subunit_c0p035_g*_sf2p0_bs2c0p1"
+
+# folder_pattern = "parasol_on_DOG_subunit_c0p035_g*_sf2p0_bs2c1p5"
+# folder_pattern = "parasol_on_DOG_subunit_c0p035_g*_sf2p0_bs2c1p0"
+# folder_pattern = "parasol_on_DOG_subunit_c0p035_g*_sf2p0_bs2c0p9"
+# folder_pattern = "parasol_on_DOG_subunit_c0p035_g*_sf2p0_bs2c0p5"
+# folder_pattern = "parasol_on_DOG_subunit_c0p035_g*_sf2p0_bs2c0p1"
+
+# folder_pattern = "parasol_off_DOG_subunit_c0p035_g*_sf2p0_bs2c1p5"
+# folder_pattern = "parasol_off_DOG_subunit_c0p035_g*_sf2p0_bs2c1p0"
+# folder_pattern = "parasol_off_DOG_subunit_c0p035_g*_sf2p0_bs2c0p9"
+# folder_pattern = "parasol_off_DOG_subunit_c0p035_g*_sf2p0_bs2c0p5"
+# folder_pattern = "parasol_off_DOG_subunit_c0p035_g*_sf2p0_bs2c0p1"
+
+# folder_pattern = "midget_off_DOG_subunit_c0p114_g*_sf5p0"
+# # folder_pattern = f"{retina_parameters.gc_type}_{retina_parameters.response_type}_{retina_parameters.spatial_model_type}_{retina_parameters.temporal_model_type}_c{contrast}_g*_sf{sf}"
+
+# mr.viz.show_gain_calibration(threshold, folder_pattern, savefigname=None)
+
+# end_time = time.time()
+# print(f"Elapsed time: {end_time - start_time} seconds")
 # plt.show()
