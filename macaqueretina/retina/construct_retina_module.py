@@ -14,7 +14,6 @@ import torch
 from scipy import ndimage
 from scipy.spatial import Voronoi
 from shapely.geometry import Polygon as ShapelyPolygon
-from tqdm import tqdm
 
 # Local
 from .rf_repulsion_utils import apply_rf_repulsion
@@ -2931,14 +2930,18 @@ class TemporalModelSubunit(TemporalModelBase):
         self,
         ret: Retina,
         gc: Any,
-        X_grid_cen_mm: np.ndarray,
-        Y_grid_cen_mm: np.ndarray,
+        X_grid_mm: np.ndarray,
+        Y_grid_mm: np.ndarray,
     ) -> np.ndarray:
         """
         Link bipolar units to ganglion cells worker function.
         """
         bipo_pos_mm = ret.bipolar_optimized_pos_mm
-        n_bipos = bipo_pos_mm.shape[0]
+
+        X_grid_mm_masked = gc.img_mask * X_grid_mm
+        X_grid_mm_masked[X_grid_mm_masked == 0] = np.nan
+        Y_grid_mm_masked = gc.img_mask * Y_grid_mm
+        Y_grid_mm_masked[Y_grid_mm_masked == 0] = np.nan
 
         rf_div = ret.bipolar_general_parameters["bipo2gc_div"]
         sd_bipo = gc.df.den_diam_um / rf_div
@@ -2946,45 +2949,44 @@ class TemporalModelSubunit(TemporalModelBase):
         sd_bipo = sd_bipo.values[:, None, None]  # Shape: (N, 1, 1).
         cutoff_mm = ret.bipolar_general_parameters["bipo2gc_cutoff_SD"] * sd_bipo
 
-        weights = np.zeros((n_bipos, gc.n_units))
-
-        def _connect(X_grid_cen_mm, Y_grid_cen_mm, cutoff_mm, sd_bipo):
-            n_gcs = X_grid_cen_mm.shape[0]
-            desc_str = f"Calculating {n_bipos} x {n_gcs} connections"
-            weights_ = np.zeros((n_bipos, n_gcs))
-            for this_bipo in tqdm(range(n_bipos), desc=desc_str):
-                this_bipo_pos = bipo_pos_mm[this_bipo]
-                dist_x_mtx = X_grid_cen_mm - this_bipo_pos[0]
-                dist_y_mtx = Y_grid_cen_mm - this_bipo_pos[1]
+        # Function necessary for rerunning zero input gcs
+        def _connect(X_grid_mm_masked, Y_grid_mm_masked, cutoff_mm, sd_bipo):
+            n_bipos = bipo_pos_mm.shape[0]
+            n_gcs = sd_bipo.shape[0]
+            weights_ = np.full((n_bipos, n_gcs), np.nan)
+            for this_bipo, this_bipo_pos in enumerate(bipo_pos_mm):
+                dist_x_mtx = X_grid_mm_masked - this_bipo_pos[0]
+                dist_y_mtx = Y_grid_mm_masked - this_bipo_pos[1]
                 dist_mtx = np.sqrt(dist_x_mtx**2 + dist_y_mtx**2)
 
                 # Drop weight as a Gaussian function of distance with sd = sd_bipo.
-                probability = np.exp(-((dist_mtx**2) / (2 * sd_bipo**2)))
-                probability[dist_mtx > cutoff_mm] = 0
+                weight_for_this_bipo = np.exp(-((dist_mtx**2) / (2 * sd_bipo**2)))
+                weight_for_this_bipo[dist_mtx > cutoff_mm] = np.nan
+                weights_[this_bipo, :] = np.nansum(weight_for_this_bipo, axis=(1, 2))
 
-                weights_mtx = probability
-                weights_[this_bipo, :] = weights_mtx.sum(axis=(1, 2))
             return weights_
 
-        weights = _connect(X_grid_cen_mm, Y_grid_cen_mm, cutoff_mm, sd_bipo)
+        weights = _connect(X_grid_mm_masked, Y_grid_mm_masked, cutoff_mm, sd_bipo)
+
+        np.nan_to_num(weights, copy=False, nan=0.0)
 
         # For tiny receptive fields no bipolars may survive the cutoff_mm. Rerun these.
-        max_allowed_SD = cutoff_mm.mean() + 3 * cutoff_mm.std()
+        max_allowed_SD = cutoff_mm.mean() + 5 * cutoff_mm.std()
         while not all(weights.sum(axis=0)):
-            indices = np.where(weights.sum(axis=0) == 0)[0]
+            zero_input_gcs = np.where(weights.sum(axis=0) == 0)[0]
             print(
-                f"{len(indices)} gcs with no input from bipolars, their cutoff distance *= 1.3"
+                f"{len(zero_input_gcs)} gcs with no input from bipolars, their cutoff distance *= 1.3"
             )
-            cutoff_mm[indices, ...] *= 1.3
-            if cutoff_mm[indices, ...].max() > max_allowed_SD:
+            cutoff_mm[zero_input_gcs, ...] *= 1.3
+            if cutoff_mm[zero_input_gcs, ...].max() > max_allowed_SD:
                 raise ValueError(
                     "Bipolar to gc cutoff distance exceed max allowed distance"
                 )
-            weights[:, indices] = _connect(
-                X_grid_cen_mm[indices],
-                Y_grid_cen_mm[indices],
-                cutoff_mm[indices],
-                sd_bipo[indices],
+            weights[:, zero_input_gcs] = _connect(
+                X_grid_mm_masked[zero_input_gcs, ...],
+                Y_grid_mm_masked[zero_input_gcs, ...],
+                cutoff_mm[zero_input_gcs],
+                sd_bipo[zero_input_gcs],
             )
 
         return weights
