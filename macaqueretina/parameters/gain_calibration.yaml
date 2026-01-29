@@ -7,39 +7,39 @@ gain_calibration:
         DOG:
           fixed: 0.61
           dynamic: 0.86
-          subunit: 37.3
+          subunit: 3.73
         VAE:
           fixed: 0.78
           dynamic: 0.91
-          subunit: 26.8
+          subunit: 3.58
       "off":
         DOG:
           fixed: 1.29
           dynamic: 1.56
-          subunit: 81.6
+          subunit: 7.6
         VAE:
           fixed: 1.42
           dynamic: 1.63
-          subunit: 64.6
+          subunit: 6.33
     midget:
       "on":
         DOG:
           fixed: 1.69
           dynamic: 2.31
-          subunit: 53.7
+          subunit: 3.53
         VAE:
           fixed: 1.86
           dynamic: 2.48
-          subunit: 44.6
+          subunit: 3.7
       "off":
         DOG:
           fixed: 2.83
           dynamic: 3.62
-          subunit: 193.3
+          subunit: 8.38
         VAE:
           fixed: 3.04
           dynamic: 3.60
-          subunit: 115.6
+          subunit: 8.84
 
   # Cone noise gain induces ~25Hz spontaneous firing rates for the ON parasol and
   # midget gc units, and ~5Hz for the OFF parasol and midget units. (Raunak Sinha,
