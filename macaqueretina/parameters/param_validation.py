@@ -55,7 +55,7 @@ class BaseConfigModel(BaseModel):
 
         super().__init__(**data)
 
-    model_config = ConfigDict(extra="allow")
+    model_config = ConfigDict(extra="allow", arbitrary_types_allowed=True)
 
 
 class BaseInternalConfigModel(BaseModel):
@@ -68,7 +68,7 @@ class BaseInternalConfigModel(BaseModel):
     def __init__(self, **data: dict):
         super().__init__(**data)
 
-    model_config = ConfigDict(extra="allow")
+    model_config = ConfigDict(extra="allow", arbitrary_types_allowed=True)
 
 
 ## From retina_parameters.yaml
@@ -306,7 +306,7 @@ class RetinaParametersExtend(BaseConfigModel):
             if not isinstance(v, b2u.Quantity):
                 return v * b2u.second
             return v
-        
+
         @field_validator("alpha", mode="after")
         @classmethod
         def add_b2u_pa_ms(cls, v) -> b2u.Quantity:
@@ -621,11 +621,6 @@ class ConfigParams(BaseConfigModel):
     simulation_parameters: SimulationParameters
     gain_calibration: GainCalibration
 
-    @computed_field
-    @property
-    def literature_data_folder(self) -> Path:
-        return git_repo_path.joinpath(r"retina/literature_data")
-
     gc_density_1_datafile: str
     gc_density_1_scaling_data_and_function: list
     gc_density_2_datafile: str
@@ -683,8 +678,6 @@ class ConfigParams(BaseConfigModel):
     @model_validator(mode="after")
     def set_derived_values(self) -> Self:
         # Set parameters that depend on another value in a different class
-        self.project_manager_module_file_path = proj_manager_mod_file_path
-        self.git_repo_root_path = git_repo_path
         if self.visual_stimulus_parameters.stimulus_video_name is None:
             self.visual_stimulus_parameters.stimulus_video_name = (
                 f"{self.stimulus_folder}.hdf5"
@@ -730,6 +723,10 @@ class ConfigParams(BaseConfigModel):
             self.temporal_BK_model_datafile = self.temporal_BK_model_datafile_midget
             self.spatial_DoG_datafile = self.spatial_DoG_datafile_midget
 
+        self.literature_data_folder = self.git_repo_root_path.joinpath(
+            r"retina/literature_data"
+        )
+
         self.path = self.model_root_path.joinpath(Path(self.project), self.experiment)
         return self
 
@@ -743,17 +740,18 @@ class ConfigInternalParams(BaseInternalConfigModel):
         if self.experimental_metadata is None:
             self.experimental_metadata = ExperimentalMetadata()
 
-        self.experimental_metadata.experimental_data_folder = git_repo_path.joinpath(
-            self.experimental_metadata.relative_data_path
+        self.experimental_metadata.experimental_data_folder = (
+            self.git_repo_root_path.joinpath(
+                self.experimental_metadata.relative_data_path
+            )
         )
 
-        self.experimental_metadata.exp_rf_stat_folder = git_repo_path.joinpath(
-            r"retina/dog_statistics"
+        self.experimental_metadata.exp_rf_stat_folder = (
+            self.git_repo_root_path.joinpath(r"retina/dog_statistics")
         )
 
         if self.vae_train_parameters is None:
             self.vae_train_parameters = VaeTrainParameters()
-
 
         self.vae_train_parameters.gen_rf_stat_folder = self.git_repo_root_path.joinpath(
             r"retina/vae_statistics"
@@ -782,11 +780,7 @@ def _create_and_validate_core_paths(config):
 
 
 # Façade
-def validate_params(
-    config: Configuration,
-    project_manager_module_file_path: Path,
-    git_repo_root_path: Path,
-) -> Configuration:
+def validate_params(config: Configuration) -> Configuration:
     """
     Validate and convert parameters to the appropriate types.
 
@@ -801,12 +795,6 @@ def validate_params(
         Configuration object with the validated parameters, plus any computed
         field from ConfigParams.
     """
-    global proj_manager_mod_file_path
-    proj_manager_mod_file_path = project_manager_module_file_path
-
-    global git_repo_path
-    git_repo_path = git_repo_root_path
-
     # Store retina_parameter.yaml keys as core parameters for downstream hashing
     config.retina_core_parameter_keys = config.retina_parameters.keys()
 
@@ -816,6 +804,7 @@ def validate_params(
     # Validate internal parameters
     validated_internal_config: ConfigInternalParams = ConfigInternalParams(
         **{
+            "git_repo_root_path": config.git_repo_root_path,
             "experimental_metadata": config.as_dict().get("experimental_metadata"),
             "vae_train_parameters": config.as_dict().get("vae_train_parameters"),
         }
