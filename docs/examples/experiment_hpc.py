@@ -17,13 +17,11 @@ import macaqueretina as mr
 ###############################
 rp = mr.config.retina_parameters
 
-output_folder = f"{mr.config.experiment}_{rp.gc_type}_{rp.response_type}_{rp.spatial_model_type}_{rp.temporal_model_type}"
+tf = mr.config.visual_stimulus_parameters["temporal_frequency"]
+output_folder = f"{mr.config.experiment}_{rp.gc_type}_{rp.response_type}_{rp.spatial_model_type}_{rp.temporal_model_type}_{tf}Hz"
 mr.config.output_folder = mr.config.path.joinpath(output_folder)
 mr.config.output_folder.mkdir(parents=True, exist_ok=True)
-
-stimulus_folder = mr.config.path.joinpath(
-    f"stimuli_{mr.config.visual_stimulus_parameters['temporal_frequency']}Hz"
-)
+stimulus_folder = mr.config.path.joinpath(f"stimuli_{tf}Hz")
 mr.config.stimulus_folder = stimulus_folder
 stimulus_folder.mkdir(parents=True, exist_ok=True)
 
@@ -43,18 +41,18 @@ mr.config.experiment_parameters = {
     "distributions": {"uniform": None},
 }
 
-filename = mr.experiment.build_and_run(build_without_run=True)
+filename = mr.experiment.build_and_run(build_without_run=False)
 
-# ########################################
-# ## Analyze and visualize experiment ###
-# ########################################
+########################################
+## Analyze and visualize experiment ###
+########################################
 
-# my_analysis_options = {
-#     "exp_variables": exp_variables,
-#     "t_start_ana": 0.5,
-#     "t_end_ana": 6.5,
-# }
-# mr.analysis.analyze_experiment(filename, my_analysis_options)
+my_analysis_options = {
+    "exp_variables": exp_variables,
+    "t_start_ana": 0.5,
+    "t_end_ana": 6.5,
+}
+mr.analysis.analyze_experiment(filename, my_analysis_options)
 
 # #########################################
 # # filename = "exp_metadata_contrast_temporal_frequency_0da761a886.csv"
@@ -69,17 +67,17 @@ filename = mr.experiment.build_and_run(build_without_run=True)
 # #     savefigname=f"{mr.config.experiment}_{rp.gc_type}_{rp.response_type}_{rp.spatial_model_type}_{rp.temporal_model_type}.eps",
 # # )
 
-# # Contrast sensitivity
-# # filename = "exp_metadata_contrast_spatial_frequency_0f60a89182e4.csv"
-# mr.viz.contrast_sensitivity(
-#     filename,
-#     ["contrast", "spatial_frequency"],
-#     xlog=True,
-#     ylog=True,
-#     xlim=[0.1, 10],
-#     ylim=[1, 200],
-#     savefigname=f"{mr.config.experiment}_{rp.gc_type}_{rp.response_type}_{rp.spatial_model_type}_{rp.temporal_model_type}.eps",
-# )
+# Contrast sensitivity
+# filename = "exp_metadata_contrast_spatial_frequency_0f60a89182e4.csv"
+mr.viz.contrast_sensitivity(
+    filename,
+    ["contrast", "spatial_frequency"],
+    xlog=True,
+    ylog=True,
+    xlim=[0.1, 10],
+    ylim=[1, 200],
+    savefigname=f"{mr.config.experiment}_{rp.gc_type}_{rp.response_type}_{rp.spatial_model_type}_{rp.temporal_model_type}_{tf}Hz.eps",
+)
 
 end_time = time.time()
 print(f"Elapsed time: {end_time - start_time} seconds")
