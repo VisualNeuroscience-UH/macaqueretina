@@ -1,11 +1,11 @@
 model_root_path: "/opt3/projects"
 project: "macaqueretina"
-experiment: "gain_calibration_subunit_260128"
+experiment: "test_experiment"
 input_subfolder: "../in"  # input VAE models, images, videos, other data
 output_subfolder: null # spikes, retinas, experiment metadata. null for experiments creating the folders
 stimulus_subfolder: null #"/opt3/movies/Videos/stims" 
 numpy_seed: null  # null for random or int for fixed seed
-device: "cpu"  # "cpu" or "cuda"
+device: cpu  # "cpu" or "cuda"
 
 run:
   build_retina: False
@@ -19,5 +19,5 @@ run:
   visualize_all_gc_responses: 
     show: False
   experiment:
-    run_experiment: True
+    run_experiment: False
     script_path: docs/examples/experiment_hpc.py
