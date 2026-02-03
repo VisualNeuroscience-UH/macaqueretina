@@ -15,7 +15,11 @@ import macaqueretina as mr
 ###############################
 ## Build and run experiment ###
 ###############################
+rp = mr.config.retina_parameters
 
+mr.config.output_folder = savefigname = (
+    f"{mr.config.experiment}_{rp.gc_type}_{rp.response_type}_{rp.spatial_model_type}_{rp.temporal_model_type}"
+)
 mr.construct_retina()
 
 # These are the variables to be changed in the experiment
@@ -47,7 +51,6 @@ mr.analysis.analyze_experiment(filename, my_analysis_options)
 
 #########################################
 filename = "exp_metadata_contrast_temporal_frequency_0da761a886.csv"
-rp = mr.config.retina_parameters
 
 mr.viz.show_fr4c_response(
     filename,
