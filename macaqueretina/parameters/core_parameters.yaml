@@ -19,5 +19,5 @@ run:
   visualize_all_gc_responses: 
     show: False
   experiment:
-    run_experiment: False
+    run_experiment: True
     script_path: docs/examples/experiment_hpc.py
