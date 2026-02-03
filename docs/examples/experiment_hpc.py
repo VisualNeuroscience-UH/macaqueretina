@@ -21,6 +21,7 @@ output_folder = savefigname = (
     f"{mr.config.experiment}_{rp.gc_type}_{rp.response_type}_{rp.spatial_model_type}_{rp.temporal_model_type}"
 )
 mr.config.output_folder = mr.config.path.joinpath(output_folder)
+mr.config.output_folder.mkdir(parents=True, exist_ok=True)
 mr.construct_retina()
 
 # These are the variables to be changed in the experiment
