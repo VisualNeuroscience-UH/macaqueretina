@@ -9,66 +9,55 @@ import time
 start_time = time.time()
 
 import matplotlib.pyplot as plt
-import numpy as np
 
 import macaqueretina as mr
 
-# Stimulus folder
-mr.config.stimulus_folder = mr.config.path.joinpath(
-    f"stim_{mr.config.retina_parameters.gc_type}"
-)
-mr.config.stimulus_folder.mkdir(parents=True, exist_ok=True)
+###############################
+## Build and run experiment ###
+###############################
 
-# Output folder
-retina_parameters = mr.config.retina_parameters
-gains = np.logspace(np.log10(0.1), np.log10(16), 10)  # 0.1
-gain_multiplier = 2.0
-gains = np.round(gains * gain_multiplier, 1)
-contrast = str(mr.config.visual_stimulus_parameters.contrast).replace(".", "p")
-sf = str(mr.config.visual_stimulus_parameters.spatial_frequency).replace(".", "p")
+mr.construct_retina()
 
-for calibrated_gain in gains:
-    ###############################
-    ## Build and run experiment ###
-    ###############################
+# These are the variables to be changed in the experiment
+# See visual_stimulus_parameters, safe up to two variables
+exp_variables = ["contrast", "temporal_frequency"]
+mr.config.experiment_parameters = {
+    "exp_variables": exp_variables,
+    # two vals below for each exp_variable, even is it is not changing
+    "min_max_values": [[0, 1.0], [1.0, 40]],  # [[0, 0.6], [0.1, 15.0]]
+    "n_steps": [13, 3],  # [10 ,16]
+    "logarithmic": [False, True],  # [True, True]
+    "n_sweeps": 1,
+    # "distributions": {"gaussian": {"sweeps": 10, "mean": [-30, 30], "sd": [5, 5]}},
+    "distributions": {"uniform": None},
+}
 
-    mr.config.retina_parameters.calibrated_gain = calibrated_gain
-    gain = str(calibrated_gain).replace(".", "p")
-    output_folder = f"{retina_parameters.gc_type}_{retina_parameters.response_type}_{retina_parameters.spatial_model_type}_{retina_parameters.temporal_model_type}_c{contrast}_g{gain}_sf{sf}"
-    print(f"\n{output_folder=}\n")
-    mr.config.output_folder = mr.config.path.joinpath(output_folder)
-    mr.config.output_folder.mkdir(parents=True, exist_ok=True)
-    mr.construct_retina()
+filename = mr.experiment.build_and_run(build_without_run=False)
 
-    # These are the variables to be changed in the experiment
-    # See visual_stimulus_parameters, safe up to two variables
-    exp_variables = ["temporal_frequency"]
-    mr.config.experiment_parameters = {
-        "exp_variables": exp_variables,
-        # two vals below for each exp_variable, even is it is not changing
-        "min_max_values": [[1.0, 32.0]],  # [[0, 0.6], [0.1, 15.0]]
-        # "n_steps": [3],  # [10 ,16]
-        "n_steps": [16],  # [10 ,16]
-        "logarithmic": [True],  # [True, True]
-        "n_sweeps": 1,
-        # "distributions": {"gaussian": {"sweeps": 10, "mean": [-30, 30], "sd": [5, 5]}},
-        "distributions": {"uniform": None},
-    }
+########################################
+## Analyze and visualize experiment ###
+########################################
 
-    filename = mr.experiment.build_and_run(build_without_run=False)
-
-    ########################################
-    ## Analyze and visualize experiment ###
-    ########################################
-
-    my_analysis_options = {
-        "exp_variables": exp_variables,
-        "t_start_ana": 0.5,
-        "t_end_ana": 12.5,
-    }
-    mr.analysis.analyze_experiment(filename, my_analysis_options)
+my_analysis_options = {
+    "exp_variables": exp_variables,
+    "t_start_ana": 0.5,
+    "t_end_ana": 6.5,
+}
+mr.analysis.analyze_experiment(filename, my_analysis_options)
 
 #########################################
+filename = "exp_metadata_contrast_temporal_frequency_0da761a886.csv"
+rp = mr.config.retina_parameters
+
+mr.viz.show_fr4c_response(
+    filename,
+    exp_variables,
+    xlog=False,
+    ylog=False,
+    xlim=None,
+    ylim=None,
+    savefigname=f"{mr.config.experiment}_{rp.gc_type}_{rp.response_type}_{rp.spatial_model_type}_{rp.temporal_model_type}.eps",
+)
 
 # # Contrast sensitivity
 # filename = "exp_metadata_contrast_spatial_frequency_0f60a89182e4.csv"
@@ -81,50 +70,6 @@ for calibrated_gain in gains:
 #     ylim=[1, 200],
 # )
 
-# Gain calibration
-# TÄHÄN JÄIT: GP NÄYTTÄÄ OK, MUTTA SPIKE RATE JÄÄ PIENEKSI. INVERSIO?
-# threshold = 10
-# folder_pattern = "midget_on_VAE_subunit_c0p114_g*_sf5p0_bs2c1p5"
-# folder_pattern = "midget_on_VAE_subunit_c0p114_g*_sf5p0_bs2c1p0"
-# folder_pattern = "midget_on_VAE_subunit_c0p114_g*_sf5p0_bs2c0p9"
-# folder_pattern = "midget_on_VAE_subunit_c0p114_g*_sf5p0_bs2c0p5"
-# folder_pattern = "midget_on_VAE_subunit_c0p114_g*_sf5p0_bs2c0p1"
-
-# folder_pattern = "midget_off_DOG_subunit_c0p114_g*_sf5p0_bs2c1p5"
-# folder_pattern = "midget_off_DOG_subunit_c0p114_g*_sf5p0_bs2c1p0"
-# folder_pattern = "midget_off_DOG_subunit_c0p114_g*_sf5p0_bs2c0p9"
-# folder_pattern = "midget_off_DOG_subunit_c0p114_g*_sf5p0_bs2c0p5"
-# folder_pattern = "midget_off_DOG_subunit_c0p114_g*_sf5p0_bs2c0p1"
-
-# folder_pattern = "midget_off_VAE_subunit_c0p114_g*_sf5p0_bs2c1p5"
-# folder_pattern = "midget_off_VAE_subunit_c0p114_g*_sf5p0_bs2c1p0"
-# folder_pattern = "midget_off_VAE_subunit_c0p114_g*_sf5p0_bs2c0p9"
-# folder_pattern = "midget_off_VAE_subunit_c0p114_g*_sf5p0_bs2c0p5"
-# folder_pattern = "midget_off_VAE_subunit_c0p114_g*_sf5p0_bs2c0p1"
-
-# folder_pattern = "parasol_on_VAE_subunit_c0p035_g*_sf2p0_bs2c1p5"
-# folder_pattern = "parasol_on_VAE_subunit_c0p035_g*_sf2p0_bs2c1p0"
-# folder_pattern = "parasol_on_VAE_subunit_c0p035_g*_sf2p0_bs2c0p9"
-# folder_pattern = "parasol_on_VAE_subunit_c0p035_g*_sf2p0_bs2c0p5"
-# folder_pattern = "parasol_on_VAE_subunit_c0p035_g*_sf2p0_bs2c0p1"
-
-# folder_pattern = "parasol_on_DOG_subunit_c0p035_g*_sf2p0_bs2c1p5"
-# folder_pattern = "parasol_on_DOG_subunit_c0p035_g*_sf2p0_bs2c1p0"
-# folder_pattern = "parasol_on_DOG_subunit_c0p035_g*_sf2p0_bs2c0p9"
-# folder_pattern = "parasol_on_DOG_subunit_c0p035_g*_sf2p0_bs2c0p5"
-# folder_pattern = "parasol_on_DOG_subunit_c0p035_g*_sf2p0_bs2c0p1"
-
-# folder_pattern = "parasol_off_DOG_subunit_c0p035_g*_sf2p0_bs2c1p5"
-# folder_pattern = "parasol_off_DOG_subunit_c0p035_g*_sf2p0_bs2c1p0"
-# folder_pattern = "parasol_off_DOG_subunit_c0p035_g*_sf2p0_bs2c0p9"
-# folder_pattern = "parasol_off_DOG_subunit_c0p035_g*_sf2p0_bs2c0p5"
-# folder_pattern = "parasol_off_DOG_subunit_c0p035_g*_sf2p0_bs2c0p1"
-
-# folder_pattern = "midget_off_DOG_subunit_c0p114_g*_sf5p0"
-# # folder_pattern = f"{retina_parameters.gc_type}_{retina_parameters.response_type}_{retina_parameters.spatial_model_type}_{retina_parameters.temporal_model_type}_c{contrast}_g*_sf{sf}"
-
-# mr.viz.show_gain_calibration(threshold, folder_pattern, savefigname=None)
-
-# end_time = time.time()
-# print(f"Elapsed time: {end_time - start_time} seconds")
-# plt.show()
+end_time = time.time()
+print(f"Elapsed time: {end_time - start_time} seconds")
+plt.show()
