@@ -290,7 +290,7 @@ class GanglionCellParasol(GanglionCellBase):
 
         # parameter_names for parasol gain control ["NL", "TL", "HS", "T0", "Chalf", "D", "A"]
         NL = np.int32(params[:, 0])
-        TL = params[:, 1]  # ms, control multiplier 0.1
+        TL = params[:, 1] * 0.1  # ms, control multiplier 0.1
         _HS = params[:, 2]
         _T0 = params[:, 3] * b2u.ms
         _Chalf = params[:, 4]
