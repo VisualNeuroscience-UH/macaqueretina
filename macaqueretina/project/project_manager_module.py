@@ -323,6 +323,21 @@ def build_retina(config, construct_retina=None):
     return construct_retina.build_retina_client
 
 
+def viz(config, data_io=None, project_data=None, analysis=None, retina_math=None):
+    from macaqueretina.viz.viz_module import Viz
+
+    if data_io is None:
+        data_io = create_data_io(config)
+    if project_data is None:
+        project_data = ProjectData()
+    if retina_math is None:
+        retina_math = create_retina_math()
+    if analysis is None:
+        analysis = create_analysis(config, data_io, retina_math)
+
+    return Viz(config, data_io, project_data, analysis)
+
+
 class ProjectData:
     # TODO: this might need thread safety for cluster runs
     """

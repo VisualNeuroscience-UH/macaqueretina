@@ -4,20 +4,28 @@ macaqueretina namespace to the various sub-modules.
 """
 
 # Local
+from .project.project_manager_module import (
+    build_retina,
+    load_parameters as _load_parameters,
+)
+from . import viz
 
-from .project.project_manager_module import load_parameters, build_retina
+config = None
 
 
-# Define what is imported when doing: from macaqueretina import *. Only the objects in
-# __all__ can be imported this way.
-__all__ = [
-    "load_parameters",
-    "build_retina",
-]
+def load_parameters():
+    """Load parameters and store in module namespace."""
+    global config
+    config = _load_parameters()
+    return config
+
+
+__all__ = ["load_parameters", "build_retina", "config"]
 
 
 def get_version():
     import os
+
     import tomli
 
     pyproject_path = os.path.join(os.path.dirname(__file__), "..", "pyproject.toml")
