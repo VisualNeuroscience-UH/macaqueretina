@@ -17,7 +17,7 @@ import macaqueretina as mr
 ###############################
 rp = mr.config.retina_parameters
 
-tf = mr.config.visual_stimulus_parameters["temporal_frequency"]
+tf = int(mr.config.visual_stimulus_parameters["temporal_frequency"])
 output_folder = f"{mr.config.experiment}_{rp.gc_type}_{rp.response_type}_{rp.spatial_model_type}_{rp.temporal_model_type}_{tf}Hz"
 mr.config.output_folder = mr.config.path.joinpath(output_folder)
 mr.config.output_folder.mkdir(parents=True, exist_ok=True)
