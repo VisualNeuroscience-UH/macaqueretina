@@ -17,55 +17,60 @@ import macaqueretina as mr
 ###############################
 rp = mr.config.retina_parameters
 
-output_folder = savefigname = (
-    f"{mr.config.experiment}_{rp.gc_type}_{rp.response_type}_{rp.spatial_model_type}_{rp.temporal_model_type}_poisson"
-)
+output_folder = f"{mr.config.experiment}_{rp.gc_type}_{rp.response_type}_{rp.spatial_model_type}_{rp.temporal_model_type}"
 mr.config.output_folder = mr.config.path.joinpath(output_folder)
 mr.config.output_folder.mkdir(parents=True, exist_ok=True)
+
+stimulus_folder = mr.config.path.joinpath(
+    f"stimuli_{mr.config.visual_stimulus_parameters['temporal_frequency']}Hz"
+)
+mr.config.stimulus_folder = stimulus_folder
+stimulus_folder.mkdir(parents=True, exist_ok=True)
+
 mr.construct_retina()
 
 # These are the variables to be changed in the experiment
 # See visual_stimulus_parameters, safe up to two variables
-exp_variables = ["contrast", "temporal_frequency"]
+exp_variables = ["contrast", "spatial_frequency"]
 mr.config.experiment_parameters = {
     "exp_variables": exp_variables,
     # two vals below for each exp_variable, even is it is not changing
-    "min_max_values": [[0, 1.0], [1.0, 40]],  # [[0, 0.6], [0.1, 15.0]]
-    "n_steps": [13, 3],  # [10 ,16]
-    "logarithmic": [False, True],  # [True, True]
+    "min_max_values": [[0, 1.0], [0.1, 40]],  # [[0, 0.6], [0.1, 15.0]]
+    "n_steps": [10, 16],  # [10 ,16]
+    "logarithmic": [True, True],  # [True, True]
     "n_sweeps": 1,
     # "distributions": {"gaussian": {"sweeps": 10, "mean": [-30, 30], "sd": [5, 5]}},
     "distributions": {"uniform": None},
 }
 
-filename = mr.experiment.build_and_run(build_without_run=False)
+filename = mr.experiment.build_and_run(build_without_run=True)
 
-########################################
-## Analyze and visualize experiment ###
-########################################
+# ########################################
+# ## Analyze and visualize experiment ###
+# ########################################
 
-my_analysis_options = {
-    "exp_variables": exp_variables,
-    "t_start_ana": 0.5,
-    "t_end_ana": 6.5,
-}
-mr.analysis.analyze_experiment(filename, my_analysis_options)
+# my_analysis_options = {
+#     "exp_variables": exp_variables,
+#     "t_start_ana": 0.5,
+#     "t_end_ana": 6.5,
+# }
+# mr.analysis.analyze_experiment(filename, my_analysis_options)
 
-#########################################
-# filename = "exp_metadata_contrast_temporal_frequency_0da761a886.csv"
+# #########################################
+# # filename = "exp_metadata_contrast_temporal_frequency_0da761a886.csv"
 
-mr.viz.show_fr4c_response(
-    filename,
-    exp_variables,
-    xlog=False,
-    ylog=False,
-    xlim=None,
-    ylim=None,
-    savefigname=f"{mr.config.experiment}_{rp.gc_type}_{rp.response_type}_{rp.spatial_model_type}_{rp.temporal_model_type}.eps",
-)
+# # mr.viz.show_fr4c_response(
+# #     filename,
+# #     exp_variables,
+# #     xlog=False,
+# #     ylog=False,
+# #     xlim=None,
+# #     ylim=None,
+# #     savefigname=f"{mr.config.experiment}_{rp.gc_type}_{rp.response_type}_{rp.spatial_model_type}_{rp.temporal_model_type}.eps",
+# # )
 
 # # Contrast sensitivity
-# filename = "exp_metadata_contrast_spatial_frequency_0f60a89182e4.csv"
+# # filename = "exp_metadata_contrast_spatial_frequency_0f60a89182e4.csv"
 # mr.viz.contrast_sensitivity(
 #     filename,
 #     ["contrast", "spatial_frequency"],
@@ -73,6 +78,7 @@ mr.viz.show_fr4c_response(
 #     ylog=True,
 #     xlim=[0.1, 10],
 #     ylim=[1, 200],
+#     savefigname=f"{mr.config.experiment}_{rp.gc_type}_{rp.response_type}_{rp.spatial_model_type}_{rp.temporal_model_type}.eps",
 # )
 
 end_time = time.time()

@@ -1,9 +1,9 @@
 model_root_path: /opt3/projects
 project: macaqueretina
-experiment: valid_fr4c_260203
+experiment: valid_cs4sf_260203
 input_subfolder: ../in  # input VAE models, images, videos, other data
 output_subfolder: null # spikes, retinas, experiment metadata. null for experiments creating the folders
-stimulus_subfolder: stimuli #/opt3/movies/Videos/stims 
+stimulus_subfolder: null #/opt3/movies/Videos/stims 
 numpy_seed: null  # null for random or int for fixed seed
 device: cpu  # "cpu" or "cuda"
 
