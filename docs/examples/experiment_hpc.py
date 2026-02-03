@@ -38,7 +38,7 @@ mr.config.experiment_parameters = {
     "distributions": {"uniform": None},
 }
 
-filename = mr.experiment.build_and_run(build_without_run=True)
+filename = mr.experiment.build_and_run(build_without_run=False)
 
 ########################################
 ## Analyze and visualize experiment ###
