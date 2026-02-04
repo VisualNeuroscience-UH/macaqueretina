@@ -5,7 +5,7 @@ macaqueretina namespace to the various sub-modules.
 
 # Local
 from .project.project_manager_module import (
-    build_retina,
+    construct_retina,
     load_parameters as _load_parameters,
 )
 from . import viz
@@ -20,7 +20,7 @@ def load_parameters():
     return config
 
 
-__all__ = ["load_parameters", "build_retina", "config"]
+__all__ = ["load_parameters", "construct_retina", "config"]
 
 
 def get_version():

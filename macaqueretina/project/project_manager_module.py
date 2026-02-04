@@ -239,7 +239,7 @@ def analog_input(config, data_io, viz, simulate_retina):
     )
 
 
-def create_stimulus(config, data_io, get_xy_from_npz=None):
+def create_stimulus(config, data_io=None, get_xy_from_npz=None):
     from macaqueretina.stimuli.visual_stimulus_module import VisualStimulus
 
     if data_io is None:
@@ -251,7 +251,7 @@ def create_stimulus(config, data_io, get_xy_from_npz=None):
     return VisualStimulus(config, data_io, get_xy_from_npz)
 
 
-def create_simulate_retina(config, data_io, project_data, retina_math, stimulate):
+def create_simulate_retina(config, data_io=None, project_data=None, retina_math=None, stimulate=None):
     from macaqueretina.retina.simulate_retina_module import SimulateRetina
 
     if data_io is None:
@@ -316,11 +316,12 @@ def load_parameters() -> Configuration:
     return config
 
 
-def build_retina(config, construct_retina=None):
-    if construct_retina is None:
-        builder = _construct_retina(config)
-        return builder.build_retina_client()
-    return construct_retina.build_retina_client
+def construct_retina(config, construct_retina_instance=None):
+    # TODO: internal config, not passed
+    if construct_retina_instance is None:
+        construct_retina_instance = _construct_retina(config)
+        return construct_retina_instance.build_retina_client()
+    return construct_retina_instance.build_retina_client
 
 
 def viz(config, data_io=None, project_data=None, analysis=None, retina_math=None):
@@ -336,6 +337,8 @@ def viz(config, data_io=None, project_data=None, analysis=None, retina_math=None
         analysis = create_analysis(config, data_io, retina_math)
 
     return Viz(config, data_io, project_data, analysis)
+
+def simulate_retina(config):
 
 
 class ProjectData:

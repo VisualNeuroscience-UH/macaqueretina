@@ -1,14 +1,20 @@
 from macaqueretina.project.project_manager_module import create_viz
 
-
-# TODO: module-level cache of the Viz instance, compare the config hash, re-instance only when hash is different
+_cached_viz_instance = None
 
 
 def __getattr__(name):
-    from macaqueretina import config
+    global _cached_viz_instance
+    
+    from macaqueretina import config as current_config
+    
+    current_hash = current_config.hash()
 
-    inst = create_viz(config)
-    return getattr(inst, name)
+    if _cached_viz_instance is None or _cached_viz_instance[0] != current_hash:
+        viz_instance = create_viz(current_config)
+        _cached_viz_instance = (current_hash, viz_instance)
+    
+    return getattr(_cached_viz_instance[1], name)
 
 
 def __dir__():
