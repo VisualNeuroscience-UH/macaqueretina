@@ -1,6 +1,6 @@
 model_root_path: /opt3/projects
 project: macaqueretina
-experiment: valid_cs4sf_260203
+experiment: valid_cs4tf_260204
 input_subfolder: ../in  # input VAE models, images, videos, other data
 output_subfolder: null # spikes, retinas, experiment metadata. null for experiments creating the folders
 stimulus_subfolder: null #/opt3/movies/Videos/stims 
