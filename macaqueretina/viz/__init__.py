@@ -18,6 +18,14 @@ def __getattr__(name):
 
 
 def __dir__():
-    from macaqueretina import config
+    global _cached_viz_instance
 
-    return dir(create_viz(config))
+    from macaqueretina import config as current_config
+    breakpoint()
+    current_hash = current_config.hash()
+
+    if _cached_viz_instance is None or _cached_viz_instance[0] != current_hash:
+        viz_instance = create_viz(current_config)
+        _cached_viz_instance = (current_hash, viz_instance)
+    
+    return dir(_cached_viz_instance[1])
