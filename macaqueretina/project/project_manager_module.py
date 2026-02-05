@@ -339,7 +339,7 @@ def viz(config, data_io=None, project_data=None, analysis=None, retina_math=None
     return Viz(config, data_io, project_data, analysis)
 
 def simulate_retina(config):
-
+    pass
 
 class ProjectData:
     # TODO: this might need thread safety for cluster runs
