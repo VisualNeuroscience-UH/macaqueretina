@@ -6,8 +6,10 @@ import zlib
 
 # from functools import lru_cache
 from pathlib import Path
+from typing import Any
 
 # Third-party
+import brian2.units as b2u
 import cv2
 import h5py
 import numpy as np
@@ -272,6 +274,95 @@ class DataIO:
             return data, data_fullpath_filename
         else:
             return data
+
+    def _save_hdf5(self, filename: str | Path, data: Any) -> None:
+        if isinstance(data, np.ndarray):
+            with h5py.File(filename, "w") as hdf5_file_handle:
+                hdf5_file_handle.create_dataset(
+                    "array",
+                    data=data,
+                    compression="gzip",
+                    compression_opts=6,
+                )
+        elif isinstance(data, dict):
+            with h5py.File(filename, "w") as h5file:
+                self._recursively_save_dict_contents_to_group(h5file, "/", data)
+        else:
+            raise TypeError(f"Cannot save data of type {type(data)} to HDF5.")
+
+    def save_data(
+        self,
+        filename: str | Path,
+        data: Any,
+        path: str | Path | None = None,
+    ) -> None:
+        """
+        Saves data to a file to output path, handling various file types by filename extension.
+
+        Parameters
+        ----------
+        filename : str | Path
+            The name of the file to save the data. You need to include the file extension
+            of the filename because it determines the file type for saving.
+        data : Any
+            The data to save. Depending on the file type, the structure of 'data' should
+            be appropriate (e.g., a DataFrame for CSV).
+        path : str | Path | None, default None
+            The path to save the file instead of the output folder.
+            It can be a directory, a direct file path, or None.
+
+        Raises
+        ------
+        ValueError
+            If the provided path is neither a directory nor a valid file path or if the
+            data structure is not suitable for the intended file type.
+        TypeError
+            If the file extension of the filename is not recognized or supported for saving.
+
+        Notes
+        -----
+        Supports saving into various formats including pickle files (.pkl), compressed
+        pickle files (.gz), MATLAB files (.mat), CSV files (.csv), NumPy files (.npy, .npz),
+        and HDF5 files (.h5, .hdf5). The method decides on the specific saving operation based
+        on the file extension of the filename provided. Ensure that the data is in a compatible
+        format for the chosen file type.
+        """
+
+        if path is not None:
+            path = Path(path)
+            if path.is_file():
+                filename = path
+            if path.is_dir():
+                filename = path / filename
+            else:
+                raise ValueError(f"Provided path {path} is not a directory.")
+
+        filename_extension = Path(filename).suffix
+
+        match filename_extension:
+            case ".pkl":
+                with open(filename, "wb") as data_pickle:
+                    pickle.dump(data, data_pickle, pickle.HIGHEST_PROTOCOL)
+            case ".gz":
+                with open(filename, "wb") as fi:
+                    fi.write(zlib.compress(pickle.dumps(data)))
+            case _ if ".mat" in filename_extension:
+                sio.savemat(filename, data)
+            case _ if "csv" in filename_extension:
+                if isinstance(data, pd.DataFrame):
+                    data.to_csv(filename, index=False)
+                else:
+                    raise ValueError("Data must be a pandas DataFrame to save as CSV.")
+            case ".npy":
+                np.save(filename, data)
+            case ".npz":
+                np.savez(filename, **data)
+            case ".h5" | ".hdf5":
+                self._save_hdf5(filename, data)
+            case _:
+                raise TypeError("Unknown file type for saving data")
+
+        print(f"Saved file {filename}")
 
     def save_dict_to_hdf5(self, filename, dic):
         """
@@ -576,7 +667,7 @@ class DataIO:
                 if key not in ["_config", "_data_io", "_cones"]
             }
 
-            self.save_dict_to_hdf5(fullpath_filename_hdf5, stimulus_dict)
+            self.save_data(fullpath_filename_hdf5, stimulus_dict)
 
         if not fullpath_filename_mp4.is_file():
             self._write_frames_to_mp4_videofile(fullpath_filename_mp4, stimulus)
@@ -757,6 +848,8 @@ class DataIO:
         z_coord,
         filename=None,
         analog_signal=None,
+        cone_noise_hash=None,
+        video_hash=None,
         dt=None,
     ):
         print(" -  Saving spikes, rgc coordinates and analog signal (if not None)...")
@@ -773,6 +866,11 @@ class DataIO:
 
         if analog_signal is not None:
             data_to_save["analog_signal"] = analog_signal
+
+        if cone_noise_hash is not None:
+            data_to_save["cone_noise_hash"] = cone_noise_hash
+        if video_hash is not None:
+            data_to_save["video_hash"] = video_hash
 
         if dt is not None:
             data_to_save["dt"] = dt
@@ -893,6 +991,92 @@ class DataIO:
             overwrite=overwrite,
         )
 
+    def combine_LGN_input(self, filename=None):
+        """
+        Provide two files: one with on units, one with off units.
+        It combines them into a single file "filename".
+        """
+        on_data_paths = list(self.config.output_folder.glob("*on*response*.gz"))
+        off_data_paths = list(self.config.output_folder.glob("*off*response*.gz"))
+
+        if len(on_data_paths) != len(off_data_paths):
+            raise ValueError(
+                "The number of on and off data files do not match. Please check the output folder."
+            )
+
+        combined = {}
+        idx_counter = 0
+
+        for on_data_path, off_data_path in zip(on_data_paths, off_data_paths):
+            on_data = self.load_data(full_path=on_data_path)
+            off_data = self.load_data(full_path=off_data_path)
+            if on_data.keys() != off_data.keys():
+                raise ValueError("On and off data keys do not match.")
+            if on_data["video_hash"] != off_data["video_hash"]:
+                raise ValueError("On and off data video (hash) do not match.")
+            if on_data["cone_noise_hash"] != off_data["cone_noise_hash"]:
+                raise ValueError("On and off data cone_noise (hash) do not match.")
+            if "parasol" in on_data_path.name:
+                if "parasol" not in off_data_path.name:
+                    raise ValueError(
+                        "On and off data cell types do not match (parasol vs midget)."
+                    )
+                gc_type = "parasol"
+            if "midget" in on_data_path.name:
+                if "midget" not in off_data_path.name:
+                    raise ValueError(
+                        "On and off data cell types do not match (parasol vs midget)."
+                    )
+                gc_type = "midget"
+            # There may be multiple sweeps, eg 'spikes_0', 'spikes_1', 'spikes_2'
+            # Make a loop combining all sweeps separately.
+            for this_sweep in [k for k in on_data.keys() if k.startswith("spikes_")]:
+                on_spike_idx = on_data.get(this_sweep)[0]
+                on_spike_t = on_data.get(this_sweep)[1]
+                off_spike_idx = off_data.get(this_sweep)[0]
+                off_spike_t = off_data.get(this_sweep)[1]
+                # Reindex off spikes onto on spikes
+                off_spike_idx += on_data.get("n_units")
+
+                unitless_on_spike_t = on_spike_t / b2u.msecond
+                unitless_off_spike_t = off_spike_t / b2u.msecond
+
+                all_idx = np.concatenate([on_spike_idx, off_spike_idx])
+                all_t = np.concatenate([unitless_on_spike_t, unitless_off_spike_t])
+                all_t = all_t * b2u.msecond
+
+                on_off = list((all_idx, all_t))
+
+                combined[this_sweep] = on_off
+
+            combined["n_units"] = on_data.get("n_units") + off_data.get("n_units")
+            combined["dt"] = off_data.get("dt")
+            combined["w_coord"] = np.concatenate(
+                [on_data.get("w_coord"), off_data.get("w_coord")]
+            )
+            combined["z_coord"] = np.concatenate(
+                [on_data.get("z_coord"), off_data.get("z_coord")]
+            )
+            n_on_units = on_data.get("n_units")
+            combined[f"{gc_type}_on_unit_idx"] = range(
+                idx_counter, idx_counter + n_on_units
+            )
+            idx_counter += n_on_units
+            n_off_units = off_data.get("n_units")
+            combined[f"{gc_type}_off_unit_idx"] = range(
+                idx_counter, idx_counter + n_off_units
+            )
+            idx_counter += n_off_units
+
+        combined["video_hash"] = on_data.get("video_hash")
+        combined["cone_noise_hash"] = on_data.get("cone_noise_hash")
+
+        if filename is None:
+            filename = on_data_path.name.replace("_on_", "_combined_")
+
+        filepath_full = self.config.output_folder.joinpath(filename)
+        self._write_to_file(filepath_full, combined)
+
     def save_retina_output(self, vs, gcs, filename, save_variables=None):
         vs.w_coord, vs.z_coord = self._get_w_z_coords(gcs)
 
@@ -905,6 +1089,12 @@ class DataIO:
                         vs.w_coord,
                         vs.z_coord,
                         filename=filename,
+                        cone_noise_hash=self.config.retina_parameters.get(
+                            "cone_noise_hash", None
+                        ),
+                        video_hash=self.config.visual_stimulus_parameters.get(
+                            "video_hash", None
+                        ),
                         dt=vs.simulation_dt,
                     )
 

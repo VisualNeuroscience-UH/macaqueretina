@@ -8,9 +8,9 @@ numpy_seed: null  # null for random or int for fixed seed
 device: cpu  # "cpu" or "cuda"
 
 run:
-  build_retina: False
-  make_stimulus: False
-  simulate_retina: False
+  build_retina: True
+  make_stimulus: true
+  simulate_retina: True
   visualize_DoG_img_grid: 
     show: False
     gc_list: [0, 1, 5, 10]
@@ -19,5 +19,5 @@ run:
   visualize_all_gc_responses: 
     show: False
   experiment:
-    run_experiment: True
+    run_experiment: False
     script_path: docs/examples/experiment_hpc.py

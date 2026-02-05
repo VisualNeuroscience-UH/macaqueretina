@@ -33,6 +33,7 @@ PM: _ProjectManager = _ProjectManager(yaml_path=yaml_tmpdir)
 # This connects the top-level macaqueretina namespace to the various modules. Look here if you are lost.
 config: "Configuration" = PM.config
 analysis: Analysis = PM.ana
+combine_LGN_input = PM.data_io.combine_LGN_input
 construct_retina: Callable = PM.construct_retina.build_retina_client
 countlines = PM.countlines
 DataSampler = PM.data_sampler

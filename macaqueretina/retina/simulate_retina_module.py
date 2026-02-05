@@ -2196,6 +2196,8 @@ class ConcreteSimulationBuilder(SimulationBuildInterface):
         q_batch = q_matrix_tensor[0:batch_size]
 
         # Perform slicing and arithmetic operations on the first batch
+        # print(f"video_copy.shape: {video_copy.shape}")
+        # breakpoint()
         stimulus_cropped_batch = video_copy_tensor[
             0, r_batch, q_batch, time_points_indices_tensor
         ]
@@ -3608,7 +3610,6 @@ class VisualSignal(PrintableMixin):
             self.stimulus_video = self.load_stimulus_from_videofile(
                 self.video_file_name
             )
-
         self.options_from_videofile = self.stimulus_video.options
         self.stimulus_width_pix = self.options_from_videofile["image_width"]
         self.stimulus_height_pix = self.options_from_videofile["image_height"]

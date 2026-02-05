@@ -92,6 +92,7 @@ class VideoBaseClass:
 
         # Run parameter, but necessary to log to experiiment metadata
         options["n_sweeps"] = 1
+        options["video_hash"] = "video_hash"
 
         self.options = options
 
@@ -939,7 +940,9 @@ class VisualStimulus(VideoBaseClass):
                 video_file_full,
             )
             stimulus_video = self.data_io.load_stimulus_from_videofile(video_file_full)
+            # The following two are references to self.config.visual_stimulus_parameters
             visual_stimulus_parameters.stimulus_video_name = video_file_name
+            visual_stimulus_parameters.video_hash = video_hash
             return stimulus_video  # This does not return to simulation. Simulation reloads stimulus from file.
         else:
             print(
@@ -947,6 +950,7 @@ class VisualStimulus(VideoBaseClass):
             )
             visual_stimulus_parameters.stimulus_video_name = video_file_name
 
+        visual_stimulus_parameters["video_hash"] = video_hash
         for this_option in visual_stimulus_parameters:
             print(this_option, ":", visual_stimulus_parameters[this_option])
             if this_option not in self.options.keys():
@@ -1015,6 +1019,8 @@ class VisualStimulus(VideoBaseClass):
         self.video_height = self.frames.shape[1]
         self.video_width_deg = self.video_width / self.pix_per_deg
         self.video_height_deg = self.video_height / self.pix_per_deg
+
+        self.video_hash = self.options["video_hash"]
 
         stimulus_video = self
         self.data_io.save_stimulus_to_videofile(video_file_name, stimulus_video)
