@@ -360,36 +360,6 @@ class ProjectData:
 
 def main():
     pass
-    # start_time = time.time()
-    # config = load_parameters()
-
-    # if config.profile is True:
-    #     import cProfile
-    #     import pstats
-
-    #     profiler = cProfile.Profile()
-    #     profiler.enable()
-    #     end_time = time.time()
-
-    # PM = ProjectManager(config)
-
-    # run_core_parameter_pipeline(PM, config)
-
-    # end_time = time.time()
-    # print(
-    #     "Total time taken: ",
-    #     time.strftime(
-    #         "%H hours %M minutes %S seconds", time.gmtime(end_time - start_time)
-    #     ),
-    # )
-
-    # plt.show()
-
-    # if config.profile is True:
-    #     profiler.disable()
-    #     stats = pstats.Stats(profiler).sort_stats("tottime")
-    #     stats.print_stats(20)
-
 
 if __name__ == "__main__":
     """Run the core_parameters.yaml run pipeline items."""
