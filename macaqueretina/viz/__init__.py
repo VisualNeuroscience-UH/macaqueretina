@@ -21,7 +21,7 @@ def __dir__():
     global _cached_viz_instance
 
     from macaqueretina import config as current_config
-    breakpoint()
+    
     current_hash = current_config.hash()
 
     if _cached_viz_instance is None or _cached_viz_instance[0] != current_hash:
