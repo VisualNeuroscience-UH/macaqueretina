@@ -17,7 +17,7 @@ def load_parameters():
     """Load parameters and store in module namespace."""
     global config
     config = _load_parameters()
-    return config
+    print("Parameters loaded successfully.")
 
 
 __all__ = ["load_parameters", "construct_retina", "config"]
