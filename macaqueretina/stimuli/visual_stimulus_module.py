@@ -783,6 +783,7 @@ class VisualStimulus(VideoBaseClass):
         """
 
         # Set input arguments to video-object, updates the defaults from VideoBaseClass
+        # TODO: maybe remove? No need to pass parameters this way when importing
         if options is not None:
             self.config.visual_stimulus_parameters = options
 

@@ -246,8 +246,8 @@ def create_stimulus(config, data_io=None, get_xy_from_npz=None):
         data_io = create_data_io(config)
 
     if get_xy_from_npz is None:
-        return _create_get_xy_from_npz
-
+        get_xy_from_npz = _create_get_xy_from_npz()
+    
     return VisualStimulus(config, data_io, get_xy_from_npz)
 
 

@@ -9,6 +9,7 @@ from .project.project_manager_module import (
     load_parameters as _load_parameters,
 )
 from . import viz
+from .stimuli import make_stimulus
 
 config = None
 
@@ -20,7 +21,7 @@ def load_parameters():
     print("Parameters loaded successfully.")
 
 
-__all__ = ["load_parameters", "construct_retina", "config"]
+__all__ = ["load_parameters", "construct_retina", "config", "make_stimulus"]
 
 
 def get_version():
