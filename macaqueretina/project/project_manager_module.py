@@ -147,7 +147,7 @@ def retina_vae(config):
     return RetinaVAE(config)
 
 
-def _construct_retina(
+def _construct_retina_instance(
     config: Configuration,
     data_io: DataIO | None = None,
     viz: Viz | None = None,
@@ -314,14 +314,6 @@ def load_parameters() -> Configuration:
     np.random.seed(config.numpy_seed)
 
     return config
-
-
-def construct_retina(config, construct_retina_instance=None):
-    # TODO: internal config, not passed
-    if construct_retina_instance is None:
-        construct_retina_instance = _construct_retina(config)
-        return construct_retina_instance.build_retina_client()
-    return construct_retina_instance.build_retina_client
 
 
 def viz(config, data_io=None, project_data=None, analysis=None, retina_math=None):
