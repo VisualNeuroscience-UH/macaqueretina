@@ -408,7 +408,7 @@ class RetinaParametersExtend(BaseConfigModel):
 
     bipolar2gc_dict: Bipolar2gcDict
 
-    class DdRegrModelOptions(BaseConfigModel):
+    class DdRegrModel(BaseConfigModel):
         parasol: Literal["linear", "quadratic", "cubic", "powerlaw"] = Field(
             default="powerlaw",
             description="Dendritic diameter regression model for parasol",
@@ -418,7 +418,7 @@ class RetinaParametersExtend(BaseConfigModel):
             description="Dendritic diameter regression model for midget",
         )
 
-    dd_regr_model_options: DdRegrModelOptions
+    dd_regr_model: DdRegrModel
 
 
 class DendrDiamUnits(BaseConfigModel):
@@ -682,10 +682,6 @@ class ConfigParams(BaseConfigModel):
             self.visual_stimulus_parameters.stimulus_video_name = (
                 f"{self.stimulus_folder}.hdf5"
             )
-        self.retina_parameters_extend.dd_regr_model = getattr(
-            self.retina_parameters_extend.dd_regr_model_options,
-            self.retina_parameters.gc_type,
-        )
         self.retina_parameters_extend.receptive_field_repulsion_parameters.n_iterations = getattr(
             self.retina_parameters_extend.n_repulsion_iterations,
             self.retina_parameters.gc_type,

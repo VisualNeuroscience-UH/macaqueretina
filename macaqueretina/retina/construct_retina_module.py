@@ -79,7 +79,7 @@ class Retina(PrintableMixin):
         Parameters for natural stimulus filtering and cone-to-GC connections.
     bipolar_general_parameters : dict
         General parameters for bipolar cells.
-    dd_regr_model : Any
+    dd_regr_model : str
         Regression model for dendritic diameter as a function of eccentricity.
     deg_per_mm : float
         Conversion factor: degrees of visual field per millimeter of retina.
@@ -140,7 +140,7 @@ class Retina(PrintableMixin):
             "bipolar_general_parameters"
         ]
 
-        self.dd_regr_model: Any = retina_parameters["dd_regr_model"]
+        self.dd_regr_model: str = retina_parameters["dd_regr_model"][self.gc_type]
         self.deg_per_mm: float = retina_parameters["deg_per_mm"]
         self.bipolar2gc_dict: dict = retina_parameters["bipolar2gc_dict"]
         self.receptive_field_repulsion_parameters: dict = retina_parameters[

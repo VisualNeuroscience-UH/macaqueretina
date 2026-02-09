@@ -6,7 +6,7 @@ def build_retina(return_objects_do_not_save=False):
     """Wrapper for ConstructRetina.build_retina_client()."""
     global _cached_construct_retina
     from macaqueretina import config as current_config
-
+    
     if current_config is None:
         print("Configuration not found. Run mr.load_parameters() before accessing mr.build_retina().")
         return []

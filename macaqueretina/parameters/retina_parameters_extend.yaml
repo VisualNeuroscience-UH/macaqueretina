@@ -171,7 +171,7 @@ retina_parameters_extend:
 
   # Options linear, quadratic, cubic, powerlaw.
   # For midget < 20 deg, use quadratic; for parasol use powerlaw
-  dd_regr_model_options:
+  dd_regr_model:
     parasol: "powerlaw"
     midget: "quadratic"
 
