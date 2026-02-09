@@ -251,7 +251,7 @@ def create_stimulus(config, data_io=None, get_xy_from_npz=None):
     return VisualStimulus(config, data_io, get_xy_from_npz)
 
 
-def create_simulate_retina(config, data_io=None, project_data=None, retina_math=None, stimulate=None):
+def _simulate_retina_instance(config, data_io=None, project_data=None, retina_math=None, stimulate=None):
     from macaqueretina.retina.simulate_retina_module import SimulateRetina
 
     if data_io is None:
@@ -280,7 +280,7 @@ def experiment(config, data_io, stimulate, simulate_retina):
     if stimulate is None:
         stimulate = create_stimulus(config, data_io)
     if simulate_retina is None:
-        simulate_retina = create_simulate_retina(config, data_io, None, None, stimulate)
+        simulate_retina = _simulate_retina_instance(config, data_io, None, None, stimulate)
     return Experiment(config, data_io, stimulate, simulate_retina)
 
 

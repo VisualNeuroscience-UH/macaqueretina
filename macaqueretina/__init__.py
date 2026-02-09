@@ -7,7 +7,7 @@ macaqueretina namespace to the various sub-modules.
 from .project.project_manager_module import load_parameters as _load_parameters
 from . import viz
 from .stimuli import make_stimulus
-from .retina import build_retina, save_retina
+from .retina import build_retina, save_retina, simulate_retina
 
 config = None
 
@@ -19,7 +19,7 @@ def load_parameters():
     print("Parameters loaded successfully.")
 
 
-__all__ = ["load_parameters", "construct_retina", "config", "make_stimulus", "build_retina", "save_retina"]
+__all__ = ["load_parameters", "construct_retina", "config", "make_stimulus", "build_retina", "save_retina", "simulate_retina"]
 
 
 def get_version():
