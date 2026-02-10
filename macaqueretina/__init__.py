@@ -19,7 +19,15 @@ def load_parameters():
     print("Parameters loaded successfully.")
 
 
-__all__ = ["load_parameters", "construct_retina", "config", "make_stimulus", "build_retina", "save_retina", "simulate_retina"]
+__all__ = [
+    "load_parameters",
+    "construct_retina",
+    "config",
+    "make_stimulus",
+    "build_retina",
+    "save_retina",
+    "simulate_retina",
+]
 
 
 def get_version():

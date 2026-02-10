@@ -247,11 +247,13 @@ def create_stimulus(config, data_io=None, get_xy_from_npz=None):
 
     if get_xy_from_npz is None:
         get_xy_from_npz = _create_get_xy_from_npz()
-    
+
     return VisualStimulus(config, data_io, get_xy_from_npz)
 
 
-def _simulate_retina_instance(config, data_io=None, project_data=None, retina_math=None, stimulate=None):
+def _simulate_retina_instance(
+    config, data_io=None, project_data=None, retina_math=None, stimulate=None
+):
     from macaqueretina.retina.simulate_retina_module import SimulateRetina
 
     if data_io is None:
@@ -280,7 +282,9 @@ def experiment(config, data_io, stimulate, simulate_retina):
     if stimulate is None:
         stimulate = create_stimulus(config, data_io)
     if simulate_retina is None:
-        simulate_retina = _simulate_retina_instance(config, data_io, None, None, stimulate)
+        simulate_retina = _simulate_retina_instance(
+            config, data_io, None, None, stimulate
+        )
     return Experiment(config, data_io, stimulate, simulate_retina)
 
 
@@ -330,8 +334,10 @@ def viz(config, data_io=None, project_data=None, analysis=None, retina_math=None
 
     return Viz(config, data_io, project_data, analysis)
 
+
 def simulate_retina(config):
     pass
+
 
 class ProjectData:
     # TODO: this might need thread safety for cluster runs
@@ -352,6 +358,7 @@ class ProjectData:
 
 def main():
     pass
+
 
 if __name__ == "__main__":
     """Run the core_parameters.yaml run pipeline items."""
