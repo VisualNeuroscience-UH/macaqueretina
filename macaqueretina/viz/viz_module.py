@@ -3421,7 +3421,7 @@ class Viz:
         # Parameters: Rmax: float, c50: float, baseline: float
         Rmax = data_df["firing_rate"].values.max()
         p0 = (Rmax, 0.5, 0.0)
-        bounds = ((0, 0, 0), (Rmax * 2, 100, Rmax))
+        bounds = ((0, 0, 0), (np.inf, 100, Rmax))
 
         fit_function = self.naka_rushton
 
