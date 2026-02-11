@@ -1003,9 +1003,18 @@ class DataIO:
             raise ValueError(
                 "The number of on and off data files do not match. Please check the output folder."
             )
+        if len(on_data_paths) + len(off_data_paths) > 4:
+            raise ValueError(
+                "There are more than 2 on and 2 off data files. Please check the output folder."
+            )
 
-        combined = {}
-        idx_counter = 0
+        combined = {"w_coord": np.array([]), "z_coord": np.array([])}
+        unit_idx_counter = 0
+        on_data = self.load_data(full_path=on_data_paths[0])
+        n_sweeps = len([k for k in on_data.keys() if k.startswith("spikes_")])
+        on_off = {
+            f"spikes_{i}": np.empty((0, 2), dtype=np.float32) for i in range(n_sweeps)
+        }
 
         for on_data_path, off_data_path in zip(on_data_paths, off_data_paths):
             on_data = self.load_data(full_path=on_data_path)
@@ -1017,12 +1026,14 @@ class DataIO:
             if on_data["cone_noise_hash"] != off_data["cone_noise_hash"]:
                 raise ValueError("On and off data cone_noise (hash) do not match.")
             if "parasol" in on_data_path.name:
+                print("Parasol data found, combining parasol on and off data...")
                 if "parasol" not in off_data_path.name:
                     raise ValueError(
                         "On and off data cell types do not match (parasol vs midget)."
                     )
                 gc_type = "parasol"
             if "midget" in on_data_path.name:
+                print("Midget data found, combining midget on and off data...")
                 if "midget" not in off_data_path.name:
                     raise ValueError(
                         "On and off data cell types do not match (parasol vs midget)."
@@ -1031,43 +1042,58 @@ class DataIO:
             # There may be multiple sweeps, eg 'spikes_0', 'spikes_1', 'spikes_2'
             # Make a loop combining all sweeps separately.
             for this_sweep in [k for k in on_data.keys() if k.startswith("spikes_")]:
-                on_spike_idx = on_data.get(this_sweep)[0]
+                on_spike_idx = unit_idx_counter + on_data.get(this_sweep)[0]
                 on_spike_t = on_data.get(this_sweep)[1]
                 off_spike_idx = off_data.get(this_sweep)[0]
                 off_spike_t = off_data.get(this_sweep)[1]
-                # Reindex off spikes onto on spikes
-                off_spike_idx += on_data.get("n_units")
+
+                # Reindex off spikes on top of on spikes
+                off_spike_idx += unit_idx_counter + on_data.get("n_units")
 
                 unitless_on_spike_t = on_spike_t / b2u.msecond
                 unitless_off_spike_t = off_spike_t / b2u.msecond
 
-                all_idx = np.concatenate([on_spike_idx, off_spike_idx])
-                all_t = np.concatenate([unitless_on_spike_t, unitless_off_spike_t])
-                all_t = all_t * b2u.msecond
+                on_off[this_sweep] = np.vstack(
+                    [
+                        on_off[this_sweep],
+                        np.array([on_spike_idx, unitless_on_spike_t]).T,
+                    ]
+                )
+                on_off[this_sweep] = np.vstack(
+                    [
+                        on_off[this_sweep],
+                        np.array([off_spike_idx, unitless_off_spike_t]).T,
+                    ]
+                )
 
-                on_off = list((all_idx, all_t))
-
-                combined[this_sweep] = on_off
-
-            combined["n_units"] = on_data.get("n_units") + off_data.get("n_units")
-            combined["dt"] = off_data.get("dt")
             combined["w_coord"] = np.concatenate(
-                [on_data.get("w_coord"), off_data.get("w_coord")]
+                [combined["w_coord"], on_data.get("w_coord"), off_data.get("w_coord")]
             )
             combined["z_coord"] = np.concatenate(
-                [on_data.get("z_coord"), off_data.get("z_coord")]
+                [combined["z_coord"], on_data.get("z_coord"), off_data.get("z_coord")]
             )
             n_on_units = on_data.get("n_units")
             combined[f"{gc_type}_on_unit_idx"] = range(
-                idx_counter, idx_counter + n_on_units
+                unit_idx_counter, unit_idx_counter + n_on_units
             )
-            idx_counter += n_on_units
+            unit_idx_counter += n_on_units
             n_off_units = off_data.get("n_units")
             combined[f"{gc_type}_off_unit_idx"] = range(
-                idx_counter, idx_counter + n_off_units
+                unit_idx_counter, unit_idx_counter + n_off_units
             )
-            idx_counter += n_off_units
+            # Reindex midget spikes on top of parasol spikes for the next round
+            # if both are included in the same simulation
+            unit_idx_counter += n_off_units
 
+        for this_sweep in [k for k in on_data.keys() if k.startswith("spikes_")]:
+            combined[this_sweep] = (
+                list(on_off[this_sweep][:, 0].astype(np.int32)),
+                list(on_off[this_sweep][:, 1].astype(np.float32) * b2u.msecond),
+            )
+
+        print(f"Total number of units combined: {unit_idx_counter}")
+        combined["dt"] = off_data.get("dt")
+        combined["n_units"] = unit_idx_counter
         combined["video_hash"] = on_data.get("video_hash")
         combined["cone_noise_hash"] = on_data.get("cone_noise_hash")
 
