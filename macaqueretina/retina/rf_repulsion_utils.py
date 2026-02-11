@@ -315,26 +315,19 @@ def _update_retina(
         idx = np.where(rfs[i, ...] == np.max(rfs[i], axis=(0, 1)))
         pos = np.stack((Xt[i, idx[1], idx[0]], Yt[i, idx[1], idx[0]]), axis=1)
         inside_boundary = boundary_polygon_path.contains_points(pos)
-        try:
-            if inside_boundary:
-                retina[Yt[i], Xt[i]] += rfs[i]
-            else:
-                inside = np.where(retina_boundary_effect == 0)
-                choice = np.random.choice(len(inside[0]))
-                y_start = int(inside[0][choice] - idx[0].item())
-                x_start = int(inside[1][choice] - idx[1].item())
-                y_end = y_start + H
-                x_end = x_start + W
-                retina[y_start:y_end, x_start:x_end] += rfs[i]
-                Yt[i, ...] = np.arange(y_start, y_end)[:, None]
-                Xt[i, ...] = np.arange(x_start, x_end)
-                Mrb_pre[i, :2, 2] = [x_start, y_start]
-        except:
-            print(f"idx: {idx}")
-            print(f"idx.shape: {idx.shape}")
-            print(f"pos: {pos}")
-            print(f"inside_boundary: {inside_boundary}")
-            breakpoint()
+        if inside_boundary and len(idx[0]) == 1:
+            retina[Yt[i], Xt[i]] += rfs[i]
+        else:
+            inside = np.where(retina_boundary_effect == 0)
+            choice = np.random.choice(len(inside[0]))
+            y_start = int(inside[0][choice] - idx[0].item())
+            x_start = int(inside[1][choice] - idx[1].item())
+            y_end = y_start + H
+            x_end = x_start + W
+            retina[y_start:y_end, x_start:x_end] += rfs[i]
+            Yt[i, ...] = np.arange(y_start, y_end)[:, None]
+            Xt[i, ...] = np.arange(x_start, x_end)
+            Mrb_pre[i, :2, 2] = [x_start, y_start]
 
     retina += retina_boundary_effect
     return retina
