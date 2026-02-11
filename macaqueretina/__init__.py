@@ -9,8 +9,7 @@ import os
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable
 
-# Third-party
-import tomli
+import tomllib
 
 # Local
 from .analysis.analysis_module import Analysis
@@ -69,7 +68,7 @@ del _ProjectManager
 def get_version():
     pyproject_path = os.path.join(os.path.dirname(__file__), "..", "pyproject.toml")
     with open(pyproject_path, "rb") as f:
-        data = tomli.load(f)
+        data = tomllib.load(f)
         return data["tool"]["poetry"]["version"]
 
 
