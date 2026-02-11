@@ -4036,6 +4036,8 @@ class SimulateRetina(RetinaMath):
         ----------
         stimulus : np.ndarray or None, optional
             Input stimulus array. If None, loads from file.
+        filename : str or None, optional
+            Output filename for spiking gc responses. If None, generates based on config.
         impulse : bool, optional
             If True, runs impulse response simulation.
         unity : bool, optional
