@@ -1,6 +1,6 @@
 model_root_path: /opt3/projects
 project: macaqueretina
-experiment: retina_input_development
+experiment: white_noise
 input_subfolder: in  # input VAE models, images, videos, other data
 output_subfolder: out # spikes, retinas, experiment metadata. null for experiments creating the folders
 stimulus_subfolder: stimuli # /opt3/images/c1_200 #/opt3/movies/Videos/stims 

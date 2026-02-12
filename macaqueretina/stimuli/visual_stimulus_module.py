@@ -560,6 +560,22 @@ class StimulusPattern:
 
         self._raw_intensity_from_data()
 
+    def white_uniform_noise(self):
+        """
+        Generate a white uniform noise stimulus pattern.
+
+        This method fills the frames with white Gaussian noise, using a normal
+        distribution centered at 0.0 with a standard deviation of 1.0. The shape
+        of the noise array matches the shape of the existing frames.
+
+        After generating the noise, it updates the raw intensity values based on
+        the data in the frames.
+        """
+
+        self.frames = np.random.uniform(loc=0.0, scale=1.0, size=self.frames.shape)
+
+        self._raw_intensity_from_data()
+
     def temporal_sine_pattern(self):
         """
         Create a temporal sine wave pattern.
