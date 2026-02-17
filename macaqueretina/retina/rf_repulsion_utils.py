@@ -60,7 +60,8 @@ def apply_rf_repulsion(ret: Any, gc: Any, viz: Any) -> Tuple[Any, Any]:
     )
 
     # Main optimization loop
-    for iteration in range(params["n_iterations"]):
+    n_iterations = params["n_repulsion_iterations"][params.gc_type]
+    for iteration in range(n_iterations):
         # Update RF coordinates
         Xt, Yt = _update_rf_coordinates(new_coords, n_units, H, W)
 
@@ -191,6 +192,7 @@ def _initialize_parameters(
     """Extracts parameters and initializes variables."""
     img_ret_shape = ret.whole_ret_img.shape
     params = ret.receptive_field_repulsion_parameters
+    params["gc_type"] = ret.gc_type
 
     n_units, H, W = gc.img.shape
     assert H == W, "RF must be square, aborting..."

@@ -376,11 +376,9 @@ class RetinaParametersExtend(BaseConfigModel):
 
     bipolar_placement_parameters: BipolarPlacementParameters
 
-    class NRepulsionIterations(BaseConfigModel):
-        parasol: int
-        midget: int
 
-    n_repulsion_iterations: NRepulsionIterations
+
+    
 
     class ReceptiveFieldRepulsionParameters(BaseConfigModel):
         change_rate: float = 0.005
@@ -390,6 +388,12 @@ class RetinaParametersExtend(BaseConfigModel):
         show_only_unit: int | None = None
         show_skip_steps: int = 5
         savefigname: str | None
+
+        class NRepulsionIterations(BaseConfigModel):
+            parasol: int
+            midget: int
+
+        n_repulsion_iterations: NRepulsionIterations
 
     receptive_field_repulsion_parameters: ReceptiveFieldRepulsionParameters
 
@@ -682,10 +686,6 @@ class ConfigParams(BaseConfigModel):
             self.visual_stimulus_parameters.stimulus_video_name = (
                 f"{self.stimulus_folder}.hdf5"
             )
-        self.retina_parameters_extend.receptive_field_repulsion_parameters.n_iterations = getattr(
-            self.retina_parameters_extend.n_repulsion_iterations,
-            self.retina_parameters.gc_type,
-        )
 
         # Set signal gain from a separate yaml file
         self.retina_parameters.signal_gain = getattr(
