@@ -45,7 +45,7 @@ gain_calibration:
   # midget gc units, and ~5Hz for the OFF parasol and midget units. (Raunak Sinha,
   # personal communication). There are slight variations in final noise rates 
   # due to rectification and spike generation.
-  noise_fr_mean_table:
+  noise_fr_mean:
     "on": 
       parasol: 25
       midget: 25

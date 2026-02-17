@@ -2520,6 +2520,7 @@ class ConeProduct(ReceptiveFieldsBase):
         ND_filter: float,
         interpolate_data: callable,
         lin_interp_and_double_lorenzian: callable,
+        gain_calibration_table: dict[str, Any],
         target_gc_for_multiple_trials: Optional[int] = None,
     ) -> None:
         super().__init__(retina_parameters)
@@ -2528,6 +2529,7 @@ class ConeProduct(ReceptiveFieldsBase):
         self.ret_npz = ret_npz
         self.device = device
         self.ND_filter = ND_filter
+        self.current_noise_fr_mean = gain_calibration_table[self.retina_parameters.gc_type][self.retina_parameters.response_type][self.retina_parameters.spatial_model_type][self.retina_parameters.temporal_model_type]
         self.interpolate_data = interpolate_data
         self.lin_interp_and_double_lorenzian = lin_interp_and_double_lorenzian
 
@@ -3045,7 +3047,7 @@ class ConeProduct(ReceptiveFieldsBase):
                 noise_out = np.random.normal(loc=mu, scale=sigma, size=dims)
 
         vs.gc_synaptic_noise_raw = noise_out
-        vs.noise_fr_mean = self.retina_parameters["noise_fr_mean"]
+        vs.noise_fr_mean = self.current_noise_fr_mean
 
         return vs
 
@@ -3826,6 +3828,7 @@ class SimulateRetina(RetinaMath):
             # RetinaMath methods:
             self.interpolate_data,
             self.lin_interp_and_double_lorenzian,
+            self.config.gain_calibration.signal_gain_table.as_dict(),
             target_gc_for_multiple_trials,
         )
 

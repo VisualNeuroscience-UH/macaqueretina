@@ -207,7 +207,7 @@ class GainCalibration(BaseConfigModel):
 
     signal_gain_table: SignalGainTable
 
-    class NoiseGainTable(BaseConfigModel):
+    class NoiseFrMean(BaseConfigModel):
         class On(BaseConfigModel):
             parasol: float
             midget: float
@@ -220,7 +220,7 @@ class GainCalibration(BaseConfigModel):
 
         off: Off
 
-    noise_fr_mean_table: NoiseGainTable
+    noise_fr_mean: NoiseFrMean
 
 
 ## From retina_parameters_extend.yaml
@@ -699,13 +699,6 @@ class ConfigParams(BaseConfigModel):
             self.retina_parameters.spatial_model_type,
         ).get(self.retina_parameters.temporal_model_type)
 
-        self.retina_parameters.noise_fr_mean = getattr(
-            getattr(
-                self.gain_calibration.noise_fr_mean_table,
-                self.retina_parameters.response_type,
-            ),
-            self.retina_parameters.gc_type,
-        )
         if self.retina_parameters.gc_type == "parasol":
             self.dendr_diam1_datafile = self.dendr_diam1_datafile_parasol
             self.dendr_diam2_datafile = self.dendr_diam2_datafile_parasol
