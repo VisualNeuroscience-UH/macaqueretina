@@ -6,7 +6,9 @@ import matplotlib.pyplot as plt
 # Local
 import macaqueretina as mr
 
-mr.construct_retina()
+mr.load_parameters()
+
+mr.build_retina()
 
 ###############################
 ## Build and run experiment ###
