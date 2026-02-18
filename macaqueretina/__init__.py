@@ -6,6 +6,7 @@ macaqueretina namespace to the various sub-modules.
 # Local
 from .project.project_manager_module import load_parameters as _load_parameters
 from . import viz
+from . import analysis
 from .stimuli import make_stimulus
 from .retina import build_retina, save_retina, simulate_retina
 
