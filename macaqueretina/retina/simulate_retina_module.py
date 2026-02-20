@@ -1836,8 +1836,12 @@ class ConcreteSimulationBuilder(SimulationBuildInterface):
         # units in parallel (NG), trial iterations (repeated runs)
 
         if spike_generator_model == "refractory":
-            abs_refractory = refractory_parameters["abs_refractory"] * b2u.ms  # noqa: F841
-            rel_refractory = refractory_parameters["rel_refractory"] * b2u.ms  # noqa: F841
+            abs_refractory = (
+                refractory_parameters["abs_refractory"] * b2u.ms
+            )  # noqa: F841
+            rel_refractory = (
+                refractory_parameters["rel_refractory"] * b2u.ms
+            )  # noqa: F841
             p_exp = refractory_parameters["p_exp"]  # noqa: F841
             clip_start = refractory_parameters["clip_start"] * b2u.ms  # noqa: F841
             clip_end = refractory_parameters["clip_end"] * b2u.ms  # noqa: F841
@@ -2529,7 +2533,13 @@ class ConeProduct(ReceptiveFieldsBase):
         self.ret_npz = ret_npz
         self.device = device
         self.ND_filter = ND_filter
-        self.current_noise_fr_mean = gain_calibration_table[self.retina_parameters.gc_type][self.retina_parameters.response_type][self.retina_parameters.spatial_model_type][self.retina_parameters.temporal_model_type]
+        self.current_noise_fr_mean = gain_calibration_table[
+            self.retina_parameters.gc_type
+        ][self.retina_parameters.response_type][
+            self.retina_parameters.spatial_model_type
+        ][
+            self.retina_parameters.temporal_model_type
+        ]
         self.interpolate_data = interpolate_data
         self.lin_interp_and_double_lorenzian = lin_interp_and_double_lorenzian
 

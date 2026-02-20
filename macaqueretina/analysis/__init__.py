@@ -15,7 +15,10 @@ def __getattr__(name):
 
     current_hash = current_config.hash()
 
-    if _cached_analysis_instance is None or _cached_analysis_instance[0] != current_hash:
+    if (
+        _cached_analysis_instance is None
+        or _cached_analysis_instance[0] != current_hash
+    ):
         analysis_instance = create_analysis(current_config)
         _cached_analysis_instance = (current_hash, analysis_instance)
 
@@ -35,7 +38,10 @@ def __dir__():
 
     current_hash = current_config.hash()
 
-    if _cached_analysis_instance is None or _cached_analysis_instance[0] != current_hash:
+    if (
+        _cached_analysis_instance is None
+        or _cached_analysis_instance[0] != current_hash
+    ):
         analysis_instance = create_analysis(current_config)
         _cached_analysis_instance = (current_hash, analysis_instance)
 

@@ -909,7 +909,9 @@ class Viz:
         ax.legend()
 
         current_gc_type = self.config.retina_parameters["gc_type"]
-        current_dd_regr_model = self.config.retina_parameters["dd_regr_model"][current_gc_type]
+        current_dd_regr_model = self.config.retina_parameters["dd_regr_model"][
+            current_gc_type
+        ]
         if dd_model_caption:
             match current_dd_regr_model:
                 case "linear":

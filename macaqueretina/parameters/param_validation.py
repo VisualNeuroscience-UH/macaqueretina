@@ -376,10 +376,6 @@ class RetinaParametersExtend(BaseConfigModel):
 
     bipolar_placement_parameters: BipolarPlacementParameters
 
-
-
-    
-
     class ReceptiveFieldRepulsionParameters(BaseConfigModel):
         change_rate: float = 0.005
         cooling_rate: float = 0.999
