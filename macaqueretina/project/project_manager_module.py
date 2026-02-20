@@ -274,7 +274,7 @@ def _simulate_retina_instance(
     )
 
 
-def experiment(config, data_io, stimulate, simulate_retina):
+def create_experiment(config, data_io=None, stimulate=None, simulate_retina=None):
     from macaqueretina.stimuli.experiment_module import Experiment
 
     if data_io is None:
