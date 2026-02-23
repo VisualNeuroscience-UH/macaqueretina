@@ -4949,12 +4949,14 @@ class ConstructRetina(PrintableMixin):
         literature["gc_density_1_scaling_data_and_function"] = (
             self.config.literature_data_files["gc_density_1_scaling_data_and_function"]
         )
-        gc_ecc_2, gc_density_2 = self._get_density_from([files["gc_density_2_path"]])
+        gc_ecc_2, gc_density_2 = self._get_density_from(
+            [files["gc_density_2_datafile"]]
+        )
         literature["gc_eccentricity_2"] = gc_ecc_2
         literature["gc_density_2"] = gc_density_2
 
         gc_control_ecc, gc_control_density = self._get_density_from(
-            [files["gc_density_control_path"]]
+            [files["gc_density_control_datafile"]]
         )
         literature["gc_control_eccentricity"] = gc_control_ecc
         literature["gc_control_density"] = gc_control_density

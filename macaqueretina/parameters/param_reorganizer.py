@@ -41,8 +41,6 @@ class ParamReorganizer:
     def _create_literature_data_files(self) -> None:
         target = "literature_data_files"
         key_list = [
-            "gc_density_2_datafile",
-            "gc_density_control_datafile",
             "dendr_diam1_datafile",
             "dendr_diam2_datafile",
             "dendr_diam3_datafile",
@@ -57,7 +55,6 @@ class ParamReorganizer:
             "parasol_off_RI_values_datafile",
             "temporal_pattern_datafile",
             "dendr_diam_units",
-            "gc_density_1_scaling_data_and_function",
         ]
 
         for key in key_list:

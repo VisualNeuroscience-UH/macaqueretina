@@ -1,10 +1,8 @@
 literature_data_files:
   gc_density_1_datafile: "Wässle_1989_Nature_Fig2a_c.npz"
-
-gc_density_1_scaling_data_and_function: [[0, 0.75, 3],[3.34, 2, 1],"single_exponential_func",]
-
-gc_density_2_datafile: "Wässle_1989_Nature_Fig3_gcData_c.npz"
-gc_density_control_datafile: "Wässle_1989_Nature_Fig3_c.npz"
+  gc_density_2_datafile: "Wässle_1989_Nature_Fig3_gcData_c.npz"
+  gc_density_1_scaling_data_and_function: [[0, 0.75, 3],[3.34, 2, 1],"single_exponential_func",]
+  gc_density_control_datafile: "Wässle_1989_Nature_Fig3_c.npz"
 
 
 dendr_diam1_datafile_parasol: "Perry_1984_Neurosci_ParasolDendrDiam_Fig6A_c.npz"
