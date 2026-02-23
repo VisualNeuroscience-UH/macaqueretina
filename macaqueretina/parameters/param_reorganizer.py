@@ -41,7 +41,6 @@ class ParamReorganizer:
     def _create_literature_data_files(self) -> None:
         target = "literature_data_files"
         key_list = [
-            "gc_density_1_datafile",
             "gc_density_2_datafile",
             "gc_density_control_datafile",
             "dendr_diam1_datafile",
@@ -64,16 +63,14 @@ class ParamReorganizer:
         for key in key_list:
             self._move_and_remove_key(key, target)
 
-        keys_to_rename = [
-            key for key in self.config[target].keys() if key.endswith("_datafile")
-        ]
+        keys_to_rename = [key for key in key_list if key.endswith("_datafile")]
         for old_key in keys_to_rename:
             new_key = old_key.replace("_datafile", "_path")
             self.config[target][new_key] = self.config[target].pop(old_key)
 
         literature_folder = self.config.get("literature_data_folder")
         for key, value in self.config[target].items():
-            if key.endswith("_path"):
+            if key.endswith("_path") or key.endswith("_datafile"):
                 self.config[target][key] = f"{literature_folder}/{value}"
 
     def _move_and_remove_key(self, key: str, target: str) -> None:

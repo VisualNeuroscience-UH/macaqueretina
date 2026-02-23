@@ -4941,7 +4941,9 @@ class ConstructRetina(PrintableMixin):
         literature = {}
 
         # Get unit density data
-        gc_ecc_1, gc_density_1 = self._get_density_from([files["gc_density_1_path"]])
+        gc_ecc_1, gc_density_1 = self._get_density_from(
+            [files["gc_density_1_datafile"]]
+        )
         literature["gc_eccentricity_1"] = gc_ecc_1
         literature["gc_density_1"] = gc_density_1
         literature["gc_density_1_scaling_data_and_function"] = (

@@ -1,4 +1,5 @@
-gc_density_1_datafile: "Wässle_1989_Nature_Fig2a_c.npz"
+literature_data_files:
+  gc_density_1_datafile: "Wässle_1989_Nature_Fig2a_c.npz"
 
 gc_density_1_scaling_data_and_function: [[0, 0.75, 3],[3.34, 2, 1],"single_exponential_func",]
 

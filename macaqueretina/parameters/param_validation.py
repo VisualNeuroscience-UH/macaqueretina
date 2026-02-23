@@ -585,6 +585,10 @@ class ExperimentalMetadata(BaseInternalConfigModel):
     )
 
 
+class LiteratureDataFiles(BaseConfigModel):
+    gc_density_1_datafile: str
+
+
 ## Main validation class
 class ConfigParams(BaseConfigModel):
     """
@@ -621,7 +625,7 @@ class ConfigParams(BaseConfigModel):
     simulation_parameters: SimulationParameters
     gain_calibration: GainCalibration
 
-    gc_density_1_datafile: str
+    literature_data_files: LiteratureDataFiles
     gc_density_1_scaling_data_and_function: list
     gc_density_2_datafile: str
     gc_density_control_datafile: str
