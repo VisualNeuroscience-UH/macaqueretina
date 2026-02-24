@@ -147,7 +147,7 @@ def retina_vae(config):
     return RetinaVAE(config)
 
 
-def _construct_retina_instance(
+def construct_retina_instance(
     config: Configuration,
     data_io: DataIO | None = None,
     viz: Viz | None = None,
@@ -251,7 +251,7 @@ def create_stimulus(config, data_io=None, get_xy_from_npz=None):
     return VisualStimulus(config, data_io, get_xy_from_npz)
 
 
-def _simulate_retina_instance(
+def simulate_retina_instance(
     config, data_io=None, project_data=None, retina_math=None, stimulate=None
 ):
     from macaqueretina.retina.simulate_retina_module import SimulateRetina
@@ -282,7 +282,7 @@ def create_experiment(config, data_io=None, stimulate=None, simulate_retina=None
     if stimulate is None:
         stimulate = create_stimulus(config, data_io)
     if simulate_retina is None:
-        simulate_retina = _simulate_retina_instance(
+        simulate_retina = simulate_retina_instance(
             config, data_io, None, None, stimulate
         )
     return Experiment(config, data_io, stimulate, simulate_retina)
