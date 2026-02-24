@@ -10,6 +10,7 @@ from . import analysis
 from . import retina as retina_math
 from .stimuli import make_stimulus, run_experiment
 from .retina import build_retina, save_retina, simulate_retina
+from .project import countlines
 
 config = None
 
@@ -31,6 +32,7 @@ __all__ = [
     "build_retina",
     "save_retina",
     "simulate_retina",
+    "countlines",
 ]
 
 
