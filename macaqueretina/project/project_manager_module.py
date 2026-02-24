@@ -349,12 +349,3 @@ class ProjectData:
             cls._instance.simulate_retina = {}
             cls._instance.fit = {}
         return cls._instance
-
-
-def main():
-    pass
-
-
-if __name__ == "__main__":
-    """Run the core_parameters.yaml run pipeline items."""
-    main()
