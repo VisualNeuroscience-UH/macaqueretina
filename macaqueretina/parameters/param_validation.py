@@ -609,6 +609,7 @@ class LiteratureDataFiles(BaseConfigModel):
     parasol_on_RI_values_datafile: str
     parasol_off_RI_values_datafile: str
     temporal_pattern_datafile: str
+    dendr_diam_units: DendrDiamUnits
 
 
 ## Main validation class
@@ -634,6 +635,7 @@ class ConfigParams(BaseConfigModel):
     numpy_seed: int | None
     device: Literal["cpu", "cuda"]
     run: dict[str, Any]
+    profile: bool = False
 
     # Retina parameters
     retina_parameters: RetinaParameters
@@ -647,11 +649,8 @@ class ConfigParams(BaseConfigModel):
     simulation_parameters: SimulationParameters
     gain_calibration: GainCalibration
 
+    # Literature data files and parameters
     literature_data_files: LiteratureDataFiles
-
-    dendr_diam_units: DendrDiamUnits
-
-    profile: bool = False
 
     @field_validator("model_root_path", mode="after")
     @classmethod
@@ -705,6 +704,16 @@ class ConfigParams(BaseConfigModel):
         self.literature_data_folder = self.git_repo_root_path.joinpath(
             r"retina/literature_data"
         )
+
+        # Prepend literature data folder
+        for key in LiteratureDataFiles.model_fields.keys():
+            if "_datafile" in key:
+                current_value = getattr(self.literature_data_files, key)
+                setattr(
+                    self.literature_data_files,
+                    key,
+                    f"{self.literature_data_folder}/{current_value}",
+                )
 
         # Path
         self.path = self.model_root_path.joinpath(Path(self.project), self.experiment)

@@ -21,8 +21,7 @@ literature_data_files:
   parasol_on_RI_values_datafile: "Turner_2018_eLife_Fig5C_ON_c.npz" #NOTE: unused
   parasol_off_RI_values_datafile: "Turner_2018_eLife_Fig5C_OFF_c.npz" #NOTE: unused
   temporal_pattern_datafile: "Angueyra_2022_JNeurosci_Fig2B_c.npz"
-
-dendr_diam_units:
-  data1: ["mm", "um"]
-  data2: ["mm", "um"]
-  data3: ["deg", "um"]
+  dendr_diam_units:
+    data1: ["mm", "um"]
+    data2: ["mm", "um"]
+    data3: ["deg", "um"]

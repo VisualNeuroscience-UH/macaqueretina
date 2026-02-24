@@ -309,9 +309,11 @@ def load_parameters() -> Configuration:
     config.git_repo_root_path = git_repo_root_path
 
     if validate_params:
-        validated_config = validate_params(config)
-        reorganizer = ParamReorganizer()
-        config = reorganizer.reorganize(validated_config)
+        config = validate_params(config)
+        # reorganizer = ParamReorganizer()
+        # config = reorganizer.reorganize(validated_config)
+
+    config["retina_parameters"].update(config["retina_parameters_extend"])
 
     import numpy as np
 
