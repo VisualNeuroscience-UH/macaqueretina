@@ -1,6 +1,7 @@
 from macaqueretina.project.project_manager_module import (
     construct_retina_instance,
     simulate_retina_instance,
+    create_retina_math_instance,
 )
 
 _cached_construct_retina = None
@@ -62,3 +63,20 @@ def simulate_retina(stimulus=None, filename=None, impulse=None, unity=None):
         retina_instance = simulate_retina_instance(current_config)
         _cached_simulate_retina = (current_hash, retina_instance)
     return _cached_simulate_retina[1].client(stimulus, filename, impulse, unity)
+
+
+_cached_retina_math_instance = None
+
+
+def __getattr__(name):
+    global _cached_retina_math_instance
+    if _cached_retina_math_instance is None:
+        _cached_retina_math_instance = create_retina_math_instance()
+    return getattr(_cached_retina_math_instance, name)
+
+
+def __dir__():
+    global _cached_retina_math_instance
+    if _cached_retina_math_instance is None:
+        _cached_retina_math_instance = create_retina_math_instance()
+    return dir(_cached_retina_math_instance)

@@ -73,7 +73,7 @@ def create_data_io(config: Configuration) -> DataIO:
     return DataIO(config)
 
 
-def create_retina_math() -> RetinaMath:
+def create_retina_math_instance() -> RetinaMath:
     """Instantiates RetinaMath."""
     from macaqueretina.retina.retina_math_module import RetinaMath
 
@@ -102,7 +102,7 @@ def create_analysis(
         data_io = create_data_io(config)
 
     if retina_math is None:
-        retina_math = create_retina_math()
+        retina_math = create_retina_math_instance()
 
     return Analysis(
         config,
@@ -125,7 +125,7 @@ def create_viz(
     if analysis is None:
         analysis = create_analysis(config, data_io, retina_math)
     if retina_math is None:
-        retina_math = create_retina_math()
+        retina_math = create_retina_math_instance()
 
     return Viz(
         config,
@@ -177,7 +177,7 @@ def construct_retina_instance(
         retina_vae = RetinaVAE(config)
 
     if retina_math is None:
-        retina_math = create_retina_math()
+        retina_math = create_retina_math_instance()
 
     if get_xy_from_npz is None:
         get_xy_from_npz = _create_get_xy_from_npz()
@@ -261,7 +261,7 @@ def simulate_retina_instance(
     if project_data is None:
         project_data = ProjectData()
     if retina_math is None:
-        retina_math = create_retina_math()
+        retina_math = create_retina_math_instance()
     if stimulate is None:
         stimulate = create_stimulus(config, data_io)
 
@@ -327,7 +327,7 @@ def viz(config, data_io=None, project_data=None, analysis=None, retina_math=None
     if project_data is None:
         project_data = ProjectData()
     if retina_math is None:
-        retina_math = create_retina_math()
+        retina_math = create_retina_math_instance()
     if analysis is None:
         analysis = create_analysis(config, data_io, retina_math)
 
