@@ -4218,7 +4218,9 @@ class Viz:
         ecc_deg_vae = ecc_mm_vae * deg_per_mm
 
         # Read in corresponding data from literature
-        spatial_DoG_path = self.config.literature_data_files["spatial_DoG_path"]
+        spatial_DoG_path = self.config.literature_data_files[
+            "spatial_DoG_datafile" "_" + self.config.retina_parameters.gc_type
+        ]
         spatial_DoG_data = self.data_io.load_data(spatial_DoG_path)
 
         lit_ecc_deg = spatial_DoG_data["Xdata"]  # ecc (deg)

@@ -585,11 +585,30 @@ class ExperimentalMetadata(BaseInternalConfigModel):
     )
 
 
+## From literature.yaml
 class LiteratureDataFiles(BaseConfigModel):
     gc_density_1_datafile: str
     gc_density_2_datafile: str
     gc_density_1_scaling_data_and_function: list
     gc_density_control_datafile: str
+    dendr_diam1_datafile_parasol: str
+    dendr_diam2_datafile_parasol: str
+    dendr_diam3_datafile_parasol: str
+    dendr_diam1_datafile_midget: str
+    dendr_diam2_datafile_midget: str
+    dendr_diam3_datafile_midget: str
+    temporal_BK_model_datafile_parasol: str
+    temporal_BK_model_datafile_midget: str
+    spatial_DoG_datafile_parasol: str
+    spatial_DoG_datafile_midget: str
+    cone_density1_datafile: str
+    cone_density2_datafile: str
+    cone_noise_datafile: str
+    cone_response_datafile: str
+    bipolar_table_datafile: str
+    parasol_on_RI_values_datafile: str
+    parasol_off_RI_values_datafile: str
+    temporal_pattern_datafile: str
 
 
 ## Main validation class
@@ -632,26 +651,6 @@ class ConfigParams(BaseConfigModel):
 
     dendr_diam_units: DendrDiamUnits
 
-    dendr_diam1_datafile_parasol: str
-    dendr_diam2_datafile_parasol: str
-    dendr_diam3_datafile_parasol: str
-    temporal_BK_model_datafile_parasol: str
-    spatial_DoG_datafile_parasol: str
-    dendr_diam1_datafile_midget: str
-    dendr_diam2_datafile_midget: str
-    dendr_diam3_datafile_midget: str
-    temporal_BK_model_datafile_midget: str
-    spatial_DoG_datafile_midget: str
-
-    cone_density1_datafile: str
-    cone_density2_datafile: str
-    cone_noise_datafile: str
-    cone_response_datafile: str
-    bipolar_table_datafile: str
-    parasol_on_RI_values_datafile: str
-    parasol_off_RI_values_datafile: str
-    temporal_pattern_datafile: str
-
     profile: bool = False
 
     @field_validator("model_root_path", mode="after")
@@ -682,13 +681,15 @@ class ConfigParams(BaseConfigModel):
 
     @model_validator(mode="after")
     def set_derived_values(self) -> Self:
-        # Set parameters that depend on another value in a different class
+        """Set parameters that depend on another value in a different class."""
+
+        # Stimulus video name
         if self.visual_stimulus_parameters.stimulus_video_name is None:
             self.visual_stimulus_parameters.stimulus_video_name = (
                 f"{self.stimulus_folder}.hdf5"
             )
 
-        # Set signal gain from a separate yaml file
+        # Signal gain
         self.retina_parameters.signal_gain = getattr(
             getattr(
                 getattr(
@@ -700,24 +701,14 @@ class ConfigParams(BaseConfigModel):
             self.retina_parameters.spatial_model_type,
         ).get(self.retina_parameters.temporal_model_type)
 
-        if self.retina_parameters.gc_type == "parasol":
-            self.dendr_diam1_datafile = self.dendr_diam1_datafile_parasol
-            self.dendr_diam2_datafile = self.dendr_diam2_datafile_parasol
-            self.dendr_diam3_datafile = self.dendr_diam3_datafile_parasol
-            self.temporal_BK_model_datafile = self.temporal_BK_model_datafile_parasol
-            self.spatial_DoG_datafile = self.spatial_DoG_datafile_parasol
-        elif self.retina_parameters.gc_type == "midget":
-            self.dendr_diam1_datafile = self.dendr_diam1_datafile_midget
-            self.dendr_diam2_datafile = self.dendr_diam2_datafile_midget
-            self.dendr_diam3_datafile = self.dendr_diam3_datafile_midget
-            self.temporal_BK_model_datafile = self.temporal_BK_model_datafile_midget
-            self.spatial_DoG_datafile = self.spatial_DoG_datafile_midget
-
+        # Literature data folder
         self.literature_data_folder = self.git_repo_root_path.joinpath(
             r"retina/literature_data"
         )
 
+        # Path
         self.path = self.model_root_path.joinpath(Path(self.project), self.experiment)
+
         return self
 
 

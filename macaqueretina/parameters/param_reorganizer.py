@@ -41,19 +41,6 @@ class ParamReorganizer:
     def _create_literature_data_files(self) -> None:
         target = "literature_data_files"
         key_list = [
-            "dendr_diam1_datafile",
-            "dendr_diam2_datafile",
-            "dendr_diam3_datafile",
-            "temporal_BK_model_datafile",
-            "spatial_DoG_datafile",
-            "cone_density1_datafile",
-            "cone_density2_datafile",
-            "cone_noise_datafile",
-            "cone_response_datafile",
-            "bipolar_table_datafile",
-            "parasol_on_RI_values_datafile",
-            "parasol_off_RI_values_datafile",
-            "temporal_pattern_datafile",
             "dendr_diam_units",
         ]
 
@@ -67,7 +54,7 @@ class ParamReorganizer:
 
         literature_folder = self.config.get("literature_data_folder")
         for key, value in self.config[target].items():
-            if key.endswith("_path") or key.endswith("_datafile"):
+            if key.endswith("_path") or key.endswith("_datafile") or "_datafile" in key:
                 self.config[target][key] = f"{literature_folder}/{value}"
 
     def _move_and_remove_key(self, key: str, target: str) -> None:
@@ -77,16 +64,6 @@ class ParamReorganizer:
         self.config.pop(key)
 
     def _pop_extra_keys(self) -> None:
-        self.config.pop("dendr_diam1_datafile_parasol")
-        self.config.pop("dendr_diam2_datafile_parasol")
-        self.config.pop("dendr_diam3_datafile_parasol")
-        self.config.pop("temporal_BK_model_datafile_parasol")
-        self.config.pop("spatial_DoG_datafile_parasol")
-        self.config.pop("dendr_diam1_datafile_midget")
-        self.config.pop("dendr_diam2_datafile_midget")
-        self.config.pop("dendr_diam3_datafile_midget")
-        self.config.pop("temporal_BK_model_datafile_midget")
-        self.config.pop("spatial_DoG_datafile_midget")
         self.config.pop("literature_data_folder")
         self.config.pop("model_root_path")
         self.config.pop("retina_parameters_extend")

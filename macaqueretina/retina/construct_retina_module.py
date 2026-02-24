@@ -4962,35 +4962,47 @@ class ConstructRetina(PrintableMixin):
         literature["gc_control_density"] = gc_control_density
 
         cone_filepaths = [
-            self.config.literature_data_files["cone_density1_path"],
-            self.config.literature_data_files["cone_density2_path"],
+            self.config.literature_data_files["cone_density1_datafile"],
+            self.config.literature_data_files["cone_density2_datafile"],
         ]
         cone_eccentricity, cone_density = self._get_density_from(cone_filepaths)
         literature["cone_eccentricity"] = cone_eccentricity
         literature["cone_density"] = cone_density
 
-        bipolar_df = data_io.load_data(files["bipolar_table_path"])
+        bipolar_df = data_io.load_data(files["bipolar_table_datafile"])
         literature["bipolar_df"] = bipolar_df
 
         # Get dendritic diameter data
-        dendr_diam1 = data_io.load_data(files["dendr_diam1_path"])
+        dendr_diam1 = data_io.load_data(
+            files["dendr_diam1_datafile" + "_" + self.config.retina_parameters.gc_type]
+        )
         literature["dendr_diam1"] = dendr_diam1
 
-        dendr_diam2 = data_io.load_data(files["dendr_diam2_path"])
+        dendr_diam2 = data_io.load_data(
+            files["dendr_diam2_datafile" + "_" + self.config.retina_parameters.gc_type]
+        )
         literature["dendr_diam2"] = dendr_diam2
 
-        dendr_diam3 = data_io.load_data(files["dendr_diam3_path"])
+        dendr_diam3 = data_io.load_data(
+            files["dendr_diam3_datafile" + "_" + self.config.retina_parameters.gc_type]
+        )
         literature["dendr_diam3"] = dendr_diam3
 
         literature["dendr_diam_units"] = files["dendr_diam_units"]
 
         # Get Benardete & Kaplan model parameters
-        temporal_params_BK = data_io.load_data(files["temporal_BK_model_path"])
+        temporal_params_BK = data_io.load_data(
+            files[
+                "temporal_BK_model_datafile"
+                + "_"
+                + self.config.retina_parameters.gc_type
+            ]
+        )
         literature["temporal_parameters_BK"] = temporal_params_BK
 
         # Get cone response and noise data
         cone_response = data_io.load_data(
-            self.config.literature_data_files["cone_response_path"]
+            self.config.literature_data_files["cone_response_datafile"]
         )
         cone_frequency_data, cone_power_data = self.get_xy_from_npz(cone_response)
         literature["cone_frequency_data"] = cone_frequency_data
@@ -5002,7 +5014,7 @@ class ConstructRetina(PrintableMixin):
         literature["cone_noise_wc"] = cone_noise_wc
 
         cone_noise = data_io.load_data(
-            self.config.literature_data_files["cone_noise_path"]
+            self.config.literature_data_files["cone_noise_datafile"]
         )
         noise_frequency_data, noise_power_data = self.get_xy_from_npz(cone_noise)
         literature["noise_frequency_data"] = noise_frequency_data
@@ -5011,7 +5023,9 @@ class ConstructRetina(PrintableMixin):
         # Get bipolar rectification index data
         response_type = self.config.retina_parameters["response_type"]
         RI_values_npz = data_io.load_data(
-            self.config.literature_data_files[f"parasol_{response_type}_RI_values_path"]
+            self.config.literature_data_files[
+                f"parasol_{response_type}_RI_values_datafile"
+            ]
         )
         g_sur_values, target_RI_values = self.get_xy_from_npz(RI_values_npz)
         literature["g_sur_values"] = g_sur_values
