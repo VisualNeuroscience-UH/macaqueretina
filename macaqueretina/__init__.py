@@ -14,6 +14,7 @@ from . import retina as retina_math
 from .stimuli import make_stimulus, run_experiment
 from .retina import build_retina, save_retina, simulate_retina
 from .project import countlines
+from .data_io import load_data
 
 config = None
 
@@ -30,6 +31,7 @@ __all__ = [
     "retina_math",
     "data_sampler",
     "construct_retina",
+    "load_data",
     "config",
     "make_stimulus",
     "run_experiment",
