@@ -4,7 +4,10 @@ macaqueretina namespace to the various sub-modules.
 """
 
 # Local
-from .project.project_manager_module import load_parameters as _load_parameters
+from .project.project_manager_module import (
+    load_parameters as _load_parameters,
+    data_sampler,
+)
 from . import viz
 from . import analysis
 from . import retina as retina_math
@@ -25,6 +28,7 @@ def load_parameters():
 __all__ = [
     "load_parameters",
     "retina_math",
+    "data_sampler",
     "construct_retina",
     "config",
     "make_stimulus",

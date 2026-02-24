@@ -212,11 +212,16 @@ def viz_spikes_with_stimulus(config, data_io, project_data):
     )
 
 
-def data_sampler():
+def data_sampler(filename, min_X, max_X, min_Y, max_Y, logX=False, logY=False):
     """DataSampler alias."""
     from macaqueretina.project.project_utilities_module import DataSampler
 
-    return DataSampler
+    return DataSampler(filename, min_X, max_X, min_Y, max_Y, logX, logY)
+
+
+def create_data_sampler_instance():
+    """Instantiates DataSampler."""
+    from macaqueretina.project.project_utilities_module import DataSampler
 
 
 def analog_input(config, data_io, viz, simulate_retina):
