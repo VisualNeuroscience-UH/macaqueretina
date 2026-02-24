@@ -31,7 +31,6 @@ class ParamReorganizer:
         self.config = config.as_dict().copy()
         self._create_literature_data_files()
         self.config["retina_parameters"].update(self.config["retina_parameters_extend"])
-        self._pop_extra_keys()
 
         config.clear()
         config.update(self.config)
@@ -62,8 +61,3 @@ class ParamReorganizer:
             self.config.update({target: {}})
         self.config[target].update({key: self.config[key]})
         self.config.pop(key)
-
-    def _pop_extra_keys(self) -> None:
-        self.config.pop("literature_data_folder")
-        self.config.pop("model_root_path")
-        self.config.pop("retina_parameters_extend")
