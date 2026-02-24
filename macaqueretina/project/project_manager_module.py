@@ -294,7 +294,6 @@ def create_experiment(config, data_io=None, stimulate=None, simulate_retina=None
 def load_parameters() -> Configuration:
     """Load configuration parameters."""
     from macaqueretina.data_io.config_io import load_yaml
-    from macaqueretina.parameters.param_reorganizer import ParamReorganizer
 
     project_manager_module_file_path = Path(__file__).resolve()
     git_repo_root_path = project_manager_module_file_path.parent.parent
@@ -310,8 +309,6 @@ def load_parameters() -> Configuration:
 
     if validate_params:
         config = validate_params(config)
-        # reorganizer = ParamReorganizer()
-        # config = reorganizer.reorganize(validated_config)
 
     config["retina_parameters"].update(config["retina_parameters_extend"])
 
