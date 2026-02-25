@@ -4,17 +4,15 @@ macaqueretina namespace to the various sub-modules.
 """
 
 # Local
-from .project.project_manager_module import (
-    load_parameters as _load_parameters,
-    data_sampler,
-)
-from . import viz
 from . import analysis
 from . import retina as retina_math
-from .stimuli import make_stimulus, run_experiment
-from .retina import build_retina, save_retina, simulate_retina
-from .project import countlines
+from . import viz
 from .data_io import load_data
+from .project import countlines
+from .project.project_manager_module import data_sampler
+from .project.project_manager_module import load_parameters as _load_parameters
+from .retina import build_retina, save_retina, simulate_retina
+from .stimuli import make_stimulus, run_experiment
 
 config = None
 
