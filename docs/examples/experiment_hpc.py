@@ -45,10 +45,12 @@ update_yaml_with_env_vars(yaml_path, top_level_key)
 
 import macaqueretina as mr
 
+mr.load_parameters()
+
 stimulus_folder = f"stim_{mr.config.experiment}"
 mr.config.output_folder = f"{mr.config.experiment}_{mr.config.gc_type}_{mr.config.response_type}_{mr.config.spatial_model_type}_{mr.config.temporal_model_type}"
 
-mr.construct_retina()
+mr.build_retina()
 
 ###############################
 ## Build and run experiment ###
@@ -68,7 +70,7 @@ mr.config.experiment_parameters = {
     "distributions": {"uniform": None},
 }
 
-filename = mr.experiment.build_and_run(build_without_run=True)
+filename = mr.run_experiment(build_without_run=True)
 
 ########################################
 ## Analyze and visualize experiment ###
