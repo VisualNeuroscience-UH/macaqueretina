@@ -155,30 +155,13 @@ class Configuration(MutableMapping):
     def __init__(
         self,
         initial: Mapping[str, Any] | None = None,
-        dependent: DependentParameters = None,
     ) -> None:
         """Initialize the configuration, optionally with a mapping to populate config."""
         super().__setattr__("_data", {})
-        super().__setattr__("_dependent", {})
-        super().__setattr__("_dependent_obj", dependent)
+
         if initial:
             for k, v in dict(initial).items():
                 self._data[k] = Configuration(v) if isinstance(v, dict) else v
-
-        if dependent is not None:
-            self._bind_dependent(dependent)
-
-    def _bind_dependent(self, dependent: DependentParameters) -> None:
-        """Bind dependent parameters to the current configuration."""
-        super().__setattr__("_dependent_obj", dependent)
-        super().__setattr__("_dependent", {})
-
-        for name in dir(dependent):
-            if name.startswith("_"):
-                continue
-            member = getattr(dependent, name)
-            if callable(member):
-                self._dependent[name] = member
 
     # MutableMapping core methods
     def __getitem__(self, key: str) -> Any:
@@ -361,7 +344,6 @@ class Configuration(MutableMapping):
         loader = _YamlLoader(paths)
         raw_config = loader.load_config()
         config = cls(raw_config)
-        config._bind_dependent(DependentParameters(config))
         return config
 
     # Hashing
@@ -421,21 +403,6 @@ class Configuration(MutableMapping):
             f"{type(self).__name__} object is not directly hashable. "
             f"Use .hash() method to get a hash string of the current configuration."
         )
-
-
-@dataclass
-class DependentParameters:
-    PARASOL: Literal["parasol"] = "parasol"
-    MIDGET: Literal["midget"] = "midget"
-
-    def __init__(self, config: Configuration):
-        # TODO: Logic to connect leading and dependent parameters
-        # TODO: Move all dependent parameters from pydantic to here
-        self._config = config
-
-    def extra(self) -> int:
-        gc_type = self._config["retina_parameters"]["gc_type"]
-        return 1 if gc_type == self.PARASOL else 0  # NOTE: just to see if it's working
 
 
 # Façade
