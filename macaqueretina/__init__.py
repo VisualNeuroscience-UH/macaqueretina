@@ -27,8 +27,9 @@ def load_parameters():
 __all__ = [
     "load_parameters",
     "retina_math",
+    "analysis",
+    "viz",
     "data_sampler",
-    "construct_retina",
     "load_data",
     "config",
     "make_stimulus",
