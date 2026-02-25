@@ -48,7 +48,6 @@ class ParamReorganizer:
             "dendr_diam2_datafile",
             "dendr_diam3_datafile",
             "temporal_BK_model_datafile",
-            "spatial_DoG_datafile",
             "cone_density1_datafile",
             "cone_density2_datafile",
             "cone_noise_datafile",
@@ -87,12 +86,10 @@ class ParamReorganizer:
         self.config.pop("dendr_diam2_datafile_parasol")
         self.config.pop("dendr_diam3_datafile_parasol")
         self.config.pop("temporal_BK_model_datafile_parasol")
-        self.config.pop("spatial_DoG_datafile_parasol")
         self.config.pop("dendr_diam1_datafile_midget")
         self.config.pop("dendr_diam2_datafile_midget")
         self.config.pop("dendr_diam3_datafile_midget")
         self.config.pop("temporal_BK_model_datafile_midget")
-        self.config.pop("spatial_DoG_datafile_midget")
         self.config.pop("literature_data_folder")
         self.config.pop("model_root_path")
         self.config.pop("retina_parameters_extend")

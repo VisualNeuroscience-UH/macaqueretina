@@ -635,12 +635,10 @@ class ConfigParams(BaseConfigModel):
     dendr_diam2_datafile_parasol: str
     dendr_diam3_datafile_parasol: str
     temporal_BK_model_datafile_parasol: str
-    spatial_DoG_datafile_parasol: str
     dendr_diam1_datafile_midget: str
     dendr_diam2_datafile_midget: str
     dendr_diam3_datafile_midget: str
     temporal_BK_model_datafile_midget: str
-    spatial_DoG_datafile_midget: str
 
     cone_density1_datafile: str
     cone_density2_datafile: str
@@ -677,11 +675,6 @@ class ConfigParams(BaseConfigModel):
         return getattr(
             self, f"temporal_BK_model_datafile_{self.retina_parameters.gc_type}"
         )
-
-    @computed_field
-    @property
-    def spatial_DoG_datafile(self) -> str:
-        return getattr(self, f"spatial_DoG_datafile_{self.retina_parameters.gc_type}")
 
     @computed_field
     @property
@@ -838,7 +831,6 @@ def validate_params(
         params.dendr_diam2_datafile,
         params.dendr_diam3_datafile,
         params.temporal_BK_model_datafile,
-        params.spatial_DoG_datafile,
     )
 
     internal_params = ConfigInternalParams(
