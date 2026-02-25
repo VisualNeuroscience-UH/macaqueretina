@@ -3856,7 +3856,9 @@ class SimulateRetina(RetinaMath):
 
         return cones
 
-    def _get_cone_noise_from_file_if_exists(self, vs: Any, gcs: Any) -> Any:
+    def _get_cone_noise_from_file_if_exists(
+        self, vs: Any, gcs: Any, ret_npz: Any
+    ) -> Any:
         """
         Load cone noise from file if it exists.
 
@@ -3871,7 +3873,12 @@ class SimulateRetina(RetinaMath):
             Updated visual signal object.
         """
 
-        cone_noise_hash = self.config.retina_parameters["cone_noise_hash"]
+        try:
+            cone_noise_hash = self.config.retina_parameters["cone_noise_hash"]
+        except KeyError:
+            cone_noise_hash = ret_npz["cone_noise_hash"]
+            print("This is an informative message telling that...")
+
         filename_stem_cone_noise = f"cone_noise_{cone_noise_hash}"
         cone_noise_filename_full = self.data_io.parse_path(
             "", substring=filename_stem_cone_noise
@@ -3955,7 +3962,7 @@ class SimulateRetina(RetinaMath):
             stimulus_video=stimulus,
         )
 
-        vs = self._get_cone_noise_from_file_if_exists(vs, gcs)
+        vs = self._get_cone_noise_from_file_if_exists(vs, gcs, ret_npz)
 
         # Link ganglion cell receptive fields to visual signal. Eg applies rotation
         gcs.link_gcs_to_vs(vs)

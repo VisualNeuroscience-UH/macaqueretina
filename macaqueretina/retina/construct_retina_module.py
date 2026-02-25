@@ -152,6 +152,7 @@ class Retina(PrintableMixin):
         pol_limits_deg: list[float] = retina_parameters["pol_limits_deg"]
 
         self.model_density: float = retina_parameters["model_density"]
+        self.cone_noise_hash: str = retina_parameters["cone_noise_hash"]
 
         # Turn list to numpy array and deg to mm
         self.ecc_lim_mm: np.ndarray = (
@@ -5377,6 +5378,7 @@ class ConstructRetina(PrintableMixin):
         ret_attributes = [
             "cone_optimized_pos_mm",
             "cone_optimized_pos_pol",
+            "cone_noise_hash",
             "cones_to_gcs_weights",
             "cone_noise_parameters",
             "noise_frequency_data",
