@@ -688,18 +688,6 @@ class ConfigParams(BaseConfigModel):
                 f"{self.stimulus_folder}.hdf5"
             )
 
-        # Signal gain
-        self.retina_parameters.signal_gain = getattr(
-            getattr(
-                getattr(
-                    self.gain_calibration.signal_gain_table,
-                    self.retina_parameters.gc_type,
-                ),
-                self.retina_parameters.response_type,
-            ),
-            self.retina_parameters.spatial_model_type,
-        ).get(self.retina_parameters.temporal_model_type)
-
         # Literature data folder
         self.literature_data_folder = self.git_repo_root_path.joinpath(
             r"retina/literature_data"

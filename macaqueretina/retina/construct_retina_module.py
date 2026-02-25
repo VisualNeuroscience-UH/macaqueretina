@@ -5234,7 +5234,6 @@ class ConstructRetina(PrintableMixin):
             "model_density",
             "retina_center",
             "force_retina_build",
-            "signal_gain",
         ]
 
         main_retina_parameters = {
@@ -5242,6 +5241,18 @@ class ConstructRetina(PrintableMixin):
             for key, value in self.config.retina_parameters.items()
             if key in main_retina_parameters_list
         }
+
+        main_retina_parameters[
+            "signal_gain"
+        ] = self.config.gain_calibration.signal_gain_table[
+            self.config.retina_parameters.gc_type
+        ][
+            self.config.retina_parameters.response_type
+        ][
+            self.config.retina_parameters.spatial_model_type
+        ][
+            self.config.retina_parameters.temporal_model_type
+        ]
 
         yaml_filename = self.config.retina_parameters["retina_metadata_file"]
         yaml_filename_full = self.config.output_folder.joinpath(yaml_filename)

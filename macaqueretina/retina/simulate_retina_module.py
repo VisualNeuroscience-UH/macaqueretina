@@ -1,10 +1,12 @@
+from __future__ import annotations
+
 # Built-in
 import shutil
 import tempfile
 import time
 from abc import ABC, abstractmethod
 from copy import deepcopy
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
 
 # Third-party
 import brian2 as b2
@@ -29,6 +31,9 @@ from macaqueretina.project.project_utilities_module import PrintableMixin
 from macaqueretina.retina.retina_math_module import RetinaMath
 
 BrianLogger.log_level_error()
+
+if TYPE_CHECKING:
+    from macaqueretina.data_io.config_io import Configuration
 
 
 class GanglionCellBase(ABC):
@@ -3291,7 +3296,7 @@ class GanglionCellProduct(ReceptiveFieldsBase):
     def __init__(
         self,
         retina_parameters: Dict[str, Any],
-        experimental_metadata: Dict[str, Any],
+        config: "Configuration",
         rfs_npz: Dict[str, Any],
         gc_dataframe: pd.DataFrame,
         spike_generator_model: Any,
@@ -3299,6 +3304,7 @@ class GanglionCellProduct(ReceptiveFieldsBase):
     ):
         super().__init__(retina_parameters)
 
+        self.config = config
         self.spike_generator_model = spike_generator_model
         self.mask_threshold = retina_parameters["center_mask_threshold"]
         self.fixed_mask_threshold = retina_parameters["fixed_mask_threshold"]
@@ -3311,7 +3317,7 @@ class GanglionCellProduct(ReceptiveFieldsBase):
             self.mask_threshold >= 0 and self.mask_threshold <= 1
         ), "mask_threshold must be between 0 and 1, aborting..."
 
-        self.experimental_metadata = experimental_metadata
+        self.experimental_metadata = self.config.experimental_metadata
         self.data_microm_per_pixel = self.experimental_metadata["data_microm_per_pix"]
         self.data_filter_fps = self.experimental_metadata["data_fps"]
         self.data_filter_timesteps = self.experimental_metadata[
@@ -3373,7 +3379,13 @@ class GanglionCellProduct(ReceptiveFieldsBase):
         Set gain adjustment for ganglion cells.
 
         """
-        self.gc_gain_adjustment = self.retina_parameters["signal_gain"]
+        self.gc_gain_adjustment = self.config.gain_calibration.signal_gain_table[
+            self.config.retina_parameters.gc_type
+        ][self.retina_parameters.response_type][
+            self.retina_parameters.spatial_model_type
+        ][
+            self.retina_parameters.temporal_model_type
+        ]
 
     def link_gcs_to_vs(self, vs: Any) -> None:
         """
@@ -3913,7 +3925,7 @@ class SimulateRetina(RetinaMath):
 
         gcs = GanglionCellProduct(
             self.config.retina_parameters,
-            self.config.experimental_metadata,
+            self.config,
             rfs_npz,
             gc_dataframe,
             spike_generator_model,
