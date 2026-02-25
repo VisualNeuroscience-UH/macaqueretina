@@ -3139,11 +3139,13 @@ class BipolarProduct(ReceptiveFieldsBase):
         self,
         retina_parameters: Dict[str, Any],
         ret_npz: Dict[str, np.ndarray],
+        parabola: callable,
         target_gc_for_multiple_trials: Optional[int] = None,
     ) -> None:
         super().__init__(retina_parameters)
         self.retina_parameters = retina_parameters
         self.ret_npz = ret_npz
+        self.parabola = parabola
         self.n_units = self.ret_npz["bipolar_to_gcs_cen_weights"].shape[0]
         self.target_gc_for_multiple_trials = target_gc_for_multiple_trials
 
@@ -3951,6 +3953,7 @@ class SimulateRetina:
             bipolars = BipolarProduct(
                 self.config.retina_parameters,
                 ret_npz,
+                self.retina_math.parabola,
                 target_gc_for_multiple_trials=None,  # Option to target one gc unit
             )
         else:
