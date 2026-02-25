@@ -11,6 +11,8 @@ from pathlib import Path
 
 # Third-party
 import yaml
+
+
 def update_yaml_with_env_vars(yaml_path, top_level_key):
     with open(yaml_path) as f:
         data = yaml.safe_load(f)
@@ -22,14 +24,14 @@ def update_yaml_with_env_vars(yaml_path, top_level_key):
     for key, value in data[top_level_key].items():
         env_var = key.upper()
         if env_var in os.environ and isinstance(value, str):
-            breakpoint()
             data[top_level_key][key] = os.environ[env_var]
 
     with open(yaml_path, "w") as f:
         yaml.safe_dump(data, f, sort_keys=False)
     print(
         f"Updated '{yaml_path}' with environment variables for top-level key '{top_level_key}'."
-)
+    )
+
 
 ##################################################
 # Repeat for all parameters file & key pairs whose
@@ -40,9 +42,8 @@ top_level_key = "retina_parameters"
 
 update_yaml_with_env_vars(yaml_path, top_level_key)
 ############################################
-# Local
-import macaqueretina as mr
 
+import macaqueretina as mr
 
 stimulus_folder = f"stim_{mr.config.experiment}"
 mr.config.output_folder = f"{mr.config.experiment}_{mr.config.gc_type}_{mr.config.response_type}_{mr.config.spatial_model_type}_{mr.config.temporal_model_type}"
