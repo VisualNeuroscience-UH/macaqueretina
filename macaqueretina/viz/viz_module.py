@@ -905,85 +905,90 @@ class Viz:
         ax.set_ylabel("Dendritic diameter (um)")
         ax.legend()
 
+        current_gc_type = self.config.retina_parameters["gc_type"]
+        current_dd_regr_model = self.config.retina_parameters["dd_regr_model"][
+            current_gc_type
+        ]
         if dd_model_caption:
-            if self.config.retina_parameters["dd_regr_model"] == "linear":
-                intercept = fit_parameters[1]
-                slope = fit_parameters[0]
-                ax.plot(data_all_x, intercept + slope * data_all_x, "k--")
-                ax.annotate(
-                    f"{dd_model_caption} : \ny={intercept:.1f} + {slope:.1f}x",
-                    xycoords="axes fraction",
-                    xy=(0.5, 0.15),
-                    ha="left",
-                    color="k",
-                )
+            match current_dd_regr_model:
+                case "linear":
+                    intercept = fit_parameters[1]
+                    slope = fit_parameters[0]
+                    ax.plot(data_all_x, intercept + slope * data_all_x, "k--")
+                    ax.annotate(
+                        f"{dd_model_caption} : \ny={intercept:.1f} + {slope:.1f}x",
+                        xycoords="axes fraction",
+                        xy=(0.5, 0.15),
+                        ha="left",
+                        color="k",
+                    )
 
-            elif self.config.retina_parameters["dd_regr_model"] == "quadratic":
-                intercept = fit_parameters[2]
-                slope = fit_parameters[1]
-                square = fit_parameters[0]
-                ax.plot(
-                    data_all_x,
-                    intercept + slope * data_all_x + square * data_all_x**2,
-                    "k--",
-                )
-                ax.annotate(
-                    f"{dd_model_caption}: \ny={intercept:.1f} + {slope:.1f}x + {square:.1f}x^2",
-                    xycoords="axes fraction",
-                    xy=(0.5, 0.15),
-                    ha="left",
-                    color="k",
-                )
+                case "quadratic":
+                    intercept = fit_parameters[2]
+                    slope = fit_parameters[1]
+                    square = fit_parameters[0]
+                    ax.plot(
+                        data_all_x,
+                        intercept + slope * data_all_x + square * data_all_x**2,
+                        "k--",
+                    )
+                    ax.annotate(
+                        f"{dd_model_caption}: \ny={intercept:.1f} + {slope:.1f}x + {square:.1f}x^2",
+                        xycoords="axes fraction",
+                        xy=(0.5, 0.15),
+                        ha="left",
+                        color="k",
+                    )
 
-            elif self.config.retina_parameters["dd_regr_model"] == "cubic":
-                intercept = fit_parameters[3]
-                slope = fit_parameters[2]
-                square = fit_parameters[1]
-                cube = fit_parameters[0]
-                ax.plot(
-                    data_all_x,
-                    intercept
-                    + slope * data_all_x
-                    + square * data_all_x**2
-                    + cube * data_all_x**3,
-                    "k--",
-                )
-                ax.annotate(
-                    f"{dd_model_caption}: \ny={intercept:.1f} + {slope:.1f}x + {square:.1f}x^2 + {cube:.1f}x^3",
-                    xycoords="axes fraction",
-                    xy=(0.5, 0.15),
-                    ha="left",
-                    color="k",
-                )
+                case "cubic":
+                    intercept = fit_parameters[3]
+                    slope = fit_parameters[2]
+                    square = fit_parameters[1]
+                    cube = fit_parameters[0]
+                    ax.plot(
+                        data_all_x,
+                        intercept
+                        + slope * data_all_x
+                        + square * data_all_x**2
+                        + cube * data_all_x**3,
+                        "k--",
+                    )
+                    ax.annotate(
+                        f"{dd_model_caption}: \ny={intercept:.1f} + {slope:.1f}x + {square:.1f}x^2 + {cube:.1f}x^3",
+                        xycoords="axes fraction",
+                        xy=(0.5, 0.15),
+                        ha="left",
+                        color="k",
+                    )
 
-            elif self.config.retina_parameters["dd_regr_model"] == "exponential":
-                constant = fit_parameters[0]
-                lamda = fit_parameters[1]
-                ax.plot(data_all_x, constant + np.exp(data_all_x / lamda), "k--")
-                ax.annotate(
-                    f"{dd_model_caption}: \ny={constant:.1f} + exp(x/{lamda:.1f})",
-                    xycoords="axes fraction",
-                    xy=(0.5, 0.15),
-                    ha="left",
-                    color="k",
-                )
+                case "exponential":
+                    constant = fit_parameters[0]
+                    lamda = fit_parameters[1]
+                    ax.plot(data_all_x, constant + np.exp(data_all_x / lamda), "k--")
+                    ax.annotate(
+                        f"{dd_model_caption}: \ny={constant:.1f} + exp(x/{lamda:.1f})",
+                        xycoords="axes fraction",
+                        xy=(0.5, 0.15),
+                        ha="left",
+                        color="k",
+                    )
 
-            elif self.config.retina_parameters["dd_regr_model"] == "powerlaw":
-                # a = 10 ** fit_parameters[0]
-                a = fit_parameters[0]
-                b = fit_parameters[1]
-                # Calculate the fitted values using the power law relationship
-                fitted_y = a * np.power(data_all_x, b)
-                ax.plot(data_all_x, fitted_y, "k--", label="Log-log fit")
-                ax.annotate(
-                    f"{dd_model_caption}: \nD={a:.2f} * E^{b:.2f}",
-                    xycoords="axes fraction",
-                    xy=(0.5, 0.15),
-                    ha="left",
-                    color="k",
-                )
-                if log_y:
-                    ax.set_ylim([1, 1000])
+                case "powerlaw":
+                    # a = 10 ** fit_parameters[0]
+                    a = fit_parameters[0]
+                    b = fit_parameters[1]
+                    # Calculate the fitted values using the power law relationship
+                    fitted_y = a * np.power(data_all_x, b)
+                    ax.plot(data_all_x, fitted_y, "k--", label="Log-log fit")
+                    ax.annotate(
+                        f"{dd_model_caption}: \nD={a:.2f} * E^{b:.2f}",
+                        xycoords="axes fraction",
+                        xy=(0.5, 0.15),
+                        ha="left",
+                        color="k",
+                    )
+                    if log_y:
+                        ax.set_ylim([1, 1000])
 
         # Set x and y axis logarithmic, if called for
         if log_x:

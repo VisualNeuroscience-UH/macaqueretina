@@ -78,7 +78,7 @@ class Retina(PrintableMixin):
         Parameters for natural stimulus filtering and cone-to-GC connections.
     bipolar_general_parameters : dict
         General parameters for bipolar cells.
-    dd_regr_model : Any
+    dd_regr_model : str
         Regression model for dendritic diameter as a function of eccentricity.
     deg_per_mm : float
         Conversion factor: degrees of visual field per millimeter of retina.
@@ -139,7 +139,7 @@ class Retina(PrintableMixin):
             "bipolar_general_parameters"
         ]
 
-        self.dd_regr_model: Any = retina_parameters["dd_regr_model"]
+        self.dd_regr_model: str = retina_parameters["dd_regr_model"][self.gc_type]
         self.deg_per_mm: float = retina_parameters["deg_per_mm"]
         self.bipolar2gc_dict: dict = retina_parameters["bipolar2gc_dict"]
         self.receptive_field_repulsion_parameters: dict = retina_parameters[
@@ -151,6 +151,7 @@ class Retina(PrintableMixin):
         pol_limits_deg = retina_parameters["pol_limits_deg"]
 
         self.model_density: float = retina_parameters["model_density"]
+        self.cone_noise_hash: str = retina_parameters["cone_noise_hash"]
 
         # Turn list to numpy array and deg to mm
         self.ecc_lim_mm = np.asarray(ecc_limits_deg).astype(float) / self.deg_per_mm
@@ -4964,52 +4965,68 @@ class ConstructRetina(PrintableMixin):
         literature = {}
 
         # Get unit density data
-        gc_ecc_1, gc_density_1 = self._get_density_from([files["gc_density_1_path"]])
+        gc_ecc_1, gc_density_1 = self._get_density_from(
+            [files["gc_density_1_datafile"]]
+        )
         literature["gc_eccentricity_1"] = gc_ecc_1
         literature["gc_density_1"] = gc_density_1
         literature["gc_density_1_scaling_data_and_function"] = (
             self.config.literature_data_files["gc_density_1_scaling_data_and_function"]
         )
-        gc_ecc_2, gc_density_2 = self._get_density_from([files["gc_density_2_path"]])
+        gc_ecc_2, gc_density_2 = self._get_density_from(
+            [files["gc_density_2_datafile"]]
+        )
         literature["gc_eccentricity_2"] = gc_ecc_2
         literature["gc_density_2"] = gc_density_2
 
         gc_control_ecc, gc_control_density = self._get_density_from(
-            [files["gc_density_control_path"]]
+            [files["gc_density_control_datafile"]]
         )
         literature["gc_control_eccentricity"] = gc_control_ecc
         literature["gc_control_density"] = gc_control_density
 
         cone_filepaths = [
-            self.config.literature_data_files["cone_density1_path"],
-            self.config.literature_data_files["cone_density2_path"],
+            self.config.literature_data_files["cone_density1_datafile"],
+            self.config.literature_data_files["cone_density2_datafile"],
         ]
         cone_eccentricity, cone_density = self._get_density_from(cone_filepaths)
         literature["cone_eccentricity"] = cone_eccentricity
         literature["cone_density"] = cone_density
 
-        bipolar_df = data_io.load_data(files["bipolar_table_path"])
+        bipolar_df = data_io.load_data(files["bipolar_table_datafile"])
         literature["bipolar_df"] = bipolar_df
 
         # Get dendritic diameter data
-        dendr_diam1 = data_io.load_data(files["dendr_diam1_path"])
+        dendr_diam1 = data_io.load_data(
+            files["dendr_diam1_datafile" + "_" + self.config.retina_parameters.gc_type]
+        )
         literature["dendr_diam1"] = dendr_diam1
 
-        dendr_diam2 = data_io.load_data(files["dendr_diam2_path"])
+        dendr_diam2 = data_io.load_data(
+            files["dendr_diam2_datafile" + "_" + self.config.retina_parameters.gc_type]
+        )
         literature["dendr_diam2"] = dendr_diam2
 
-        dendr_diam3 = data_io.load_data(files["dendr_diam3_path"])
+        dendr_diam3 = data_io.load_data(
+            files["dendr_diam3_datafile" + "_" + self.config.retina_parameters.gc_type]
+        )
         literature["dendr_diam3"] = dendr_diam3
 
         literature["dendr_diam_units"] = files["dendr_diam_units"]
 
         # Get Benardete & Kaplan model parameters
-        temporal_params_BK = data_io.load_data(files["temporal_BK_model_path"])
+        temporal_params_BK = data_io.load_data(
+            files[
+                "temporal_BK_model_datafile"
+                + "_"
+                + self.config.retina_parameters.gc_type
+            ]
+        )
         literature["temporal_parameters_BK"] = temporal_params_BK
 
         # Get cone response and noise data
         cone_response = data_io.load_data(
-            self.config.literature_data_files["cone_response_path"]
+            self.config.literature_data_files["cone_response_datafile"]
         )
         cone_frequency_data, cone_power_data = self.get_xy_from_npz(cone_response)
         literature["cone_frequency_data"] = cone_frequency_data
@@ -5021,7 +5038,7 @@ class ConstructRetina(PrintableMixin):
         literature["cone_noise_wc"] = cone_noise_wc
 
         cone_noise = data_io.load_data(
-            self.config.literature_data_files["cone_noise_path"]
+            self.config.literature_data_files["cone_noise_datafile"]
         )
         noise_frequency_data, noise_power_data = self.get_xy_from_npz(cone_noise)
         literature["noise_frequency_data"] = noise_frequency_data
@@ -5030,7 +5047,9 @@ class ConstructRetina(PrintableMixin):
         # Get bipolar rectification index data
         response_type = self.config.retina_parameters["response_type"]
         RI_values_npz = data_io.load_data(
-            self.config.literature_data_files[f"parasol_{response_type}_RI_values_path"]
+            self.config.literature_data_files[
+                f"parasol_{response_type}_RI_values_datafile"
+            ]
         )
         g_sur_values, target_RI_values = self.get_xy_from_npz(RI_values_npz)
         literature["g_sur_values"] = g_sur_values
@@ -5237,7 +5256,6 @@ class ConstructRetina(PrintableMixin):
             "model_density",
             "retina_center",
             "force_retina_build",
-            "calibrated_gain",
         ]
 
         main_retina_parameters = {
@@ -5245,6 +5263,16 @@ class ConstructRetina(PrintableMixin):
             for key, value in self.config.retina_parameters.items()
             if key in main_retina_parameters_list
         }
+
+        main_retina_parameters["signal_gain"] = (
+            self.config.gain_calibration.signal_gain_table[
+                self.config.retina_parameters.gc_type
+            ][
+                self.config.retina_parameters.response_type
+            ][
+                self.config.retina_parameters.spatial_model_type
+            ][self.config.retina_parameters.temporal_model_type]
+        )
 
         yaml_filename = self.config.retina_parameters["retina_metadata_file"]
         yaml_filename_full = self.config.output_folder.joinpath(yaml_filename)
@@ -5369,6 +5397,7 @@ class ConstructRetina(PrintableMixin):
         ret_attributes = [
             "cone_optimized_pos_mm",
             "cone_optimized_pos_pol",
+            "cone_noise_hash",
             "cones_to_gcs_weights",
             "cone_noise_parameters",
             "noise_frequency_data",

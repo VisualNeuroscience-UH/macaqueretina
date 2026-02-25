@@ -1,74 +1,53 @@
 """
-This module is run when macaqueretina is imported. It connects the top-level
-macaqueretina namespace to the various sub-modules. It also runs the
-ProjectManager to load the configuration parameters.
+This module runs when macaqueretina is imported. It connects the top-level
+macaqueretina namespace to the various sub-modules.
 """
 
-# Built-in
-import os
-from pathlib import Path
-from typing import TYPE_CHECKING, Callable
-
-import tomllib
-
 # Local
-from .analysis.analysis_module import Analysis
-from .project.project_manager_module import ProjectManager as _ProjectManager
-from .retina.retina_math_module import RetinaMath
-from .stimuli.experiment_module import Experiment
-from .viz.viz_module import Viz, VizResponse
+from . import analysis, viz
+from . import retina as retina_math
+from .data_io import load_data
+from .project import countlines
+from .project.project_manager_module import data_sampler
+from .project.project_manager_module import load_parameters as _load_parameters
+from .retina import build_retina, save_retina, simulate_retina
+from .stimuli import make_stimulus, run_experiment
 
-if TYPE_CHECKING:
-    from data_io.config_io import Configuration
-
-# ProjectManager instance
-if os.environ.get("YAML_TMPDIR"):
-    yaml_tmpdir = Path(os.environ.get("YAML_TMPDIR"))
-else:
-    yaml_tmpdir = None
-
-PM: _ProjectManager = _ProjectManager(yaml_path=yaml_tmpdir)
-
-# This connects the top-level macaqueretina namespace to the various modules. Look here if you are lost.
-config: "Configuration" = PM.config
-analysis: Analysis = PM.ana
-combine_LGN_input = PM.data_io.combine_LGN_input
-construct_retina: Callable = PM.construct_retina.build_retina_client
-countlines = PM.countlines
-DataSampler = PM.data_sampler
-experiment: Experiment = PM.experiment
-load_data = PM.data_io.load_data
-make_stimulus: Callable = PM.stimulate.make_stimulus_video
-retina_math: RetinaMath = PM.retina_math
-simulate_retina: Callable = PM.simulate_retina.client
-viz: Viz = PM.viz
-viz_spikes_with_stimulus: VizResponse = PM.viz_spikes_with_stimulus.client
+config = None
 
 
-# Define what is imported when doing: from macaqueretina import *. Only the objects in
-# __all__ can be imported this way.
+def load_parameters():
+    """Load parameters and store in module namespace."""
+    global config
+    config = _load_parameters()
+    print("Parameters loaded successfully.")
+
+
 __all__ = [
-    "analysis",
-    "config",
-    "construct_retina",
-    "countlines",
-    "DataSampler",
-    "experiment",
-    "load_data",
-    "make_stimulus",
+    "load_parameters",
     "retina_math",
-    "simulate_retina",
+    "analysis",
     "viz",
-    "viz_spikes_with_stimulus",
+    "data_sampler",
+    "load_data",
+    "config",
+    "make_stimulus",
+    "run_experiment",
+    "build_retina",
+    "save_retina",
+    "simulate_retina",
+    "countlines",
 ]
-
-del _ProjectManager
 
 
 def get_version():
+    import os
+
+    import tomli
+
     pyproject_path = os.path.join(os.path.dirname(__file__), "..", "pyproject.toml")
     with open(pyproject_path, "rb") as f:
-        data = tomllib.load(f)
+        data = tomli.load(f)
         return data["tool"]["poetry"]["version"]
 
 

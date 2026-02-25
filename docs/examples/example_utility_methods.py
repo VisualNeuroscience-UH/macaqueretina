@@ -1,12 +1,15 @@
 """Example usage of MacaqueRetina."""
 
 # Built-in
+from pathlib import Path
 
 # Third-party
 import matplotlib.pyplot as plt
 
 # Local
 import macaqueretina as mr
+
+mr.load_parameters()
 
 # ##########################
 # ###  Print parameters  ###
@@ -63,7 +66,7 @@ print(mr.config.simulation_parameters)
 
 # # Plot lowest and highest tick values in the image, use these as calibration points
 # min_X, max_X, min_Y, max_Y = (0.1, 10, 1, 100)  # Needs to be set for each figure
-# ds = mr.DataSampler(filename_full, min_X, max_X, min_Y, max_Y, logX=True, logY=True)
+# ds = mr.data_sampler(filename_full, min_X, max_X, min_Y, max_Y, logX=True, logY=True)
 
 # # ds.collect_and_save_points() # Will overwrite existing data file -- change filename or move existing file first
 # ds.quality_control()  # Show image with calibration and data points
@@ -74,7 +77,7 @@ print(mr.config.simulation_parameters)
 # ###  For the rest, you need to run these once to create data files  ###
 # #######################################################################
 
-# mr.construct_retina()
+# mr.build_retina()
 # mr.make_stimulus()
 # mr.simulate_retina()
 
@@ -94,7 +97,7 @@ print(mr.config.simulation_parameters)
 # ##################################
 
 # filename_parents = mr.config.output_folder
-# # Build response filename from scratch
+# Build response filename from scratch
 # gc_type = mr.config.retina_parameters["gc_type"]
 # response_type = mr.config.retina_parameters["response_type"]
 # hashstr = mr.config.retina_parameters["retina_parameters_hash"]
@@ -117,7 +120,7 @@ print(mr.config.simulation_parameters)
 # mr.config.retina_parameters.temporal_model_type = (
 #     "fixed"  # "fixed", "dynamic", "subunit"
 # )
-# mr.construct_retina()
+# mr.build_retina()
 
 # mr.config.simulation_parameters["contrasts_for_impulse"] = [1.0]
 # mr.simulate_retina(impulse=True)
@@ -126,9 +129,9 @@ print(mr.config.simulation_parameters)
 # ######################################
 # ###        Show unity data         ###
 # ######################################
-# mr.config.retina_parameters.ecc_limits_deg = (3.5, 6.5)  # eccentricity in degrees
-# mr.config.retina_parameters.pol_limits_deg = (-15, 15)  # polar angle in degrees
-# mr.construct_retina()
+# mr.config.retina_parameters.ecc_limits_deg = [3.5, 6.5]  # eccentricity in degrees
+# mr.config.retina_parameters.pol_limits_deg = [-15, 15]  # polar angle in degrees
+# mr.build_retina()
 
 # mr.simulate_retina(unity=True)
 # mr.viz.show_unity(savefigname=None)

@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 # Built-in
 import shutil
 import tempfile
 import time
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
 
 # Third-party
 import brian2 as b2
@@ -28,6 +30,9 @@ from tqdm import tqdm
 from macaqueretina.project.project_utilities_module import PrintableMixin
 
 BrianLogger.log_level_error()
+
+if TYPE_CHECKING:
+    from macaqueretina.data_io.config_io import Configuration
 
 
 class GanglionCellBase(ABC):
@@ -2555,6 +2560,7 @@ class ConeProduct(ReceptiveFieldsBase):
         interpolate_data: callable,
         lin_interp_and_double_lorenzian: callable,
         get_photoisomerizations_from_luminance: callable,
+        gain_calibration_table: dict[str, Any],
         target_gc_for_multiple_trials: Optional[int] = None,
     ) -> None:
         super().__init__(retina_parameters)
@@ -2563,6 +2569,11 @@ class ConeProduct(ReceptiveFieldsBase):
         self.ret_npz = ret_npz
         self.device = device
         self.ND_filter = ND_filter
+        self.current_noise_fr_mean = gain_calibration_table[
+            self.retina_parameters.gc_type
+        ][self.retina_parameters.response_type][
+            self.retina_parameters.spatial_model_type
+        ][self.retina_parameters.temporal_model_type]
         self.interpolate_data = interpolate_data
         self.lin_interp_and_double_lorenzian = lin_interp_and_double_lorenzian
         self.get_photoisomerizations_from_luminance = (
@@ -3102,7 +3113,7 @@ class ConeProduct(ReceptiveFieldsBase):
                 noise_out = np.random.normal(loc=mu, scale=sigma, size=dims)
 
         vs.gc_synaptic_noise_raw = noise_out
-        vs.noise_fr_mean = self.retina_parameters["noise_fr_mean"]
+        vs.noise_fr_mean = self.current_noise_fr_mean
 
         return vs
 
@@ -3325,7 +3336,7 @@ class GanglionCellProduct(ReceptiveFieldsBase):
     def __init__(
         self,
         retina_parameters: Dict[str, Any],
-        experimental_metadata: Dict[str, Any],
+        config: "Configuration",
         rfs_npz: Dict[str, Any],
         gc_dataframe: pd.DataFrame,
         spike_generator_model: Any,
@@ -3333,6 +3344,7 @@ class GanglionCellProduct(ReceptiveFieldsBase):
     ):
         super().__init__(retina_parameters)
 
+        self.config = config
         self.spike_generator_model = spike_generator_model
         self.mask_threshold = retina_parameters["center_mask_threshold"]
         self.fixed_mask_threshold = retina_parameters["fixed_mask_threshold"]
@@ -3345,7 +3357,7 @@ class GanglionCellProduct(ReceptiveFieldsBase):
             self.mask_threshold >= 0 and self.mask_threshold <= 1
         ), "mask_threshold must be between 0 and 1, aborting..."
 
-        self.experimental_metadata = experimental_metadata
+        self.experimental_metadata = self.config.experimental_metadata
         self.data_microm_per_pixel = self.experimental_metadata["data_microm_per_pix"]
         self.data_filter_fps = self.experimental_metadata["data_fps"]
         self.data_filter_timesteps = self.experimental_metadata[
@@ -3413,7 +3425,11 @@ class GanglionCellProduct(ReceptiveFieldsBase):
         Set gain adjustment for ganglion cells.
 
         """
-        self.gain_galibration = self.retina_parameters["calibrated_gain"]
+        self.gc_gain_adjustment = self.config.gain_calibration.signal_gain_table[
+            self.config.retina_parameters.gc_type
+        ][self.retina_parameters.response_type][
+            self.retina_parameters.spatial_model_type
+        ][self.retina_parameters.temporal_model_type]
 
     def link_gcs_to_vs(self, vs: Any) -> None:
         """
@@ -3865,12 +3881,15 @@ class SimulateRetina:
             self.retina_math.interpolate_data,
             self.retina_math.lin_interp_and_double_lorenzian,
             self.retina_math.get_photoisomerizations_from_luminance,
+            self.config.gain_calibration.signal_gain_table.as_dict(),
             target_gc_for_multiple_trials,
         )
 
         return cones
 
-    def _get_cone_noise_from_file_if_exists(self, vs: Any, gcs: Any) -> Any:
+    def _get_cone_noise_from_file_if_exists(
+        self, vs: Any, gcs: Any, ret_npz: Any
+    ) -> Any:
         """
         Load cone noise from file if it exists.
 
@@ -3885,7 +3904,12 @@ class SimulateRetina:
             Updated visual signal object.
         """
 
-        cone_noise_hash = self.config.retina_parameters["cone_noise_hash"]
+        try:
+            cone_noise_hash = self.config.retina_parameters["cone_noise_hash"]
+        except KeyError:
+            cone_noise_hash = ret_npz["cone_noise_hash"]
+            print("This is an informative message telling that...")
+
         filename_stem_cone_noise = f"cone_noise_{cone_noise_hash}"
         cone_noise_filename_full = self.data_io.parse_path(
             "", substring=filename_stem_cone_noise
@@ -3939,7 +3963,7 @@ class SimulateRetina:
 
         gcs = GanglionCellProduct(
             self.config.retina_parameters,
-            self.config.experimental_metadata,
+            self.config,
             rfs_npz,
             gc_dataframe,
             spike_generator_model,
@@ -3970,7 +3994,7 @@ class SimulateRetina:
             stimulus_video=stimulus,
         )
 
-        vs = self._get_cone_noise_from_file_if_exists(vs, gcs)
+        vs = self._get_cone_noise_from_file_if_exists(vs, gcs, ret_npz)
 
         # Link ganglion cell receptive fields to visual signal. Eg applies rotation
         gcs.link_gcs_to_vs(vs)

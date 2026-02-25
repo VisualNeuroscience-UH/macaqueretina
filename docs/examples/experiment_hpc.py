@@ -4,13 +4,52 @@ Parameters are changed via environment variables using __main__.py when invoking
 The environment variables are set in SLURM job script.
 """
 
+import os
 import time
-
-start_time = time.time()
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 
+# Third-party
+import yaml
+
+start_time = time.time()
+
+
+def update_yaml_with_env_vars(yaml_path, top_level_key):
+    with open(yaml_path) as f:
+        data = yaml.safe_load(f)
+
+    for key, value in data[top_level_key].items():
+        env_var = key.upper()
+        if env_var in os.environ and isinstance(value, str):
+            data[top_level_key][key] = os.environ[env_var]
+
+    with open(yaml_path, "w") as f:
+        yaml.safe_dump(data, f, sort_keys=False)
+    print(
+        f"Updated '{yaml_path}' with environment variables for top-level key '{top_level_key}'."
+    )
+
+
+##################################################
+# Repeat for all parameters file & key pairs whose
+# parameters should be updated via env vars
+
+yaml_path = Path("macaqueretina/parameters/retina_parameters.yaml")
+top_level_key = "retina_parameters"
+
+update_yaml_with_env_vars(yaml_path, top_level_key)
+############################################
+
 import macaqueretina as mr
+
+mr.load_parameters()
+
+stimulus_folder = f"stim_{mr.config.experiment}"
+mr.config.output_folder = f"{mr.config.experiment}_{mr.config.gc_type}_{mr.config.response_type}_{mr.config.spatial_model_type}_{mr.config.temporal_model_type}"
+
+mr.build_retina()
 
 ###############################
 ## Build and run experiment ###
@@ -41,7 +80,7 @@ mr.config.experiment_parameters = {
     "distributions": {"uniform": None},
 }
 
-filename = mr.experiment.build_and_run(build_without_run=False)
+filename = mr.run_experiment(build_without_run=True)
 
 ########################################
 ## Analyze and visualize experiment ###

@@ -137,12 +137,6 @@ retina_parameters_extend:
     show_placing_progress: False  # True False
     show_skip_steps: 5
 
-
-  n_repulsion_iterations:
-    parasol: 400
-    midget: 40
-
-
   # For VAE, this is enough to have good distribution between units.
   receptive_field_repulsion_parameters:
     change_rate: 0.005
@@ -152,7 +146,9 @@ retina_parameters_extend:
     show_only_unit: null  # null or int for unit idx
     show_skip_steps: 5
     savefigname: null  # f"Layout_{gc_type}_{response_type}_FIT.eps",  # # string w/ type suffix or null, null for no save
-
+    n_repulsion_iterations:
+      "parasol": 400
+      "midget": 40
 
     # For subunit model we assume constant bipolar to cone ratio as function of ecc.
     # Boycott_1991_EurJNeurosci Table 1 has bipolar densities at 6.5 mm ecc.
@@ -171,7 +167,7 @@ retina_parameters_extend:
 
   # Options linear, quadratic, cubic, powerlaw.
   # For midget < 20 deg, use quadratic; for parasol use powerlaw
-  dd_regr_model_options:
+  dd_regr_model:
     parasol: "powerlaw"
     midget: "quadratic"
 

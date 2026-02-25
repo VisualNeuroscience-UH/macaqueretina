@@ -154,15 +154,9 @@ class Configuration(MutableMapping):
     def __init__(
         self,
         initial: Mapping[str, Any] | None = None,
-        *,
-        _root: "Configuration | None" = None,
-        _path: tuple[str, ...] = (),
     ) -> None:
+        """Initialize the configuration, optionally with a mapping to populate config."""
         super().__setattr__("_data", {})
-        super().__setattr__("_on_change", None)  # type: Callable[[Configuration, tuple[str, ...], Any], None] | None
-        super().__setattr__("_mute_depth", 0)
-        super().__setattr__("_root", _root if _root is not None else self)
-        super().__setattr__("_path", _path)
 
         if initial:
             for k, v in dict(initial).items():
@@ -326,6 +320,8 @@ class Configuration(MutableMapping):
         """Supports attribute-like access (config.param)"""
         if name in self._data:
             return self._data[name]
+        if name in self._dependent:
+            return self._dependent[name]()
         raise AttributeError(f"No attribute '{name}' found.")
 
     def __setattr__(self, name: str, value: Any) -> None:
@@ -410,7 +406,8 @@ class Configuration(MutableMapping):
         """Get parameters from the YAML files. Delegates to _YamlLoader."""
         loader = _YamlLoader(paths)
         raw_config = loader.load_config()
-        return cls(raw_config)
+        config = cls(raw_config)
+        return config
 
     # Hashing
     def hash(self, length: int = 10) -> str:

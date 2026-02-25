@@ -6,7 +6,9 @@ import matplotlib.pyplot as plt
 # Local
 import macaqueretina as mr
 
-mr.construct_retina()
+mr.load_parameters()
+
+mr.build_retina()
 
 ###############################
 ## Build and run experiment ###
@@ -26,7 +28,7 @@ mr.config.experiment_parameters = {
     "distributions": {"uniform": None},
 }
 
-filename = mr.experiment.build_and_run(build_without_run=False)
+filename = mr.run_experiment(build_without_run=False)
 
 ########################################
 ## Analyze and visualize experiment ###

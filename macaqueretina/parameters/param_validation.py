@@ -257,7 +257,7 @@ class GainCalibration(BaseConfigModel):
 
     calibrated_gain_table: SignalGainTable
 
-    class NoiseFrMeanTable(BaseConfigModel):
+    class NoiseFrMean(BaseConfigModel):
         class On(BaseConfigModel):
             parasol: float
             midget: float
@@ -270,7 +270,7 @@ class GainCalibration(BaseConfigModel):
 
         off: Off
 
-    noise_fr_mean_table: NoiseFrMeanTable
+    noise_fr_mean: NoiseFrMean
 
 
 ## From retina_parameters_extend.yaml
@@ -431,12 +431,6 @@ class RetinaParametersExtend(BaseConfigModel):
 
     bipolar_placement_parameters: BipolarPlacementParameters
 
-    class NRepulsionIterations(BaseConfigModel):
-        parasol: int
-        midget: int
-
-    n_repulsion_iterations: NRepulsionIterations
-
     class ReceptiveFieldRepulsionParameters(BaseConfigModel):
         change_rate: float = 0.005
         cooling_rate: float = 0.999
@@ -446,20 +440,11 @@ class RetinaParametersExtend(BaseConfigModel):
         show_skip_steps: int = 5
         savefigname: str | None
 
-        retina_parameters: RetinaParameters | None = Field(
-            default=None, exclude=True, repr=False
-        )
-        retina_parameters_extend: RetinaParametersExtend | None = Field(
-            default=None, exclude=True, repr=False
-        )
+        class NRepulsionIterations(BaseConfigModel):
+            parasol: int
+            midget: int
 
-        @computed_field
-        @property
-        def n_iterations(self) -> int:
-            return getattr(
-                self.retina_parameters_extend.n_repulsion_iterations,
-                self.retina_parameters.gc_type,
-            )
+        n_repulsion_iterations: NRepulsionIterations
 
     receptive_field_repulsion_parameters: ReceptiveFieldRepulsionParameters
 
@@ -478,7 +463,7 @@ class RetinaParametersExtend(BaseConfigModel):
 
     bipolar2gc_dict: Bipolar2gcDict
 
-    class DdRegrModelOptions(BaseConfigModel):
+    class DdRegrModel(BaseConfigModel):
         parasol: Literal["linear", "quadratic", "cubic", "powerlaw"] = Field(
             default="powerlaw",
             description="Dendritic diameter regression model for parasol",
@@ -488,7 +473,7 @@ class RetinaParametersExtend(BaseConfigModel):
             description="Dendritic diameter regression model for midget",
         )
 
-    dd_regr_model_options: DdRegrModelOptions
+    dd_regr_model: DdRegrModel
 
     retina_parameters: RetinaParameters | None = Field(
         default=None, exclude=True, repr=False
@@ -588,6 +573,31 @@ class ExperimentalMetadata(BaseInternalConfigModel):
     )
 
 
+## From literature.yaml
+class LiteratureDataFiles(BaseConfigModel):
+    gc_density_1_datafile: str
+    gc_density_2_datafile: str
+    gc_density_1_scaling_data_and_function: list
+    gc_density_control_datafile: str
+    dendr_diam1_datafile_parasol: str
+    dendr_diam2_datafile_parasol: str
+    dendr_diam3_datafile_parasol: str
+    dendr_diam1_datafile_midget: str
+    dendr_diam2_datafile_midget: str
+    dendr_diam3_datafile_midget: str
+    temporal_BK_model_datafile_parasol: str
+    temporal_BK_model_datafile_midget: str
+    cone_density1_datafile: str
+    cone_density2_datafile: str
+    cone_noise_datafile: str
+    cone_response_datafile: str
+    bipolar_table_datafile: str
+    parasol_on_RI_values_datafile: str
+    parasol_off_RI_values_datafile: str
+    temporal_pattern_datafile: str
+    dendr_diam_units: DendrDiamUnits
+
+
 ## Main validation class
 class ConfigParams(BaseConfigModel):
     """
@@ -625,109 +635,8 @@ class ConfigParams(BaseConfigModel):
     simulation_parameters: SimulationParameters
     gain_calibration: GainCalibration
 
-    gc_density_1_datafile: str
-    gc_density_1_scaling_data_and_function: list
-    gc_density_2_datafile: str
-    gc_density_control_datafile: str
-    dendr_diam_units: DendrDiamUnits
-
-    dendr_diam1_datafile_parasol: str
-    dendr_diam2_datafile_parasol: str
-    dendr_diam3_datafile_parasol: str
-    temporal_BK_model_datafile_parasol: str
-    dendr_diam1_datafile_midget: str
-    dendr_diam2_datafile_midget: str
-    dendr_diam3_datafile_midget: str
-    temporal_BK_model_datafile_midget: str
-
-    cone_density1_datafile: str
-    cone_density2_datafile: str
-    cone_noise_datafile: str
-    cone_response_datafile: str
-    bipolar_table_datafile: str
-    parasol_on_RI_values_datafile: str
-    parasol_off_RI_values_datafile: str
-    temporal_pattern_datafile: str
-
-    @computed_field
-    @property
-    def literature_data_folder(self) -> Path:
-        return self.git_repo_root_path.joinpath(r"retina/literature_data")
-
-    @computed_field
-    @property
-    def dendr_diam1_datafile(self) -> str:
-        return getattr(self, f"dendr_diam1_datafile_{self.retina_parameters.gc_type}")
-
-    @computed_field
-    @property
-    def dendr_diam2_datafile(self) -> str:
-        return getattr(self, f"dendr_diam2_datafile_{self.retina_parameters.gc_type}")
-
-    @computed_field
-    @property
-    def dendr_diam3_datafile(self) -> str:
-        return getattr(self, f"dendr_diam3_datafile_{self.retina_parameters.gc_type}")
-
-    @computed_field
-    @property
-    def temporal_BK_model_datafile(self) -> str:
-        return getattr(
-            self, f"temporal_BK_model_datafile_{self.retina_parameters.gc_type}"
-        )
-
-    @computed_field
-    @property
-    def path(self) -> Path:
-        path = self.model_root_path.joinpath(
-            Path(self.project), self.experiment
-        ).resolve()
-
-        if not path.is_dir():
-            path.mkdir(parents=True, exist_ok=True)
-
-        # Validate main project path, must be absolute
-        if not path.is_absolute():
-            raise KeyError("The 'path' parameter is not an absolute path, aborting...")
-        return path
-
-    @computed_field
-    @property
-    def input_folder(self) -> Path:
-        if self.input_subfolder:
-            input_folder = self.path.joinpath(Path(self.input_subfolder)).resolve()
-            if not input_folder.is_dir():
-                input_folder.mkdir(parents=True, exist_ok=True)
-        else:
-            input_folder = None
-
-        return input_folder
-
-    @computed_field
-    @property
-    def output_folder(self) -> Path:
-        if self.output_subfolder:
-            output_folder = self.path.joinpath(Path(self.output_subfolder)).resolve()
-            if not output_folder.is_dir():
-                output_folder.mkdir(parents=True, exist_ok=True)
-        else:
-            output_folder = None
-
-        return output_folder
-
-    @computed_field
-    @property
-    def stimulus_folder(self) -> Path:
-        if self.stimulus_subfolder:
-            stimulus_folder = self.path.joinpath(
-                Path(self.stimulus_subfolder)
-            ).resolve()
-            if not stimulus_folder.is_dir():
-                stimulus_folder.mkdir(parents=True, exist_ok=True)
-        else:
-            stimulus_folder = None
-
-        return stimulus_folder
+    # Literature data files and parameters
+    literature_data_files: LiteratureDataFiles
 
     @field_validator("model_root_path", mode="after")
     @classmethod
@@ -750,19 +659,32 @@ class ConfigParams(BaseConfigModel):
         return n
 
     @model_validator(mode="after")
-    def set_references(self) -> Self:
-        """Sets internal cross-references."""
-        self.retina_parameters.gain_calibration = self.gain_calibration
-        self.retina_parameters_extend.retina_parameters = self.retina_parameters
-        self.retina_parameters_extend.receptive_field_repulsion_parameters.retina_parameters = self.retina_parameters
-        self.retina_parameters_extend.receptive_field_repulsion_parameters.retina_parameters_extend = self.retina_parameters_extend
-        self.retina_parameters.gain_calibration = self.gain_calibration
+    def set_derived_values(self) -> Self:
+        """Set parameters that depend on another value in a different class."""
 
-        # Derive default stimulus video name using ConfigParams.stimulus_folder
+        # Stimulus video name
         if self.visual_stimulus_parameters.stimulus_video_name is None:
             self.visual_stimulus_parameters.stimulus_video_name = (
                 str(self.stimulus_folder) + ".hdf5"
             )
+
+        # Literature data folder
+        self.literature_data_folder = self.git_repo_root_path.joinpath(
+            r"retina/literature_data"
+        )
+
+        # Prepend literature data folder
+        for key in LiteratureDataFiles.model_fields.keys():
+            if "_datafile" in key:
+                current_value = getattr(self.literature_data_files, key)
+                setattr(
+                    self.literature_data_files,
+                    key,
+                    f"{self.literature_data_folder}/{current_value}",
+                )
+
+        # Path
+        self.path = self.model_root_path.joinpath(Path(self.project), self.experiment)
 
         return self
 
@@ -796,10 +718,27 @@ class ConfigInternalParams(BaseInternalConfigModel):
         return self
 
 
+def _create_and_validate_core_paths(config):
+    # Create new root/project/experiment path if it doesn't exist
+    if not config.path.is_dir():
+        config.path.mkdir(parents=True, exist_ok=True)
+
+    # Validate main project path, must be absolute
+    if not config.path.is_absolute():
+        raise KeyError("The 'path' parameter is not an absolute path, aborting...")
+
+    # Create the output, stimulus and input folders if they don't exist
+    config.output_folder = config.path.joinpath(config.output_folder)
+    config.stimulus_folder = config.path.joinpath(config.stimulus_folder)
+    config.input_folder = config.path.joinpath(config.input_folder)
+
+    config.input_folder.mkdir(parents=True, exist_ok=True)
+    config.output_folder.mkdir(parents=True, exist_ok=True)
+    config.stimulus_folder.mkdir(parents=True, exist_ok=True)
+
+
 # Façade
-def validate_params(
-    original_config: Configuration,
-) -> Configuration:
+def validate_params(config: Configuration) -> Configuration:
     """
     Validate and convert parameters to the appropriate types.
 
@@ -814,37 +753,26 @@ def validate_params(
         Configuration object with the validated parameters, plus any computed
         field from ConfigParams.
     """
-    raw = (
-        original_config.as_dict()
-        if isinstance(original_config, Configuration)
-        else dict(original_config)
-    )
-    #
-    params = ConfigParams(**raw)
-    _ = (
-        params.path,
-        params.input_folder,
-        params.output_folder,
-        params.stimulus_folder,
-        params.literature_data_folder,
-        params.dendr_diam1_datafile,
-        params.dendr_diam2_datafile,
-        params.dendr_diam3_datafile,
-        params.temporal_BK_model_datafile,
-    )
-
-    internal_params = ConfigInternalParams(
-        experimental_metadata=original_config.get("experimental_metadata"),
-        vae_train_parameters=original_config.get("vae_train_parameters"),
-        git_repo_root_path=original_config.get("git_repo_root_path"),
-    )
-
-    merged = params.model_dump(mode="python")
-    merged.update(internal_params.model_dump(mode="python"))
-
-    config = Configuration(merged)
-
     # Store retina_parameter.yaml keys as core parameters for downstream hashing
     config.retina_core_parameter_keys = config.retina_parameters.keys()
+
+    validated_config: ConfigParams = ConfigParams(**config.as_dict())
+    validated_config: dict = validated_config.model_dump()
+
+    # Validate internal parameters
+    validated_internal_config: ConfigInternalParams = ConfigInternalParams(
+        **{
+            "git_repo_root_path": config.git_repo_root_path,
+            "experimental_metadata": config.as_dict().get("experimental_metadata"),
+            "vae_train_parameters": config.as_dict().get("vae_train_parameters"),
+        }
+    )
+    validated_internal_config: dict = validated_internal_config.model_dump()
+
+    # Franc was here!
+    config.clear()
+    config.update(validated_config)
+    config.update(validated_internal_config)
+    _create_and_validate_core_paths(config)
 
     return config

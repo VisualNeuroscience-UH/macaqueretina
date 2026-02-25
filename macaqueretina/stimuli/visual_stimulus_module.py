@@ -636,7 +636,7 @@ class StimulusPattern:
         Create a temporal wave pattern from digitized temporal sequence.
 
         """
-        filepath = self.config.literature_data_files["temporal_pattern_path"]
+        filepath = self.config.literature_data_files["temporal_pattern_datafile"]
         data_npz = self.data_io.load_data(filepath)
         tp, amp = self.get_xy_from_npz(data_npz)
         duration = self.options["duration_seconds"]
@@ -934,6 +934,7 @@ class VisualStimulus(VideoBaseClass):
         # import time
 
         # Set input arguments to video-object, updates the defaults from VideoBaseClass
+        # TODO: maybe remove? No need to pass parameters this way when importing
         if options is not None:
             self.config.visual_stimulus_parameters = options
 
