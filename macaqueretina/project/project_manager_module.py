@@ -224,7 +224,7 @@ class ProjectManager(ProjectUtilitiesMixin):
             self.data_io,
             self.viz,
             ReceptiveFields=ReceptiveFieldsBase,
-            pol2cart_df=self.simulate_retina.pol2cart_df,
+            pol2cart_df=self.retina_math.pol2cart_df,
             get_w_z_coords=self.simulate_retina.get_w_z_coords,
         )
         self.analog_input = analog_input

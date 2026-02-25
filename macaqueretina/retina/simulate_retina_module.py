@@ -26,7 +26,6 @@ from tqdm import tqdm
 
 # Local
 from macaqueretina.project.project_utilities_module import PrintableMixin
-from macaqueretina.retina.retina_math_module import RetinaMath
 
 BrianLogger.log_level_error()
 
@@ -1550,7 +1549,7 @@ class ConcreteSimulationBuilder(SimulationBuildInterface):
         gcs: "GanglionCellProduct",
         cones: "ConeProduct",
         bipolars: "BipolarProduct",
-        retina_math: RetinaMath,
+        retina_math: "RetinaMath",  # noqa: F821
         device: Any,
         n_sweeps: int,
         stimulate: Any,
@@ -2409,7 +2408,7 @@ class SimulationDirector:
         return vs, gcs
 
 
-class ReceptiveFieldsBase(ABC, PrintableMixin, RetinaMath):
+class ReceptiveFieldsBase(ABC, PrintableMixin):
     """
     Base class for receptive fields information.
 
@@ -2555,6 +2554,7 @@ class ConeProduct(ReceptiveFieldsBase):
         ND_filter: float,
         interpolate_data: callable,
         lin_interp_and_double_lorenzian: callable,
+        get_photoisomerizations_from_luminance: callable,
         target_gc_for_multiple_trials: Optional[int] = None,
     ) -> None:
         super().__init__(retina_parameters)
@@ -2565,6 +2565,9 @@ class ConeProduct(ReceptiveFieldsBase):
         self.ND_filter = ND_filter
         self.interpolate_data = interpolate_data
         self.lin_interp_and_double_lorenzian = lin_interp_and_double_lorenzian
+        self.get_photoisomerizations_from_luminance = (
+            get_photoisomerizations_from_luminance
+        )
 
         self.cones_to_gcs_weights = ret_npz["cones_to_gcs_weights"]
         self.cone_noise_parameters = ret_npz["cone_noise_parameters"]
@@ -3678,7 +3681,7 @@ class VisualSignal(PrintableMixin):
         return q, r
 
 
-class SimulateRetina(RetinaMath):
+class SimulateRetina:
     """
     Simulates retinal activity in response to visual stimuli.
 
@@ -3697,19 +3700,6 @@ class SimulateRetina(RetinaMath):
         Container for project-specific data.
     retina_math : RetinaMath
         Mathematical utilities for retinal calculations.
-
-    Attributes
-    ----------
-    config : Configuration
-        Configuration parameters object.
-    data_io : Any
-        Data input/output handler.
-    viz : Any
-        Visualization utilities.
-    project_data : Any
-        Container for project-specific data.
-    retina_math : RetinaMath
-        Mathematical utilities for retinal calculations.
     """
 
     def __init__(
@@ -3717,7 +3707,7 @@ class SimulateRetina(RetinaMath):
         config: Any,
         data_io: Any,
         project_data: Any,
-        retina_math: RetinaMath,
+        retina_math: "RetinaMath",  # noqa: F821
         stimulate: Any,
     ) -> None:
         self._config = config
@@ -3739,7 +3729,7 @@ class SimulateRetina(RetinaMath):
         return self._project_data
 
     @property
-    def retina_math(self) -> RetinaMath:
+    def retina_math(self) -> "RetinaMath":  # noqa: F821
         return self._retina_math
 
     @property
@@ -3870,9 +3860,9 @@ class SimulateRetina(RetinaMath):
             ret_npz,
             self.config.device,
             self.config.visual_stimulus_parameters["ND_filter"],
-            # RetinaMath methods:
-            self.interpolate_data,
-            self.lin_interp_and_double_lorenzian,
+            self.retina_math.interpolate_data,
+            self.retina_math.lin_interp_and_double_lorenzian,
+            self.retina_math.get_photoisomerizations_from_luminance,
             target_gc_for_multiple_trials,
         )
 
@@ -3951,7 +3941,7 @@ class SimulateRetina(RetinaMath):
             rfs_npz,
             gc_dataframe,
             spike_generator_model,
-            self.pol2cart_df,
+            self.retina_math.pol2cart_df,
         )
 
         ret_npz_file = self.config.retina_parameters["ret_file"]
