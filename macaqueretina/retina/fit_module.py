@@ -2,6 +2,7 @@
 import random
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 # Third-party
 import numpy as np
@@ -15,6 +16,10 @@ from tqdm import tqdm
 from macaqueretina.project.project_utilities_module import PrintableMixin
 from macaqueretina.retina.experimental_data_module import ExperimentalData
 from macaqueretina.retina.retina_math_module import RetinaMath
+
+if TYPE_CHECKING:
+    from macaqueretina.data_io.config_io import Configuration
+    from macaqueretina.project.project_manager_module import ProjectData
 
 
 @dataclass
@@ -1407,14 +1412,14 @@ class Fit(RetinaMath):
     a function consisting of cascade of two lowpass filters and for adding the tonic drive.
     """
 
-    def __init__(self, project_data, experimental_metadata):
+    def __init__(self, project_data: ProjectData, experimental_metadata: Configuration):
         # Dependency injection at ProjectManager construction
         self._project_data = project_data
 
         self.metadata = experimental_metadata
 
     @property
-    def project_data(self):
+    def project_data(self) -> ProjectData:
         return self._project_data
 
     def _get_concrete_components(self) -> None:
@@ -1448,13 +1453,13 @@ class Fit(RetinaMath):
 
     def client(
         self,
-        gc_type,
-        response_type,
-        fit_type="experimental",
-        dog_model_type="ellipse_fixed",
-        spatial_data=None,
-        um_per_pix=None,
-        mark_outliers_bad=False,
+        gc_type: str,
+        response_type: str,
+        fit_type: str = "experimental",
+        dog_model_type: str = "ellipse_fixed",
+        spatial_data: np.ndarray | None = None,
+        um_per_pix: float | None = None,
+        mark_outliers_bad: bool = False,
     ):
         """
         Initialize the Fit object.
@@ -1505,7 +1510,9 @@ class Fit(RetinaMath):
 
         self.receptive_field_sd = self.fit_data_type.get_center_surround_sd()
 
-    def get_experimental_statistics(self):
+    def get_experimental_statistics(
+        self,
+    ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
         self.project_data.fit["exp_spat_filt"] = self.fit_data_type.spat_filt
         self.project_data.fit["spatial_data_and_model"] = (
             self.fit_data_type.spatial_data_and_model
@@ -1522,7 +1529,7 @@ class Fit(RetinaMath):
 
         return self.fit_data_type.get_experimental_statistics()
 
-    def get_generated_DoG_fits(self):
+    def get_generated_DoG_fits(self) -> tuple[pd.DataFrame, pd.DataFrame, np.ndarray]:
         gen_stat_df, all_data_fits_df, good_idx = (
             self.fit_data_type.get_generated_DoG_fits()
         )
@@ -1530,8 +1537,8 @@ class Fit(RetinaMath):
         self.project_data.fit["gen_spat_filt"] = self.fit_data_type.spat_filt
         return gen_stat_df, all_data_fits_df, good_idx
 
-    def get_good_data_df(self):
+    def get_good_data_df(self) -> pd.DataFrame:
         return self.fit_data_type.all_data_fits_df.loc[self.fit_data_type.good_idx, :]
 
-    def get_good_data_idx(self):
+    def get_good_data_idx(self) -> np.ndarray:
         return self.fit_data_type.good_idx
