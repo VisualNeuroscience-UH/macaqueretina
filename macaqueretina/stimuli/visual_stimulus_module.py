@@ -25,7 +25,6 @@ Output: video stimulus frames in hdf5 (reloading) and mp4 (viewing)
 if TYPE_CHECKING:
     from macaqueretina.data_io.config_io import Configuration
     from macaqueretina.data_io.data_io_module import DataIO
-    from macaqueretina.viz.viz_module import Viz
 
 
 class VideoBaseClass:
