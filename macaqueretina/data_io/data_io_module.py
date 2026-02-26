@@ -20,6 +20,12 @@ import yaml
 from brian2.input.timedarray import TimedArray
 
 
+class DummyVideoClass:
+    def __init__(self, data_dict):
+        for key, value in data_dict.items():
+            setattr(self, key, value)
+
+
 class DataIO:
     def __init__(self, config) -> None:
         self.config = config
@@ -702,13 +708,6 @@ class DataIO:
             raise FileNotFoundError(f"No stimulus video at {fullpath_filename_hdf5}")
         else:
             data_dict = self.load_dict_from_hdf5(fullpath_filename_hdf5)
-
-        # Create a dummy VideoBaseCLass object to create a stimulus object
-        class DummyVideoClass:
-            def __init__(self, data_dict):
-                for key, value in data_dict.items():
-                    setattr(self, key, value)
-                # self.options = options
 
         stimulus = DummyVideoClass(data_dict)
 
