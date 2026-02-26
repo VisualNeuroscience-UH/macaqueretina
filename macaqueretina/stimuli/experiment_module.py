@@ -1,5 +1,6 @@
 # Built-in
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 # Third-party
 import numpy as np
@@ -7,6 +8,12 @@ import pandas as pd
 
 # Local
 from macaqueretina.stimuli.visual_stimulus_module import VideoBaseClass
+
+if TYPE_CHECKING:
+    from macaqueretina.data_io.config_io import Configuration
+    from macaqueretina.data_io.data_io import DataIO
+    from macaqueretina.retina.simulate_retina_module import SimulateRetina
+    from macaqueretina.stimuli.visual_stimulus_module import VisualStimulus
 
 
 class RelevantStimulusParameters:
@@ -72,7 +79,7 @@ class RelevantStimulusParameters:
     ]
 
     @staticmethod
-    def get_relations(options):
+    def get_relations(options: dict) -> list[str]:
         """
         Only a subset of stimulus parameters are relevant for the current stimulus type.
         Select the relevant stimulus parameters as a key: value dictionary.
@@ -106,7 +113,13 @@ class Experiment(VideoBaseClass):
     Build your experiment here
     """
 
-    def __init__(self, config, data_io, stimulate, simulate_retina):
+    def __init__(
+        self,
+        config: Configuration,
+        data_io: DataIO,
+        stimulate: VisualStimulus,
+        simulate_retina: SimulateRetina,
+    ):
         super().__init__()
         self._config = config
         self._data_io = data_io
@@ -114,27 +127,27 @@ class Experiment(VideoBaseClass):
         self._simulate_retina = simulate_retina
 
     @property
-    def config(self):
+    def config(self) -> Configuration:
         return self._config
 
     @property
-    def data_io(self):
+    def data_io(self) -> DataIO:
         return self._data_io
 
     @property
-    def stimulate(self):
+    def stimulate(self) -> VisualStimulus:
         return self._stimulate
 
     @property
-    def simulate_retina(self):
+    def simulate_retina(self) -> SimulateRetina:
         return self._simulate_retina
 
-    def _replace_options(self, input_options):
+    def _replace_options(self, input_options: dict):
         # Replace with input options
         for this_key in input_options.keys():
             self.options[this_key] = input_options[this_key]
 
-    def _meshgrid_conditions(self, options):
+    def _meshgrid_conditions(self, options: dict):
         # Get all conditions and their values
         conditions_to_meshgrid = list(options.keys())
         values_to_meshgrid = [
@@ -178,7 +191,9 @@ class Experiment(VideoBaseClass):
 
         return cond_options, cond_names
 
-    def _get_cond_metadata_values(self, logarithmic, min_max_values, n_steps):
+    def _get_cond_metadata_values(
+        self, logarithmic: bool, min_max_values: tuple, n_steps: int
+    ):
         """
         The values include n_steps between the corresponding min_max_values. The steps
         can be linear or logarithmic
@@ -212,7 +227,9 @@ class Experiment(VideoBaseClass):
 
         return values
 
-    def _generate_gaussian_distributions(self, cond_values, stats):
+    def _generate_gaussian_distributions(
+        self, cond_values: np.ndarray, stats: dict
+    ) -> np.ndarray:
         # Unpack the provided stats dictionary
         samples = np.ceil(stats["sweeps"] / 2).astype(int)
         mean1, mean2 = stats["mean"]
@@ -246,7 +263,11 @@ class Experiment(VideoBaseClass):
         return combined_distributions
 
     def _show_histogram(
-        self, cond_metadata_key, exp_variables, min_max_values, n_steps
+        self,
+        cond_metadata_key: dict,
+        exp_variables: list,
+        min_max_values: list,
+        n_steps: list,
     ):
         # Third-party
         import matplotlib.pyplot as plt
@@ -268,7 +289,7 @@ class Experiment(VideoBaseClass):
 
         plt.show()
 
-    def _build(self, experiment_parameters, show_histogram=False):
+    def _build(self, experiment_parameters: dict, show_histogram: bool = False):
         """
         Setup
         """
@@ -367,7 +388,9 @@ class Experiment(VideoBaseClass):
 
         return cond_options_collated, cond_names
 
-    def _create_dataframe(self, cond_options, cond_names, options):
+    def _create_dataframe(
+        self, cond_options: list[dict], cond_names: list[str], options: dict
+    ) -> pd.DataFrame:
         """
         Create a DataFrame with the varying independent stimulus parameters.
 
@@ -424,7 +447,9 @@ class Experiment(VideoBaseClass):
 
         return df
 
-    def _invert_dataframe(self, df, exp_variables):
+    def _invert_dataframe(
+        self, df: pd.DataFrame, exp_variables: list[str]
+    ) -> tuple[list[dict], list[str]]:
         """
         Invert the DataFrame to get the varying independent stimulus parameters.
 
@@ -459,7 +484,7 @@ class Experiment(VideoBaseClass):
 
         return cond_options, cond_names
 
-    def _relevant_stimulus_options(self, visual_stimulus_parameters):
+    def _relevant_stimulus_options(self, visual_stimulus_parameters: dict) -> dict:
         """
         This method reads relevant stimulus parameter relations from path, and returns
         a new dictionary relevant_metadata.
@@ -494,8 +519,8 @@ class Experiment(VideoBaseClass):
 
     def build_and_run(
         self,
-        build_without_run=False,
-        show_histogram=False,
+        build_without_run: bool = False,
+        show_histogram: bool = False,
     ):
         exp_variables = self.config.experiment_parameters["exp_variables"]
         cond_names_string = "_".join(exp_variables)
