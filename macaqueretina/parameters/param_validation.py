@@ -153,11 +153,10 @@ class VisualStimulusParameters(BaseConfigModel):
 
 
 class StimulusMetadataParameters(BaseConfigModel):
-    stimulus_file: Path
-    pix_per_deg: int = Field(
+    ext_stimulus_file: Path
+    ext_pix_per_deg: int = Field(
         default=30, description="VanHateren_1998_ProcRSocLondB 2 arcmin per pixel"
     )
-    fps: int = 25
 
 
 class SimulationParameters(BaseConfigModel):
@@ -174,8 +173,6 @@ class SimulationParameters(BaseConfigModel):
 class GainCalibration(BaseConfigModel):
     ## From gain_calibration.yaml
     class SignalGainTable(BaseConfigModel):
-        threshold: float = Field(default=10.0, description="Threshold in Hz")
-
         class Parasol(BaseConfigModel):
             class On(BaseConfigModel):
                 DOG: dict[str, float]
@@ -599,8 +596,6 @@ class LiteratureDataFiles(BaseConfigModel):
     dendr_diam3_datafile_midget: str
     temporal_BK_model_datafile_parasol: str
     temporal_BK_model_datafile_midget: str
-    spatial_DoG_datafile_parasol: str
-    spatial_DoG_datafile_midget: str
     cone_density1_datafile: str
     cone_density2_datafile: str
     cone_noise_datafile: str
@@ -634,8 +629,6 @@ class ConfigParams(BaseConfigModel):
     output_folder: str
     numpy_seed: int | None
     device: Literal["cpu", "cuda"]
-    run: dict[str, Any]
-    profile: bool = False
 
     # Retina parameters
     retina_parameters: RetinaParameters
