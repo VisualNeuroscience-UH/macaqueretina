@@ -20,12 +20,10 @@ Examples
 # Built-in
 import datetime
 import hashlib
-import inspect
 import pprint
 from collections.abc import MutableMapping
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Iterable, Iterator, Mapping, Literal
+from typing import Any, Iterable, Iterator, Mapping
 
 # Third-party
 import numpy as np
@@ -375,6 +373,8 @@ class Configuration(MutableMapping):
                 return obj.isoformat()
             if isinstance(obj, np.ndarray):
                 return (tuple(obj.shape), tuple(obj.flatten().tolist()))
+            if isinstance(obj, np.integer):
+                return int(obj)
             return obj
 
         # Make Configuration hashable
