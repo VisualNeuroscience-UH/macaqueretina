@@ -882,7 +882,10 @@ class VisualStimulus(VideoBaseClass):
     """
 
     def __init__(
-        self, config: Configuration, data_io: DataIO, get_xy_from_npz: callable
+        self,
+        config: Configuration,
+        data_io: DataIO,
+        get_xy_from_npz: callable | None = None,
     ):
         super().__init__()
 
