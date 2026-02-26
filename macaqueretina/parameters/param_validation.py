@@ -424,71 +424,6 @@ class DendrDiamUnits(BaseConfigModel):
     data3: list[str, str] = ["deg", "um"]
 
 
-class VaeTrainParameters(BaseInternalConfigModel):
-    vae_run_mode: Literal["load_model", "train_model"] = Field(
-        default="load_model", description="train_model requires experimental data"
-    )
-    epochs: int = Field(default=500, description="Number of training epochs")
-    lr_step_size: int = Field(
-        default=20, description="Learning rate decay step size (in epochs)"
-    )
-    lr_gamma: float | int = Field(
-        default=0.9,
-        description="Learning rate decay (multiplier for learning rate)",
-    )
-    resolution_hw: int = Field(
-        default=13, description="Both x and y images will be sampled to this space."
-    )
-    latent_dim: int = Field(
-        default=32, description="Latent dimension (powers of 2 between 2 and 128)"
-    )
-    channels: int = Field(default=16, description="Number of channels")
-    lr: float = Field(default=0.0005, description="Learning rate")
-    batch_size: int | None = Field(default=256, description="Batch size")
-    test_split: float = Field(
-        default=0.2,
-        description="Split data for validation and testing (both will take this fraction of data)",
-    )
-    kernel_stride: Literal["k3s1", "k3s2", "k5s2", "k5s1", "k7s1"] = "k7s1"
-    conv_layers: int = Field(default=2, description="Number of convolutional layers")
-    batch_norm: bool = Field(default=True, description="Use batch normalization")
-    latent_distribution: Literal["normal", "uniform"] = "uniform"
-
-    @field_validator("latent_dim", mode="after")
-    @classmethod
-    def latent_dim_pow_2(cls, latent_dim: int) -> int:
-        """Check whether latent_dim is a power of 2 between 2 and 128"""
-        if not (2 <= latent_dim <= 128):
-            raise ValueError(
-                "latent_dim (in config/constants.yaml, vae_train_parameters) must be a power of 2 between 2 and 128."
-            )
-        if latent_dim & (latent_dim - 1) != 0:
-            raise ValueError(
-                "latent_dim (in config/constants.yaml, vae_train_parameters) must be a power of 2 between 2 and 128."
-            )
-
-        return latent_dim
-
-    class AugmentationDict(BaseInternalConfigModel):
-        rotation: int = Field(default=0, description="Rotation in degrees")
-        translation: tuple[int, int] = Field(
-            default=(0, 0), description="Fraction of image, in (x, y) -directions"
-        )
-        noise: float = Field(
-            default=0,
-            description="Noise float in [0, 1] (noise is added to the image)",
-        )
-        flip: float = Field(
-            default=0.5,
-            description="Flip probability, both horizontal and vertical",
-        )
-        data_multiplier: int = Field(
-            default=4, description="How many times to get the data w/ augmentation"
-        )
-
-    augmentation_dict: AugmentationDict | None = AugmentationDict()
-
-
 class ExperimentalMetadata(BaseInternalConfigModel):
     data_microm_per_pix: int | None = 60
     data_spatialfilter_height: int | None = 13
@@ -548,7 +483,7 @@ class VaeTrainParameters(BaseInternalConfigModel):
 
         return latent_dim
 
-    class AugmentationDict(BaseInternalConfigModel):
+    class Augmentation(BaseInternalConfigModel):
         rotation: int = Field(default=0, description="Rotation in degrees")
         translation: tuple[int, int] = Field(
             default=(0, 0), description="Fraction of image, in (x, y) -directions"
@@ -565,7 +500,7 @@ class VaeTrainParameters(BaseInternalConfigModel):
             default=4, description="How many times to get the data w/ augmentation"
         )
 
-    augmentation_dict: AugmentationDict | None = AugmentationDict()
+    augmentation: Augmentation | None = Augmentation()
 
 
 class ExperimentalMetadata(BaseInternalConfigModel):
