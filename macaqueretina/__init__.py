@@ -1,11 +1,14 @@
 """
 This module runs when macaqueretina is imported. It connects the top-level
-macaqueretina namespace to the various sub-modules.
+macaqueretina namespace to the various sub-modules. The __init__.py files in
+the sub-modules contain wrapper functions that call the appropriate classes
+and methods from the project_manager_module. This design allows for a
+clean separation of concerns and makes it easier to maintain and extend the codebase in the future.
 """
 
 # Local
 from . import analysis, viz
-from . import retina as retina_math
+from . import retina as retina_math  # TODO
 from .data_io import load_data
 from .project import countlines
 from .project.project_manager_module import data_sampler
