@@ -14,7 +14,7 @@ class ExperimentalData:
     Read data from external mat files.
     """
 
-    def __init__(self, experimental_metadata, gc_type, response_type):
+    def __init__(self, experimental_metadata: dict, gc_type: str, response_type: str):
         self.experimental_data_folder = experimental_metadata[
             "experimental_data_folder"
         ]
@@ -54,7 +54,7 @@ class ExperimentalData:
         self.n_cells = len(self.data)
         self.inverted_data_indices = self._get_inverted_indices()
 
-    def _get_inverted_indices(self):
+    def _get_inverted_indices(self) -> np.ndarray:
         """
         The rank-1 space and time matrices in the dataset may have bumps in an inconsistent way, but the
         outer product always produces a positive deflection first irrespective of on/off polarity.
@@ -74,7 +74,7 @@ class ExperimentalData:
         return inverted_data_indices
 
     # Called from Fit
-    def read_spatial_filter_data(self):
+    def read_spatial_filter_data(self) -> tuple[np.ndarray, np.ndarray]:
         filepath = self.experimental_data_folder / self.spatial_filename
         gc_spatial_data = sio.loadmat(filepath, variable_names=["c", "stafit"])
         spat_data_array = gc_spatial_data["c"]
@@ -92,15 +92,14 @@ class ExperimentalData:
                 cen_rot_rad_all[cell_idx] = cen_rot_rad + 2 * np.pi
 
         n_bad = len(self.known_bad_data_idx)
-        print("\n[%s %s]" % (self.gc_type, self.response_type))
+        print(f"\n[{self.gc_type} {self.response_type}]")
         print(
-            "Read %d cells from datafile and then removed %d bad cells (handpicked)"
-            % (n_spatial_cells, n_bad)
+            f"Read {n_spatial_cells} cells from datafile and then removed {n_bad} bad cells (handpicked)"
         )
 
         return spat_data_array, cen_rot_rad_all
 
-    def read_tonic_drive(self, remove_bad_data_idx=True):
+    def read_tonic_drive(self, remove_bad_data_idx: bool = True) -> np.ndarray:
         tonic_drive = np.array(
             [
                 self.data[cellnum][0][0][0][0][0][1][0][0][0][0][0]
@@ -112,7 +111,9 @@ class ExperimentalData:
 
         return tonic_drive
 
-    def read_temporal_filter_data(self, flip_negs=False, normalize=False):
+    def read_temporal_filter_data(
+        self, flip_negs: bool = False, normalize: bool = False
+    ) -> np.ndarray:
         time_rk1 = np.array(
             [
                 self.data[cellnum][0][0][0][0][0][3][0][0][3]
