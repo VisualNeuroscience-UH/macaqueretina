@@ -28,6 +28,7 @@ from tqdm import tqdm
 
 # Local
 from macaqueretina.project.project_utilities_module import PrintableMixin
+from macaqueretina.stimuli.visual_stimulus_module import VisualStimulus
 
 BrianLogger.log_level_error()
 
@@ -35,10 +36,9 @@ if TYPE_CHECKING:
     from numpy.lib.npyio import NpzFile
 
     from macaqueretina.data_io.config_io import Configuration
-    from macaqueretina.data_io.data_io import DataIO
+    from macaqueretina.data_io.data_io import DataIO, DummyVideoClass
     from macaqueretina.project.project_manager_module import ProjectData
     from macaqueretina.retina.retina_math_module import RetinaMath
-    from macaqueretina.stimuli.visual_stimulus_module import VisualStimulus
 
 
 class GanglionCellBase(ABC):
@@ -863,15 +863,13 @@ class TemporalModelBase(ABC):
         pass
 
     def _initialize_impulse(
-        self, vs: object, gcs: object, dt_ms: float
+        self, gcs: object, dt_ms: float
     ) -> tuple[np.ndarray, np.ndarray, int]:
         """
         Initialize impulse response parameters.
 
         Parameters
         ----------
-        vs : object
-            Visual signal object.
         gcs : object
             Ganglion cell object.
         dt_ms : float
@@ -1165,7 +1163,7 @@ class TemporalModelFixed(TemporalModelBase):
             Dictionary containing impulse response data.
         """
         dt_ms = vs.video_dt / b2u.ms
-        tvec, svec, idx_start_delay = self._initialize_impulse(vs, gcs, dt_ms)
+        tvec, svec, idx_start_delay = self._initialize_impulse(gcs, dt_ms)
 
         gcs = self._get_linear_temporal_filters(gcs)
         impulse_responses = np.tile(
@@ -1252,7 +1250,7 @@ class TemporalModelDynamic(TemporalModelBase):
             indices of start delay, contrasts, and impulse responses.
         """
         dt_ms = vs.video_dt / b2u.ms
-        tvec, svec, idx_start_delay = self._initialize_impulse(vs, gcs, dt_ms)
+        tvec, svec, idx_start_delay = self._initialize_impulse(gcs, dt_ms)
         stim_len_tp = len(tvec)
 
         # Expand n units dim for svec to match the shape of params
@@ -1376,12 +1374,10 @@ class TemporalModelSubunit(TemporalModelBase):
             indices of start delay, contrasts, and impulse responses.
         """
         dt_ms = vs.video_dt / b2u.ms
-        tvec, svec, idx_start_delay = self._initialize_impulse(vs, gcs, dt_ms)
+        tvec, svec, idx_start_delay = self._initialize_impulse(gcs, dt_ms)
         stim_len_tp = len(tvec)
 
-        # duration_tp = 50
-        duration_tp = svec.sum()
-
+        duration_tp = 1
         options = self.stimulate.options
         options["fps"] = 1000 / dt_ms
         options["duration_seconds"] = duration_tp * dt_ms / 1000
@@ -1407,10 +1403,21 @@ class TemporalModelSubunit(TemporalModelBase):
 
         impulse_responses = np.empty((gcs.n_units, stim_len_tp, len(contrasts)))
         for idx, contrast in enumerate(contrasts):
-            options["intensity"] = (
-                bg_min,
-                np.clip(int(bg_min * (1 + contrast)), 1, 255),
-            )
+            if svec.max() == 1.0:
+                options["intensity"] = (
+                    bg_min,
+                    np.clip(int(bg_min * (1 + contrast)), 0, 255),
+                )
+            elif svec.min() == -1.0:
+                options["intensity"] = (
+                    np.clip(int(bg_min * (1 - contrast)), 0, 255),
+                    bg_min,
+                )
+            else:
+                raise ValueError(
+                    "Unexpected svec values, expected max 1.0 and min -1.0"
+                )
+
             self.stimulate.options = options
             vs.stimulus_video = self.stimulate.make_stimulus_video(options=options)
             vs.options_from_videofile = vs.stimulus_video.options
@@ -1931,18 +1938,18 @@ class ConcreteSimulationBuilder(SimulationBuildInterface):
         self._spatial_model = spatial_model
         self._temporal_model = temporal_model
 
-    def get_impulse_response(self, contrasts: list[float]) -> None:
+    def get_impulse_response(self, contrasts: tuple[float]) -> None:
         """
         Calculate and store impulse responses for given contrasts.
 
         Parameters
         ----------
-        contrasts : list[float]
-            List of contrast values to use for impulse response calculation.
+        contrasts : tuple[float]
+            Tuple of contrast values to use for impulse response calculation.
         """
         assert contrasts is not None and isinstance(
-            contrasts, list
-        ), "Impulse must specify contrasts as list, aborting..."
+            contrasts, tuple
+        ), "Impulse must specify contrasts as tuple, aborting..."
 
         vs, gcs = self.vs, self.gcs
 
@@ -2194,7 +2201,6 @@ class ConcreteSimulationBuilder(SimulationBuildInterface):
 
         # Perform slicing and arithmetic operations on the first batch
         # print(f"video_copy.shape: {video_copy.shape}")
-        # breakpoint()
         stimulus_cropped_batch = video_copy_tensor[
             0, r_batch, q_batch, time_points_indices_tensor
         ]
@@ -2366,14 +2372,14 @@ class SimulationDirector:
         self.builder.get_generator_potentials()
         self.builder.generate_spikes()
 
-    def run_impulse_response(self, contrasts: list[float]) -> None:
+    def run_impulse_response(self, contrasts: tuple[float]) -> None:
         """
         Run the impulse response simulation.
 
         Parameters
         ----------
-        contrasts : list[float]
-            List of contrast values for the impulse response simulation.
+        contrasts : tuple[float]
+            Tuple of contrast values for the impulse response simulation.
         """
         self.builder.get_concrete_components()
         self.builder.get_impulse_response(contrasts)
@@ -3879,15 +3885,15 @@ class SimulateRetina:
         return vs
 
     def _get_products(
-        self, stimulus: np.ndarray | None
+        self, stimulus: VisualStimulus | None
     ) -> tuple[VisualSignal, GanglionCellProduct, ConeProduct, BipolarProduct]:
         """
         Initialize and return the main components needed for the simulation.
 
         Parameters
         ----------
-        stimulus : np.ndarray or None
-            Input stimulus array or None.
+        stimulus : VisualStimulus or None
+            Input stimulus video instance or None.
 
         Returns
         -------
@@ -3985,9 +3991,16 @@ class SimulateRetina:
             )
             self.config.retina_parameters.retina_parameters_hash = hash_part
 
+    def _prepare_impulse_response_if_needed(
+        self, impulse: bool, stimulus: DummyVideoClass | None
+    ) -> DummyVideoClass | None:
+        if impulse and not stimulus:
+            stimulus = self.stimulate.make_stimulus_video()
+        return stimulus
+
     def client(
         self,
-        stimulus: np.ndarray | None = None,
+        stimulus: DummyVideoClass | None = None,
         filename: str | None = None,
         impulse: bool = False,
         unity: bool = False,
@@ -3997,8 +4010,9 @@ class SimulateRetina:
 
         Parameters
         ----------
-        stimulus : np.ndarray or None, optional
-            Input stimulus array. If None, loads from file.
+        stimulus : DummyVideoClass or None, optional
+            Input stimulus video instance after loading a stimulus.
+            If None, loads from default video file path.
         filename : str or None, optional
             Output filename for spiking gc responses. If None, generates based on config.
         impulse : bool, optional
@@ -4008,6 +4022,7 @@ class SimulateRetina:
         """
 
         self._get_construct_metadata_if_missing()
+        stimulus = self._prepare_impulse_response_if_needed(impulse, stimulus)
         vs, gcs, cones, bipolars = self._get_products(stimulus)
         n_sweeps = self.config.simulation_parameters["n_sweeps"]
 
@@ -4025,7 +4040,6 @@ class SimulateRetina:
         director = SimulationDirector(builder)
         if impulse:
             contrasts = self.config.simulation_parameters["contrasts_for_impulse"]
-            # TODO generate impulse de novo instead of loading stimulus name (?)
             director.run_impulse_response(contrasts)
         elif unity:
             director.run_uniformity_index()
