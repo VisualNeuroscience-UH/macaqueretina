@@ -5,7 +5,7 @@ import shutil
 import tempfile
 import time
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 # Third-party
 import brian2 as b2
@@ -32,7 +32,13 @@ from macaqueretina.project.project_utilities_module import PrintableMixin
 BrianLogger.log_level_error()
 
 if TYPE_CHECKING:
+    from numpy.lib.npyio import NpzFile
+
     from macaqueretina.data_io.config_io import Configuration
+    from macaqueretina.data_io.data_io import DataIO
+    from macaqueretina.project.project_manager_module import ProjectData
+    from macaqueretina.retina.retina_math_module import RetinaMath
+    from macaqueretina.stimuli.visual_stimulus_module import VisualStimulus
 
 
 class GanglionCellBase(ABC):
@@ -634,7 +640,7 @@ class DoGModelEllipseFixed(DoGModelBase):
 
     def get_surround_params(
         self, df: pd.DataFrame
-    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
         Calculate surround parameters from a DataFrame of ganglion cell properties.
 
@@ -645,7 +651,7 @@ class DoGModelEllipseFixed(DoGModelBase):
 
         Returns
         -------
-        Tuple[np.ndarray, np.ndarray, np.ndarray]
+        tuple[np.ndarray, np.ndarray, np.ndarray]
             Tuple containing semi-major axis (x), semi-minor axis (y), and orientation
             of the surround ellipse.
         """
@@ -662,7 +668,7 @@ class DoGModelEllipseIndependent(DoGModelBase):
 
     def get_surround_params(
         self, df: pd.DataFrame
-    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
         Extract surround parameters from a DataFrame of ganglion cell properties.
 
@@ -673,7 +679,7 @@ class DoGModelEllipseIndependent(DoGModelBase):
 
         Returns
         -------
-        Tuple[np.ndarray, np.ndarray, np.ndarray]
+        tuple[np.ndarray, np.ndarray, np.ndarray]
             Tuple containing semi-major axis (x), semi-minor axis (y), and orientation
             of the surround ellipse.
         """
@@ -690,7 +696,7 @@ class DoGModelCircular(DoGModelBase):
 
     def get_surround_params(
         self, df: pd.DataFrame
-    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
         Extract surround parameters from a DataFrame of ganglion cell properties.
 
@@ -703,7 +709,7 @@ class DoGModelCircular(DoGModelBase):
 
         Returns
         -------
-        Tuple[np.ndarray, np.ndarray, np.ndarray]
+        tuple[np.ndarray, np.ndarray, np.ndarray]
             Tuple containing semi-major axis (x), semi-minor axis (y), and orientation
             of the surround. For circular model, x and y are identical and equal to rad_s.
         """
@@ -744,7 +750,7 @@ class SpatialModelBase(ABC):
 
     def _get_crop_pixels(
         self, gcs: object, unit_index: Union[int, np.ndarray]
-    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """
         Get pixel coordinates for a stimulus crop matching the spatial filter size.
 
@@ -821,37 +827,26 @@ class TemporalModelBase(ABC):
 
     Parameters
     ----------
-    retina_math : object
+    retina_math : RetinaMath
         Object containing retinal math calculations.
-    ganglion_cell : object
+    ganglion_cell : GanglionCellProduct
         Object representing ganglion cell properties.
-    response_type : object
+    response_type : str
         Object defining the response type characteristics.
-
-    Attributes
-    ----------
-    retina_math : object
-        Stored retinal math object.
-    ganglion_cell : object
-        Stored ganglion cell object.
-    response_type : object
-        Stored response type object.
-    project_data : dict
-        Dictionary to store project-related data.
     """
 
     def __init__(
         self,
-        retina_math: object,
-        ganglion_cell: object,
-        response_type: object,
+        retina_math: RetinaMath,
+        ganglion_cell: GanglionCellProduct,
+        response_type: str,
         device: str,
     ) -> None:
         self.retina_math = retina_math
         self.ganglion_cell = ganglion_cell
         self.response_type = response_type
         self.device = device
-        self.project_data: Dict = {}
+        self.project_data: dict = {}
 
     @abstractmethod
     def impulse_response(self):
@@ -869,7 +864,7 @@ class TemporalModelBase(ABC):
 
     def _initialize_impulse(
         self, vs: object, gcs: object, dt_ms: float
-    ) -> Tuple[np.ndarray, np.ndarray, int]:
+    ) -> tuple[np.ndarray, np.ndarray, int]:
         """
         Initialize impulse response parameters.
 
@@ -1330,34 +1325,29 @@ class TemporalModelSubunit(TemporalModelBase):
 
     Parameters
     ----------
-    retina_math : Any
+    retina_math : RetinaMath
         Object containing retinal math calculations.
-    ganglion_cell : Any
+    ganglion_cell : GanglionCellProduct
         Object representing ganglion cell properties.
-    response_type : Any
+    response_type : str
         Object defining the response type characteristics.
-    cones : Any
+    cones : ConeProduct
         Object representing cone photoreceptors.
-    bipolars : Any
+    bipolars : BipolarProduct
         Object representing bipolar cells.
-
-    Attributes
-    ----------
-    cones : Any
-        Stored cone photoreceptor object.
-    bipolars : Any
-        Stored bipolar cell object.
+    stimulate : VisualStimulus
+        Object responsible for generating visual stimuli.
     """
 
     def __init__(
         self,
-        retina_math: Any,
-        ganglion_cell: Any,
-        response_type: Any,
+        retina_math: RetinaMath,
+        ganglion_cell: GanglionCellProduct,
+        response_type: str,
         device: str,
-        cones: Any,
-        bipolars: Any,
-        stimulate: Any,
+        cones: ConeProduct,
+        bipolars: BipolarProduct,
+        stimulate: VisualStimulus,
     ) -> None:
         super().__init__(retina_math, ganglion_cell, response_type, device)
         self.cones = cones
@@ -1372,9 +1362,9 @@ class TemporalModelSubunit(TemporalModelBase):
 
         Parameters
         ----------
-        vs : object
+        vs : VisualSignal
             An object containing video stimulus information.
-        gcs : object
+        gcs : GanglionCellProduct
             An object representing ganglion cells.
         contrasts : list of float
             A list of contrast values to be applied.
@@ -1436,7 +1426,9 @@ class TemporalModelSubunit(TemporalModelBase):
 
         return impulse_to_show
 
-    def create_generator_potential(self, vs: Any, gcs: Any) -> Tuple[Any, Any]:
+    def create_generator_potential(
+        self, vs: VisualSignal, gcs: GanglionCellProduct
+    ) -> tuple[VisualSignal, GanglionCellProduct]:
         """
         Create generator potential for the subunit model.
 
@@ -1445,14 +1437,14 @@ class TemporalModelSubunit(TemporalModelBase):
 
         Parameters
         ----------
-        vs : Any
+        vs : VisualSignal
             Visual signal object.
-        gcs : Any
+        gcs : GanglionCellProduct
             Ganglion cell object.
 
         Returns
         -------
-        Tuple[Any, Any]
+        tuple[VisualSignal, GanglionCellProduct]
             A tuple containing the updated visual signal object and the ganglion cell object.
         """
         vs = self.cones.create_signal(vs)
@@ -1468,22 +1460,22 @@ class SimulationBuildInterface(ABC):
 
     @vs.setter
     @abstractmethod
-    def vs(self, vs):
+    def vs(self, vs: VisualSignal) -> None:
         pass
 
     @property
     @abstractmethod
-    def gcs(self):
+    def gcs(self) -> GanglionCellProduct:
         pass
 
     @property
     @abstractmethod
-    def cones(self):
+    def cones(self) -> ConeProduct:
         pass
 
     @property
     @abstractmethod
-    def bipolars(self):
+    def bipolars(self) -> BipolarProduct:
         pass
 
     @abstractmethod
@@ -1542,7 +1534,7 @@ class ConcreteSimulationBuilder(SimulationBuildInterface):
         The bipolar cells object for inner retina simulations.
     retina_math : RetinaMath
         Utility object for retina-related calculations.
-    device : Any
+    device : str
         The device on which computations will be performed.
     n_sweeps : int
         Number of simulation trials to run.
@@ -1550,14 +1542,14 @@ class ConcreteSimulationBuilder(SimulationBuildInterface):
 
     def __init__(
         self,
-        vs: "VisualSignal",
-        gcs: "GanglionCellProduct",
-        cones: "ConeProduct",
-        bipolars: "BipolarProduct",
-        retina_math: "RetinaMath",  # noqa: F821
-        device: Any,
+        vs: VisualSignal,
+        gcs: GanglionCellProduct,
+        cones: ConeProduct,
+        bipolars: BipolarProduct,
+        retina_math: RetinaMath,
+        device: str,
         n_sweeps: int,
-        stimulate: Any,
+        stimulate: VisualStimulus,
     ) -> None:
         self._vs = vs
         self._gcs = gcs
@@ -1573,33 +1565,33 @@ class ConcreteSimulationBuilder(SimulationBuildInterface):
         self._project_data = {}
 
     @property
-    def vs(self) -> "VisualSignal":
+    def vs(self) -> VisualSignal:
         """Get the visual signal object."""
         return self._vs
 
     @vs.setter
-    def vs(self, vs: "VisualSignal") -> None:
+    def vs(self, vs: VisualSignal) -> None:
         """Set the visual signal object."""
         self._vs = vs
 
     @property
-    def gcs(self):
+    def gcs(self) -> GanglionCellProduct:
         return self._gcs
 
     @gcs.setter
-    def gcs(self, gcs):
+    def gcs(self, gcs: GanglionCellProduct) -> None:
         self._gcs = gcs
 
     @property
-    def cones(self):
+    def cones(self) -> ConeProduct:
         return self._cones
 
     @property
-    def bipolars(self):
+    def bipolars(self) -> BipolarProduct:
         return self._bipolars
 
     @property
-    def retina_math(self):
+    def retina_math(self) -> RetinaMath:
         return self._retina_math
 
     @property
@@ -1627,12 +1619,12 @@ class ConcreteSimulationBuilder(SimulationBuildInterface):
         return self._temporal_model
 
     @property
-    def project_data(self) -> Dict[str, Any]:
+    def project_data(self) -> dict[str, Any]:
         """Dictionary for storing project-related data."""
         return self._project_data
 
     @project_data.setter
-    def project_data(self, value: Dict[str, Any]) -> None:
+    def project_data(self, value: dict[str, Any]) -> None:
         self._project_data = value
 
     def _get_center_masks(
@@ -1725,8 +1717,8 @@ class ConcreteSimulationBuilder(SimulationBuildInterface):
         return np.array(masks)
 
     def _generator_to_firing_rate_noise(
-        self, vs: "VisualSignal", gcs: "GanglionCellProduct", n_sweeps: int
-    ) -> "VisualSignal":
+        self, vs: VisualSignal, gcs: GanglionCellProduct, n_sweeps: int
+    ) -> VisualSignal:
         """
         Convert generator potentials to ganglion cell firing rates with added noise.
 
@@ -1775,7 +1767,7 @@ class ConcreteSimulationBuilder(SimulationBuildInterface):
 
     def _firing_rates2brian_timed_arrays(
         self, firing_rates, tvec_original, duration, simulation_dt
-    ) -> "VisualSignal":
+    ) -> VisualSignal:
         """
         Convert firing rates to Brian2 TimedArray objects.
 
@@ -1815,7 +1807,7 @@ class ConcreteSimulationBuilder(SimulationBuildInterface):
         refractory_parameters: dict,
         simulation_dt: b2u,
         duration: b2u,
-    ) -> Tuple[b2.NeuronGroup, b2.SpikeMonitor, b2.Network]:
+    ) -> tuple[b2.NeuronGroup, b2.SpikeMonitor, b2.Network]:
         """
         Generate spikes using Brian2 simulator.
 
@@ -1938,13 +1930,13 @@ class ConcreteSimulationBuilder(SimulationBuildInterface):
         self._spatial_model = spatial_model
         self._temporal_model = temporal_model
 
-    def get_impulse_response(self, contrasts: List[float]) -> None:
+    def get_impulse_response(self, contrasts: list[float]) -> None:
         """
         Calculate and store impulse responses for given contrasts.
 
         Parameters
         ----------
-        contrasts : List[float]
+        contrasts : list[float]
             List of contrast values to use for impulse response calculation.
         """
         assert contrasts is not None and isinstance(
@@ -2342,25 +2334,21 @@ class SimulationDirector:
 
     Parameters
     ----------
-    builder : Any
+    builder : ConcreteSimulationBuilder
         The builder object responsible for constructing simulation components.
-
-    Attributes
-    ----------
-    builder : Any
         The builder object used for simulation construction.
     """
 
-    def __init__(self, builder: Any) -> None:
+    def __init__(self, builder: ConcreteSimulationBuilder) -> None:
         """
         Initialize the SimulationDirector with a builder.
 
         Parameters
         ----------
-        builder : Any
+        builder : ConcreteSimulationBuilder
             The builder object for simulation construction.
         """
-        self.builder: Any = builder
+        self.builder = builder
 
     def run_simulation(self) -> None:
         """
@@ -2377,13 +2365,13 @@ class SimulationDirector:
         self.builder.get_generator_potentials()
         self.builder.generate_spikes()
 
-    def run_impulse_response(self, contrasts: List[float]) -> None:
+    def run_impulse_response(self, contrasts: list[float]) -> None:
         """
         Run the impulse response simulation.
 
         Parameters
         ----------
-        contrasts : List[float]
+        contrasts : list[float]
             List of contrast values for the impulse response simulation.
         """
         self.builder.get_concrete_components()
@@ -2399,13 +2387,13 @@ class SimulationDirector:
         self.builder.create_spatial_filters()
         self.builder.get_uniformity_index()
 
-    def get_simulation_result(self) -> Tuple[Any, Any]:
+    def get_simulation_result(self) -> tuple[VisualSignal, GanglionCellProduct]:
         """
         Retrieve the simulation results.
 
         Returns
         -------
-        Tuple[Any, Any]
+        tuple[VisualSignal, GanglionCellProduct]
             A tuple containing the vs and gcs simulation results.
         """
         vs = self.builder.vs
@@ -2422,12 +2410,12 @@ class ReceptiveFieldsBase(ABC, PrintableMixin):
 
     Parameters
     ----------
-    retina_parameters : Dict[str, Any]
+    retina_parameters : dict[str, Any]
         Dictionary containing retina parameters.
 
     Attributes
     ----------
-    retina_parameters : Dict[str, Any]
+    retina_parameters : dict[str, Any]
         Dictionary of retina parameters.
     spatial_filter_sidelen : int
         Side length of the spatial filter.
@@ -2449,16 +2437,16 @@ class ReceptiveFieldsBase(ABC, PrintableMixin):
         Type of temporal model.
     """
 
-    def __init__(self, retina_parameters: Dict[str, Any]) -> None:
+    def __init__(self, retina_parameters: dict[str, Any]) -> None:
         """
         Initialize the ReceptiveFieldsBase instance.
 
         Parameters
         ----------
-        retina_parameters : Dict[str, Any]
+        retina_parameters : dict[str, Any]
             Dictionary containing retina parameters.
         """
-        self.retina_parameters: Dict[str, Any] = retina_parameters
+        self.retina_parameters: dict[str, Any] = retina_parameters
         self._spatial_filter_sidelen: int = 0
         self._microm_per_pix: float = 0.0
         self._temporal_filter_len: int = 0
@@ -2522,11 +2510,11 @@ class ConeProduct(ReceptiveFieldsBase):
 
     Parameters
     ----------
-    retina_parameters : Dict[str, Any]
+    retina_parameters : dict[str, Any]
         Dictionary containing retina parameters.
-    ret_npz : Dict[str, np.ndarray]
+    ret_npz : dict[str, np.ndarray]
         Dictionary containing retina data from NPZ file.
-    device : Any
+    device : str
         Device for computation .
     ND_filter : float
         Neutral Density filter value.
@@ -2543,7 +2531,7 @@ class ConeProduct(ReceptiveFieldsBase):
         Weights connecting cones to ganglion cells.
     cone_noise_parameters : np.ndarray
         Parameters for cone noise generation.
-    cone_general_parameters : Dict[str, Any]
+    cone_general_parameters : dict[str, Any]
         General parameters for cones.
     n_units : int
         Number of cone units.
@@ -2553,9 +2541,9 @@ class ConeProduct(ReceptiveFieldsBase):
 
     def __init__(
         self,
-        retina_parameters: Dict[str, Any],
-        ret_npz: Dict[str, np.ndarray],
-        device: Any,
+        retina_parameters: dict[str, Any],
+        ret_npz: dict[str, np.ndarray],
+        device: str,
         ND_filter: float,
         interpolate_data: callable,
         lin_interp_and_double_lorenzian: callable,
@@ -2704,12 +2692,12 @@ class ConeProduct(ReceptiveFieldsBase):
     def _create_cone_signal_clark(
         self,
         cone_input: np.ndarray,
-        p: Dict[str, Any],
+        p: dict[str, Any],
         dt: float,
         duration: float,
         tvec: np.ndarray,
         pad_value: float = 0.0,
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray]:
         """
         Create cone signal using Brian2. Works in video time domain.
 
@@ -2717,7 +2705,7 @@ class ConeProduct(ReceptiveFieldsBase):
         ----------
         cone_input : np.ndarray
             The cone input of shape (n_cones, n_timepoints).
-        p : Dict[str, Any]
+        p : dict[str, Any]
             The cone signal parameters.
         dt : float
             The video time step.
@@ -2730,7 +2718,7 @@ class ConeProduct(ReceptiveFieldsBase):
 
         Returns
         -------
-        Tuple[np.ndarray, np.ndarray]
+        tuple[np.ndarray, np.ndarray]
             The cone signal and the cone signal with units.
 
         Notes
@@ -2906,7 +2894,7 @@ class ConeProduct(ReceptiveFieldsBase):
         self.data_io.save_cone_response_to_hdf5(filename, cone_response)
 
     # Public functions
-    def create_signal(self, vs: "VisualSignal") -> "VisualSignal":
+    def create_signal(self, vs: VisualSignal) -> VisualSignal:
         """
         Generates cone signal.
 
@@ -3010,7 +2998,7 @@ class ConeProduct(ReceptiveFieldsBase):
 
         return vs
 
-    def create_noise(self, vs: "VisualSignal", n_sweeps: int) -> "VisualSignal":
+    def create_noise(self, vs: VisualSignal, n_sweeps: int) -> VisualSignal:
         """
         Generates cone noise.
 
@@ -3057,8 +3045,8 @@ class ConeProduct(ReceptiveFieldsBase):
         return vs
 
     def connect_cone_noise_to_gcs(
-        self, vs: "VisualSignal", n_sweeps: int
-    ) -> "VisualSignal":
+        self, vs: VisualSignal, n_sweeps: int
+    ) -> VisualSignal:
         if n_sweeps != vs.cone_noise.shape[2]:
             raise ValueError(
                 "Number of sweeps does not match the existing cone noise. Remove cone noise file from output folder..."
@@ -3125,18 +3113,18 @@ class BipolarProduct(ReceptiveFieldsBase):
 
     Parameters
     ----------
-    retina_parameters : Dict[str, Any]
+    retina_parameters : dict[str, Any]
         Dictionary containing retina parameters.
-    ret_npz : Dict[str, np.ndarray]
+    ret_npz : dict[str, np.ndarray]
         Dictionary containing retina data from NPZ file.
     target_gc_for_multiple_trials : Optional[int]
         Index of the target ganglion cell for multiple trials, by default None.
 
     Attributes
     ----------
-    retina_parameters : Dict[str, Any]
+    retina_parameters : dict[str, Any]
         Dictionary containing retina parameters.
-    ret_npz : Dict[str, np.ndarray]
+    ret_npz : dict[str, np.ndarray]
         Dictionary containing retina data from NPZ file.
     n_units : int
         Number of bipolar cell units.
@@ -3146,8 +3134,8 @@ class BipolarProduct(ReceptiveFieldsBase):
 
     def __init__(
         self,
-        retina_parameters: Dict[str, Any],
-        ret_npz: Dict[str, np.ndarray],
+        retina_parameters: dict[str, Any],
+        ret_npz: dict[str, np.ndarray],
         parabola: callable,
         target_gc_for_multiple_trials: Optional[int] = None,
     ) -> None:
@@ -3158,7 +3146,7 @@ class BipolarProduct(ReceptiveFieldsBase):
         self.n_units = self.ret_npz["bipolar_to_gcs_cen_weights"].shape[0]
         self.target_gc_for_multiple_trials = target_gc_for_multiple_trials
 
-    def create_signal(self, vs: "VisualSignal") -> "VisualSignal":
+    def create_signal(self, vs: VisualSignal) -> VisualSignal:
         """
         Apply a bipolar nonlinearity function to create ganglion cell synaptic input.
 
@@ -3284,60 +3272,28 @@ class GanglionCellProduct(ReceptiveFieldsBase):
 
     Parameters
     ----------
-    retina_parameters : Dict[str, Any]
+    retina_parameters : dict[str, Any]
         Dictionary containing retina parameters.
-    experimental_metadata : Dict[str, Any]
+    experimental_metadata : dict[str, Any]
         Metadata for the experimental dataset.
-    rfs_npz : Dict[str, Any]
+    rfs_npz : NpzFile
         Dictionary containing receptive field data.
     gc_dataframe : pd.DataFrame
         DataFrame containing ganglion cell data.
-    spike_generator_model : Any
+    spike_generator_model : str
         Model for generating spikes.
     pol2cart_df : callable
         Function to convert polar to Cartesian coordinates.
-
-    Attributes
-    ----------
-    spike_generator_model : Any
-        Model for generating spikes.
-    mask_threshold : float
-        Threshold for masking.
-    refractory_parameters : Any
-        Parameters for refractory period.
-    experimental_metadata : Dict[str, Any]
-        Metadata for the experimental dataset.
-    data_microm_per_pixel : float
-        Micrometers per pixel in the data.
-    data_filter_fps : float
-        Frames per second for the data filter.
-    data_filter_timesteps : int
-        Number of timesteps in the data filter.
-    data_filter_duration : float
-        Duration of the data filter in milliseconds.
-    visual2cortical_params : Any
-        Parameters for visual to cortical transformation.
-    df : pd.DataFrame
-        Processed DataFrame containing ganglion cell data.
-    spat_rf : np.ndarray
-        Spatial receptive field data.
-    um_per_pix : float
-        Micrometers per pixel.
-    sidelen_pix : int
-        Side length in pixels.
-    n_units : int
-        Number of units being processed.
-    unit_indices : np.ndarray
         Array of unit indices being processed.
     """
 
     def __init__(
         self,
-        retina_parameters: Dict[str, Any],
-        config: "Configuration",
-        rfs_npz: Dict[str, Any],
+        retina_parameters: dict[str, Any],
+        config: Configuration,
+        rfs_npz: NpzFile,
         gc_dataframe: pd.DataFrame,
-        spike_generator_model: Any,
+        spike_generator_model: str,
         pol2cart_df: callable,
     ):
         super().__init__(retina_parameters)
@@ -3429,7 +3385,7 @@ class GanglionCellProduct(ReceptiveFieldsBase):
             self.retina_parameters.spatial_model_type
         ][self.retina_parameters.temporal_model_type]
 
-    def link_gcs_to_vs(self, vs: Any) -> None:
+    def link_gcs_to_vs(self, vs: VisualSignal) -> None:
         """
         Links ganglion cells to visual space coordinates.
 
@@ -3438,7 +3394,7 @@ class GanglionCellProduct(ReceptiveFieldsBase):
 
         Parameters
         ----------
-        vs : Any
+        vs : VisualSignal
             Visual signal object containing methods for coordinate transformation.
         """
 
@@ -3552,7 +3508,7 @@ class VisualSignal(PrintableMixin):
 
     Parameters
     ----------
-    visual_stimulus_parameters : Dict[str, Any]
+    visual_stimulus_parameters : dict[str, Any]
         Dictionary containing stimulus options.
     retina_center : complex
         Center of the stimulus in visual space.
@@ -3569,7 +3525,7 @@ class VisualSignal(PrintableMixin):
     ----------
     video_file_name : str
         Name of the video file.
-    options_from_videofile : Dict[str, Any]
+    options_from_videofile : dict[str, Any]
         Options loaded from the video file.
     stimulus_width_pix : int
         Width of the stimulus in pixels.
@@ -3601,7 +3557,7 @@ class VisualSignal(PrintableMixin):
 
     def __init__(
         self,
-        visual_stimulus_parameters: Dict[str, Any],
+        visual_stimulus_parameters: dict[str, Any],
         retina_center: complex,
         load_stimulus_from_videofile: callable,
         simulation_dt: float,
@@ -3708,11 +3664,11 @@ class SimulateRetina:
     ----------
     config : Configuration
         Configuration parameters object.
-    data_io : Any
+    data_io : DataIO
         Data input/output handler.
-    viz : Any
+    viz : Viz
         Visualization utilities.
-    project_data : Any
+    project_data : ProjectData
         Container for project-specific data.
     retina_math : RetinaMath
         Mathematical utilities for retinal calculations.
@@ -3720,11 +3676,11 @@ class SimulateRetina:
 
     def __init__(
         self,
-        config: Any,
-        data_io: Any,
-        project_data: Any,
-        retina_math: "RetinaMath",  # noqa: F821
-        stimulate: Any,
+        config: Configuration,
+        data_io: DataIO,
+        project_data: ProjectData,
+        retina_math: RetinaMath,
+        stimulate: VisualStimulus,
     ) -> None:
         self._config = config
         self._data_io = data_io
@@ -3733,32 +3689,32 @@ class SimulateRetina:
         self._stimulate = stimulate
 
     @property
-    def config(self) -> Any:
+    def config(self) -> Configuration:
         return self._config
 
     @property
-    def data_io(self) -> Any:
+    def data_io(self) -> DataIO:
         return self._data_io
 
     @property
-    def project_data(self) -> Any:
+    def project_data(self) -> ProjectData:
         return self._project_data
 
     @property
-    def retina_math(self) -> "RetinaMath":  # noqa: F821
+    def retina_math(self) -> RetinaMath:
         return self._retina_math
 
     @property
-    def stimulate(self) -> Any:
+    def stimulate(self) -> VisualStimulus:
         return self._stimulate
 
-    def get_w_z_coords(self, gcs: Any) -> tuple[np.ndarray, np.ndarray]:
+    def get_w_z_coords(self, gcs: GanglionCellProduct) -> tuple[np.ndarray, np.ndarray]:
         """
         Create w_coord, z_coord for cortical and visual coordinates, respectively.
 
         Parameters
         ----------
-        gcs : Any
+        gcs : GanglionCellProduct
             Ganglion cell data.
 
         Returns
@@ -3777,15 +3733,17 @@ class SimulateRetina:
 
         return w_coord, z_coord
 
-    def _get_project_data_for_viz(self, vs: Any, gcs: Any, n_sweeps: int) -> None:
+    def _get_project_data_for_viz(
+        self, vs: VisualSignal, gcs: GanglionCellProduct, n_sweeps: int
+    ) -> None:
         """
         Bind data to project_data container for visualization.
 
         Parameters
         ----------
-        vs : Any
+        vs : VisualSignal
             Visual signal data.
-        gcs : Any
+        gcs : GanglionCellProduct
             Ganglion cell data.
         n_sweeps : int
             Number of simulation trials.
@@ -3886,19 +3844,19 @@ class SimulateRetina:
         return cones
 
     def _get_cone_noise_from_file_if_exists(
-        self, vs: Any, gcs: Any, ret_npz: Any
-    ) -> Any:
+        self, vs: VisualSignal, gcs: GanglionCellProduct, ret_npz: NpzFile
+    ) -> VisualSignal:
         """
         Load cone noise from file if it exists.
 
         Parameters
         ----------
-        vs : Any
+        vs : VisualSignal
             Visual signal object.
 
         Returns
         -------
-        Any
+        VisualSignal
             Updated visual signal object.
         """
 
@@ -3932,7 +3890,9 @@ class SimulateRetina:
 
         return vs
 
-    def _get_products(self, stimulus: np.ndarray | None) -> tuple[Any, Any, Any, Any]:
+    def _get_products(
+        self, stimulus: np.ndarray | None
+    ) -> tuple[VisualSignal, GanglionCellProduct, ConeProduct, BipolarProduct]:
         """
         Initialize and return the main components needed for the simulation.
 
@@ -3943,7 +3903,7 @@ class SimulateRetina:
 
         Returns
         -------
-        tuple[Any, Any, Any, Any]
+        tuple[VisualSignal, GanglionCellProduct, ConeProduct, BipolarProduct]
             Visual signal, ganglion cells, cones, and bipolar cells.
         """
         # This is needed also independently of the pipeline
@@ -4077,6 +4037,7 @@ class SimulateRetina:
         director = SimulationDirector(builder)
         if impulse:
             contrasts = self.config.simulation_parameters["contrasts_for_impulse"]
+            # TODO generate impulse de novo instead of loading stimulus name (?)
             director.run_impulse_response(contrasts)
         elif unity:
             director.run_uniformity_index()
