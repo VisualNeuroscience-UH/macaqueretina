@@ -3240,12 +3240,6 @@ class Viz:
         axs[5].imshow(cone_response)
         axs[5].set_title("Nonlinear cone response")
 
-    def plot_analog_stimulus(self, analog_input):
-        data = analog_input.Input
-
-        plt.figure()
-        plt.plot(data.T)
-
     def show_retina_img(self, savefigname=None):
         """
         Show the image of whole retina with all the receptive fields summed up.

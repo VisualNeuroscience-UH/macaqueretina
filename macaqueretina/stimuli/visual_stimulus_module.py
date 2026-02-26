@@ -1,6 +1,7 @@
 # Built-in
 from fractions import Fraction
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 # Third-party
 import cv2
@@ -20,6 +21,11 @@ This module creates the visual stimuli.
 Input: stimulus definition, image (formats jpg, png) or video (formats avi, mp4)
 Output: video stimulus frames in hdf5 (reloading) and mp4 (viewing)
 """
+
+if TYPE_CHECKING:
+    from macaqueretina.data_io.config_io import Configuration
+    from macaqueretina.data_io.data_io_module import DataIO
+    from macaqueretina.viz.viz_module import Viz
 
 
 class VideoBaseClass:
@@ -245,7 +251,9 @@ class VideoBaseClass:
         # Set raw_intensity to [-1 1]
         self.options["raw_intensity"] = (-1, 1)
 
-    def _prepare_form(self, stimulus_size):
+    def _prepare_form(
+        self, stimulus_size: float
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, float]:
         center_deg = self.options["stimulus_position"]  # in degrees
         radius_deg = stimulus_size  # in degrees
         height = self.options["image_height"]  # in pixels
@@ -277,14 +285,14 @@ class VideoBaseClass:
 
         return X, Y, center_pix, radius_pix
 
-    def _prepare_circular_mask(self, stimulus_size):
+    def _prepare_circular_mask(self, stimulus_size: float) -> np.ndarray:
         X, Y, center_pix, radius_pix = self._prepare_form(stimulus_size)
         dist_from_center = np.sqrt((X - center_pix[0]) ** 2 + (Y - center_pix[1]) ** 2)
 
         mask = dist_from_center <= radius_pix
         return mask
 
-    def _combine_background(self, mask):
+    def _combine_background(self, mask: np.ndarray) -> None:
         frames = self.frames
         shape = self.frames.shape
         background = self.options["background"]
@@ -389,7 +397,7 @@ class VideoBaseClass:
     def _raw_intensity_from_data(self):
         self.options["raw_intensity"] = (np.min(self.frames), np.max(self.frames))
 
-    def _create_frames(self, epoch_in_seconds):
+    def _create_frames(self, epoch_in_seconds: float) -> np.ndarray:
         # Create frames for the requested duration in sec
         frames = (
             np.ones(
@@ -874,7 +882,9 @@ class VisualStimulus(VideoBaseClass):
     Create stimulus video and save
     """
 
-    def __init__(self, config, data_io, get_xy_from_npz):
+    def __init__(
+        self, config: Configuration, data_io: DataIO, get_xy_from_npz: callable
+    ):
         super().__init__()
 
         self._config = config
@@ -882,14 +892,14 @@ class VisualStimulus(VideoBaseClass):
         self.get_xy_from_npz = get_xy_from_npz
 
     @property
-    def config(self):
+    def config(self) -> Configuration:
         return self._config
 
     @property
-    def data_io(self):
+    def data_io(self) -> DataIO:
         return self._data_io
 
-    def make_stimulus_video(self, options=None):
+    def make_stimulus_video(self, options: dict | None = None) -> np.ndarray:
         """
         Valid stimulus_options include
 
@@ -930,11 +940,13 @@ class VisualStimulus(VideoBaseClass):
 
         ------------------------
         Output: saves the stimulus video file to output path if stimulus_video_name is not empty str or None
-        """
-        # import time
 
-        # Set input arguments to video-object, updates the defaults from VideoBaseClass
-        # TODO: maybe remove? No need to pass parameters this way when importing
+        Returns
+        -------
+         stimulus_video: VisualStimulus
+            the stimulus video object, including attribute frames as numpy array of shape [time points, height, width]
+        """
+
         if options is not None:
             self.config.visual_stimulus_parameters = options
 
@@ -1043,283 +1055,3 @@ class VisualStimulus(VideoBaseClass):
         self.data_io.save_stimulus_to_videofile(video_file_name, stimulus_video)
 
         return stimulus_video
-
-
-class AnalogInput:
-    """
-    Creates analog input in CxSystem compatible video mat file format. Analog stimulus comprises of
-    continuous waveforms of types 'quadratic_oscillation', 'noise' or 'step_current'. You get few input
-    channels (N_units) of temporal signals. These signals do not pass through the retina, instead
-    they are saved as .mat files. Use e.g. as current injection to a unit.
-
-    frameduration assumes milliseconds
-    """
-
-    def __init__(self, config, data_io, viz, **kwargs):
-        super().__init__()
-
-        self._config = config
-        self._data_io = data_io
-        self._viz = viz
-
-        for attr, value in kwargs.items():
-            setattr(self, attr, value)
-
-    @property
-    def config(self):
-        return self._config
-
-    @property
-    def data_io(self):
-        return self._data_io
-
-    @property
-    def viz(self):
-        return self._viz
-
-    def make_stimulus_video(self, analog_options=None):
-        assert analog_options is not None, "analog_options not set, aborting... "
-
-        N_units = analog_options["N_units"]
-        N_tp = analog_options["N_tp"]
-        filename_out = analog_options["filename_out"]
-        input_type = analog_options["input_type"]
-        coord_type = analog_options["coord_type"]
-        N_cycles = analog_options["N_cycles"]
-        frameduration = analog_options["dt"]
-
-        # get Input
-        if input_type == "noise":
-            Input = self.create_noise_input(Nx=N_units, N_tp=N_tp)
-        elif input_type == "quadratic_oscillation":
-            if N_units != 2:
-                print(
-                    f"NOTE: You requested {input_type} input type, setting excessive units to 0 value"
-                )
-            Input = self.create_quadratic_oscillation_input(
-                Nx=N_units, N_tp=N_tp, N_cycles=N_cycles
-            )
-        elif input_type == "step_current":
-            Input = self.create_step_input(Nx=N_units, N_tp=N_tp)
-
-        # get coordinates
-        if coord_type == "dummy":
-            w_coord, z_coord = self._get_dummy_coordinates(Nx=N_units)
-        elif coord_type == "real":
-            rf = self.ReceptiveFields(
-                self.config.retina_parameters,
-                self.config.experimental_metadata,
-                self.data_io.load_data,
-                self.pol2cart_df,
-            )
-
-            w_coord, z_coord = self._get_real_coordinates(rf, Nx=N_units)
-
-        assert (
-            "w_coord" in locals()
-        ), "coord_type not set correctly, check __init__, aborting"
-        w_coord = np.expand_dims(w_coord, 1)
-        z_coord = np.expand_dims(z_coord, 1)
-
-        # For potential plotting from conf
-        self.Input = Input
-        self.frameduration = frameduration
-
-        if analog_options["save_stimulus"] is True:
-            self.data_io.save_analog_stimulus(
-                filename_out=filename_out,
-                Input=Input,
-                z_coord=z_coord,
-                w_coord=w_coord,
-                frameduration=frameduration,
-            )
-
-    def _gaussian_filter(self):
-        sigma = 30  # was abs(30)
-        w = (1 / (sigma * np.sqrt(2 * np.pi))) * np.exp(
-            -1 * np.power(np.arange(1000) - 500, 2) / (2 * np.power(sigma, 2))
-        )
-        w = w / np.sum(w)
-        return w
-
-    def _normalize(self, Input):
-        # Scale to interval [0, 1]
-        Input = Input - min(np.ravel(Input))
-        Input = Input / max(np.ravel(Input))
-        return Input
-
-    def create_noise_input(self, Nx=0, N_tp=None, amplitude=15.0):
-        """
-        Create signal for simulated current injection with noise input in the AnalogInput class.
-
-        Generates a multivariate Gaussian noise input for a specified number of units (Nx)
-        and timepoints (N_tp). Applies a Gaussian filter to the noise input and scales it
-        to simulate current injection in a neural network model.
-
-        Parameters
-        ----------
-        Nx : int
-            Number of units. Must be non-zero.
-        N_tp : int or None
-            Number of timepoints. Must be specified.
-        amplitude : float
-            Amplitude of the noise input. Default is 15.
-
-        Returns
-        -------
-        ndarray
-            The generated noise input signal after filtering and scaling.
-        """
-        assert Nx != 0, "N units not set, aborting..."
-        assert N_tp is not None, "N timepoints not set, aborting..."
-        Input = (np.random.multivariate_normal(np.zeros([Nx]), np.eye(Nx), N_tp)).T
-
-        # Get gaussian filter, apply
-        w = self._gaussian_filter()
-        A = amplitude  # Deneve project was 2000, from their Learning.py file
-        for d in np.arange(Nx):
-            Input[d, :] = A * np.convolve(Input[d, :], w, "same")
-
-        return Input
-
-    def create_quadratic_oscillation_input(
-        self, Nx=0, N_tp=None, N_cycles=0, amplitude=5.0
-    ):
-        """
-        Create analog oscillatory input for a specified number of units, timepoints, and cycles.
-
-        Parameters
-        ----------
-        Nx : int
-            Number of units. Must be non-zero.
-        N_tp : int
-            Number of time points. Must be specified.
-        N_cycles : int, float, or list
-            Number of oscillatory cycles. Scalar for quadratic pair, list for distinct frequencies.
-        amplitude : float
-            Amplitude of the oscillatory input. Default is 5.
-
-        Returns
-        -------
-        ndarray
-            The generated oscillatory input signal.
-        """
-
-        assert Nx != 0, "N units not set, aborting..."
-        assert N_cycles != 0, "N cycles not set, aborting..."
-        assert N_tp is not None, "N timepoints not set, aborting..."
-
-        tp_vector = np.arange(N_tp)
-        A = amplitude  # Deneve project was 2000, from their Learning.py file
-
-        if isinstance(N_cycles, int) or isinstance(N_cycles, float):
-            # frequency, this gives N_cycles over all time points
-            freq = N_cycles * 2 * np.pi * 1 / N_tp
-            sine_wave = np.sin(freq * tp_vector)
-            cosine_wave = np.cos(freq * tp_vector)
-            Input = A * np.array([sine_wave, cosine_wave])
-            if Nx > 2:
-                unit_zero_input = np.zeros(sine_wave.shape)
-                stack_to_add = np.tile(unit_zero_input, (Nx - 2, 1))
-                zero_padded_input_stack = np.vstack((Input, stack_to_add))
-                Input = zero_padded_input_stack
-        elif isinstance(N_cycles, list):
-            for index, this_Nx in enumerate(range(Nx)):
-                if index > len(N_cycles) - 1:
-                    freq = 0
-                else:
-                    freq = N_cycles[this_Nx] * 2 * np.pi * 1 / N_tp
-
-                if index % 2 == 0:
-                    oscillations = np.sin(freq * tp_vector)
-                else:
-                    oscillations = np.cos(freq * tp_vector)
-                    if freq == 0:
-                        oscillations = oscillations * 0
-                if "Input" not in locals():
-                    Input = A * np.array([oscillations])
-                else:
-                    Input = np.vstack((Input, A * np.array([oscillations])))
-
-        return Input
-
-    def create_step_input(self, Nx=0, N_tp=None, amplitude=5.0):
-        """
-        Create a step function input for simulated current injection.
-
-        Parameters
-        ----------
-        Nx : int
-            Number of units. Must be non-zero.
-        N_tp : int
-            Number of time points. Must be specified.
-
-        Returns
-        -------
-        ndarray
-            The generated step function input signal after amplification.
-        """
-
-        assert Nx != 0, "N units not set, aborting..."
-        assert N_tp is not None, "N timepoints not set, aborting..."
-
-        # Create your input here. Zeros and ones at this point.
-        # Create matrix of zeros with shape of Input
-        Input = np.concatenate(
-            (
-                np.zeros((N_tp // 3,), dtype=int),
-                np.ones((N_tp // 3), dtype=int),
-                np.zeros((N_tp // 3), dtype=int),
-            ),
-            axis=None,
-        )
-        Input = np.concatenate(
-            (Input, np.zeros((N_tp - np.size((Input), 0),), dtype=int)), axis=None
-        )
-        Input = np.tile(Input.T, (Nx, 1))
-
-        A = amplitude
-        Input = A * Input
-
-        minI = np.min(Input)
-        maxI = np.max(Input)
-        print(f"minI = {minI}")
-        print(f"maxI = {maxI}")
-        return Input
-
-    def _get_dummy_coordinates(self, Nx=0):
-        # Create dummy coordinates for CxSystem format video input.
-
-        assert Nx != 0, "N units not set, aborting..."
-
-        # N units btw 4 and 6 deg ecc
-        z_coord = np.linspace(4.8, 5.2, Nx)
-        z_coord = z_coord + 0j  # Add second dimension
-
-        visual2cortical_params = self.config.retina_parameters_options[
-            "visual2cortical_params"
-        ]
-        a = visual2cortical_params["a"]
-        k = visual2cortical_params["k"]
-        w_coord = k * np.log(z_coord + a)
-
-        return w_coord, z_coord
-
-    def _get_real_coordinates(self, rf, Nx=0):
-        # For realistic coordinates, we use Macaque retina module
-
-        assert Nx != 0, "N units not set, aborting..."
-
-        # Initialize SimulateRetina
-        w_coord, z_coord = self.get_w_z_coords(rf)
-
-        # Get random sample sized N_units, assert for too small sample
-
-        Nmosaic_units = w_coord.size
-        assert (
-            Nx <= Nmosaic_units
-        ), "Too few units in mosaic, increase ecc and / or sector limits in _get_real_coordinates method"
-        idx = np.random.choice(Nmosaic_units, size=Nx, replace=False)
-        w_coord, z_coord = w_coord[idx], z_coord[idx]
-
-        return w_coord, z_coord

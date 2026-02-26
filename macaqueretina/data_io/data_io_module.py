@@ -770,39 +770,6 @@ class DataIO:
 
         return cone_response
 
-    def save_analog_stimulus(
-        self,
-        filename_out=None,
-        Input=None,
-        z_coord=None,
-        w_coord=None,
-        frameduration=None,
-    ):
-        assert all(
-            [
-                filename_out is not None,
-                Input is not None,
-                z_coord is not None,
-                w_coord is not None,
-                frameduration is not None,
-            ]
-        ), "Some input missing from save_analog_stimulus, aborting..."
-
-        total_duration = Input.shape[1] * frameduration / 1000
-        # mat['stimulus'].shape should be (Nunits, Ntimepoints)
-        mat_out_dict = {
-            "z_coord": z_coord,
-            "w_coord": w_coord,
-            "stimulus": Input,
-            "frameduration": frameduration,
-            "stimulus_duration_in_seconds": total_duration,
-        }
-
-        filename_out_full = self.config.output_folder.joinpath(filename_out)
-
-        sio.savemat(filename_out_full, mat_out_dict)
-        print(f"Duration of stimulus is {total_duration} seconds")
-
     def save_np_dict_to_npz(
         self, data_dict, output_path, filename_stem="", overwrite=True
     ):
