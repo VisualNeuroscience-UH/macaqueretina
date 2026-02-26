@@ -2560,7 +2560,7 @@ class ConeProduct(ReceptiveFieldsBase):
         interpolate_data: callable,
         lin_interp_and_double_lorenzian: callable,
         get_photoisomerizations_from_luminance: callable,
-        gain_calibration_table: dict[str, Any],
+        noise_fr_mean: dict[str, Any],
         target_gc_for_multiple_trials: Optional[int] = None,
     ) -> None:
         super().__init__(retina_parameters)
@@ -2569,11 +2569,9 @@ class ConeProduct(ReceptiveFieldsBase):
         self.ret_npz = ret_npz
         self.device = device
         self.ND_filter = ND_filter
-        self.current_noise_fr_mean = gain_calibration_table[
-            self.retina_parameters.gc_type
-        ][self.retina_parameters.response_type][
-            self.retina_parameters.spatial_model_type
-        ][self.retina_parameters.temporal_model_type]
+        self.current_noise_fr_mean = noise_fr_mean[
+            self.retina_parameters.response_type
+        ][self.retina_parameters.gc_type]
         self.interpolate_data = interpolate_data
         self.lin_interp_and_double_lorenzian = lin_interp_and_double_lorenzian
         self.get_photoisomerizations_from_luminance = (
@@ -3881,7 +3879,7 @@ class SimulateRetina:
             self.retina_math.interpolate_data,
             self.retina_math.lin_interp_and_double_lorenzian,
             self.retina_math.get_photoisomerizations_from_luminance,
-            self.config.gain_calibration.signal_gain_table.as_dict(),
+            self.config.gain_calibration.noise_fr_mean.as_dict(),
             target_gc_for_multiple_trials,
         )
 
