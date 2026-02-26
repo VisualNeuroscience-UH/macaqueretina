@@ -1,8 +1,13 @@
+from typing import TYPE_CHECKING
+
 # Third-party
 import numpy as np
 from brian2 import units as b2u
 from scipy.interpolate import interp1d
 from scipy.special import gamma
+
+if TYPE_CHECKING:
+    import pandas as pd
 
 
 class RetinaMath:
@@ -28,14 +33,16 @@ class RetinaMath:
     ) -> float:
         return np.maximum(a * np.exp(b * x) + c * np.exp(d * x) + e * np.exp(f * x), 0)
 
-    def generalized_gauss_func(self, x, a, x0, alpha, beta):
+    def generalized_gauss_func(
+        self, x: float, a: float, x0: float, alpha: float, beta: float
+    ) -> float:
         """
         Generalized Gaussian distribution function with variable kurtosis.
         """
         coeff = beta / (2 * alpha * gamma(1 / beta))
         return a * coeff * np.exp(-(np.abs((x - x0) / alpha) ** beta))
 
-    def sector2area_mm2(self, radius, angle):
+    def sector2area_mm2(self, radius: float, angle: float) -> float:
         """
         Calculate sector area.
 
@@ -57,25 +64,27 @@ class RetinaMath:
         sector_surface_area = (np.pi * (radius**2)) * (angle / 360)  # in mm2
         return sector_surface_area
 
-    def area2circle_diameter(self, area_of_rf):
+    def area2circle_diameter(self, area_of_rf: float) -> float:
         diameter = np.sqrt(area_of_rf / np.pi) * 2
 
         return diameter
 
-    def ellipse2diam(self, semi_xc, semi_yc):
+    def ellipse2diam(
+        self, semi_xc: float | np.ndarray, semi_yc: float | np.ndarray
+    ) -> float | np.ndarray:
         """
         Compute the spherical diameter of an ellipse given its semi-major and semi-minor axes.
 
         Parameters
         ----------
-        semi_xc : array-like
+        semi_xc : float | np.ndarray
             The lengths of the semi-major axes of the ellipses.
-        semi_yc : array-like
+        semi_yc : float | np.ndarray
             The lengths of the semi-minor axes of the ellipses.
 
         Returns
         -------
-        diameters : numpy array
+        diameters : float | np.ndarray
             The spherical diameters of the ellipses.
 
         Notes
@@ -91,8 +100,8 @@ class RetinaMath:
         return diameters
 
     def get_sample_from_range_and_average(
-        self, min_range, max_range, average, sample_size
-    ):
+        self, min_range: int, max_range: int, average: float, sample_size: int
+    ) -> np.ndarray:
         """Function to generate a sample with a target average, given range."""
         sample = np.random.randint(min_range, max_range + 1, sample_size)
         current_mean = np.mean(sample)
@@ -114,15 +123,15 @@ class RetinaMath:
 
         return sample
 
-    def weighted_average(self, means, sizes):
+    def weighted_average(self, means: np.ndarray, sizes: np.ndarray) -> float:
         """
         Calculate the weighted average of a set of values.
 
         Parameters
         ----------
-        means : array-like
+        means : np.ndarray
             The values to be averaged.
-        sizes : array-like
+        sizes : np.ndarray
             The weights for each value.
 
         Returns
@@ -138,7 +147,7 @@ class RetinaMath:
         return weighted_mean
 
     # RetinaConstruction & SimulateRetina methods
-    def pol2cart_df(self, df):
+    def pol2cart_df(self, df: pd.DataFrame) -> np.ndarray:
         """
         Convert retinal positions (eccentricity, polar angle) to visual space positions in degrees (x, y).
 
@@ -162,7 +171,9 @@ class RetinaMath:
 
         return rspace_pos_mm
 
-    def create_ellipse_mask(self, xo, yo, semi_x, semi_y, ori, s):
+    def create_ellipse_mask(
+        self, xo: float, yo: float, semi_x: float, semi_y: float, ori: float, s: int
+    ) -> np.ndarray:
         """
         Create an ellipse mask.
 
@@ -204,7 +215,9 @@ class RetinaMath:
         return mask
 
     # SimulateRetina methods
-    def pol2cart(self, radius, phi, deg=True):
+    def pol2cart(
+        self, radius: float | np.ndarray, phi: float | np.ndarray, deg: bool = True
+    ) -> tuple[float | np.ndarray, float | np.ndarray]:
         """
         Converts polar coordinates to Cartesian coordinates
 
@@ -238,15 +251,17 @@ class RetinaMath:
 
         return (x, y)
 
-    def cart2pol(self, x, y, deg=True):
+    def cart2pol(
+        self, x: float | np.ndarray, y: float | np.ndarray, deg: bool = True
+    ) -> tuple[float | np.ndarray, float | np.ndarray]:
         """
         Converts Cartesian coordinates to polar coordinates.
 
         Parameters
         ----------
-        x : float
+        x : float | np.ndarray
             The x-coordinate in real distance such as mm.
-        y : float
+        y : float | np.ndarray
             The y-coordinate in real distance such as mm.
         deg : bool, optional
             Whether to return the polar angle in degrees or radians.
@@ -272,7 +287,7 @@ class RetinaMath:
 
         return (radius, phi)
 
-    def deg2_to_steradian(self, deg2):
+    def deg2_to_steradian(self, deg2: float) -> float:
         """
         Convert square degrees to steradians.
 
@@ -290,13 +305,13 @@ class RetinaMath:
 
     def get_luminance_from_photoisomerizations(
         self,
-        I_cone,
-        A_pupil=9.3,
-        a_c_end_on=0.6,
-        tau_media=0.87,
-        lambda_nm=560,
-        V_lambda=0.995,
-    ):
+        I_cone: float,
+        A_pupil: float = 9.3,
+        a_c_end_on: float = 0.6,
+        tau_media: float = 0.87,
+        lambda_nm: int = 560,
+        V_lambda: float = 0.995,
+    ) -> float:
         """
         Calculate the luminance from the rate of photoisomerizations per cone per second.
 
@@ -342,13 +357,13 @@ class RetinaMath:
 
     def get_photoisomerizations_from_luminance(
         self,
-        L,
-        A_pupil=9.3,
-        a_c_end_on=0.6,
-        tau_media=0.87,
-        lambda_nm=560,
-        V_lambda=0.995,
-    ):
+        L: float,
+        A_pupil: float = 9.3,
+        a_c_end_on: float = 0.6,
+        tau_media: float = 0.87,
+        lambda_nm: int = 560,
+        V_lambda: float = 0.995,
+    ) -> float:
         """
         Calculate the rate of photoisomerizations per cone per second from luminance.
 
@@ -364,7 +379,7 @@ class RetinaMath:
             The transmittance of the ocular media at wavelength λ.
         lambda_nm : int, optional
             Wavelength in nm, default is 560 nm.
-        V : float
+        V_lambda : float
             The luminocity function value at given wavelength, default is 0.995 at 560 nm.
 
         Returns
@@ -406,7 +421,15 @@ class RetinaMath:
 
         return I_cone
 
-    def rotate_image_grids(self, X_grid, Y_grid, angle, n_units, sidelen_x, sidelen_y):
+    def rotate_image_grids(
+        self,
+        X_grid: np.ndarray,
+        Y_grid: np.ndarray,
+        angle: float,
+        n_units: int,
+        sidelen_x: int,
+        sidelen_y: int,
+    ) -> tuple[np.ndarray, np.ndarray]:
         """
         Rotate the X and Y meshgrids by the specified angle.
 
@@ -466,15 +489,29 @@ class RetinaMath:
         return X_grid_rot_mm, Y_grid_rot_mm
 
     # General function fitting methods
-    def hyperbolic_function(self, x, y_max, x_half):
+    def hyperbolic_function(
+        self, x: float | np.ndarray, y_max: float, x_half: float
+    ) -> float | np.ndarray:
         # Define the generalized hyperbolic function
         return y_max / (1 + x / x_half)
 
-    def log_hyperbolic_function(self, x_log, log_y_max, x_half_log):
+    def log_hyperbolic_function(
+        self, x_log: float | np.ndarray, log_y_max: float, x_half_log: float
+    ) -> float | np.ndarray:
         # Define the hyperbolic function in log space
         return log_y_max - np.log(1 + np.exp(x_log - x_half_log))
 
-    def victor_model_frequency_domain(self, f, NL, TL, HS, TS, A0, M0, D):
+    def victor_model_frequency_domain(
+        self,
+        f: float | np.ndarray,
+        NL: float,
+        TL: float,
+        HS: float,
+        TS: float,
+        A0: float,
+        M0: float,
+        D: float,
+    ) -> float | np.ndarray:
         """
         The model by Victor 1987 JPhysiol
         """
@@ -491,7 +528,9 @@ class RetinaMath:
 
         return power_spectrum
 
-    def lorenzian_function(self, f, a, wc):
+    def lorenzian_function(
+        self, f: float | np.ndarray, a: float, wc: float
+    ) -> float | np.ndarray:
         """
         Define a Lorentzian function for curve fitting.
 
@@ -511,7 +550,9 @@ class RetinaMath:
         """
         return a / (1 + ((f / wc) ** 2))
 
-    def interpolate_data(self, x, y, kind="linear"):
+    def interpolate_data(
+        self, x: np.ndarray, y: np.ndarray, kind: str = "linear"
+    ) -> interp1d:
         """Interpolate empirical data to get a continuous function."""
 
         fill_value = (y[0], y[-1])
@@ -530,8 +571,8 @@ class RetinaMath:
         return interp1d_function
 
     def set_metaparameters_for_log_interp_and_double_lorenzian(
-        self, cone_interp_function, cone_noise_wc
-    ):
+        self, cone_interp_function: interp1d, cone_noise_wc: list[float]
+    ) -> None:
         """
         Set metaparameters for fitting interpolated cone response and
         two lorenzian functions. These are necessary building blocks for
@@ -541,7 +582,7 @@ class RetinaMath:
         ----------
         cone_interp_function : scipy.interpolate.interp1d
             Interpolated cone response function.
-        cone_noise_wc : list
+        cone_noise_wc : list[float]
             List of corner frequencies for the two lorenzian functions.
 
         Returns
@@ -552,8 +593,13 @@ class RetinaMath:
         self.cone_noise_wc = cone_noise_wc
 
     def lin_interp_and_double_lorenzian(
-        self, f, a0, L1_params, L2_params, cone_interp_function
-    ):
+        self,
+        f: float | np.ndarray,
+        a0: float,
+        L1_params: np.ndarray,
+        L2_params: np.ndarray,
+        cone_interp_function: interp1d,
+    ) -> float | np.ndarray:
         """
         Calculate the power spectrum in linear space as a combination of
         interpolated cone response and two lorenzian functions.
@@ -565,7 +611,9 @@ class RetinaMath:
 
         return L1 + L2 + fitted_interpolated_data
 
-    def fit_log_interp_and_double_lorenzian(self, log_f, *log_params):
+    def fit_log_interp_and_double_lorenzian(
+        self, log_f: np.ndarray, *log_params: tuple[float]
+    ) -> np.ndarray:
         """
         Wrapper function for fitting interpolated cone response and
         two lorenzian functions.
@@ -577,8 +625,8 @@ class RetinaMath:
         ----------
         log_f : numpy.ndarray
             Logarithm of frequency axis.
-        log_params : list
-            List of parameters to be fitted in log space.
+        log_params : tuple[float]
+            Tuple of parameters to be fitted in log space.
 
         Returns
         -------
@@ -602,17 +650,21 @@ class RetinaMath:
 
         return log_power_spectrum
 
-    def basic_logistic_function(self, x):
+    def basic_logistic_function(self, x: float | np.ndarray) -> float | np.ndarray:
         return 1 / (1 + np.exp(-x))
 
-    def generalized_logistic_function(self, x, L, k, x0):
+    def generalized_logistic_function(
+        self, x: float | np.ndarray, L: float, k: float, x0: float
+    ) -> float | np.ndarray:
         return L / (1 + np.exp(-k * (x - x0)))
 
-    def parabola(self, x, a, b, c):
+    def parabola(
+        self, x: float | np.ndarray, a: float, b: float, c: float
+    ) -> float | np.ndarray:
         return a * x**2 + b * x + c
 
     # Fit method
-    def lowpass(self, t, n, p, tau):
+    def lowpass(self, t: np.ndarray, n: float, p: float, tau: float) -> np.ndarray:
         """
         Returns a lowpass filter kernel with a given time constant and order.
 
@@ -631,7 +683,15 @@ class RetinaMath:
         y = p * (t / tau) ** (n) * np.exp(-n * (t / tau - 1))
         return y
 
-    def get_triangular_parameters(self, minimum, maximum, median, mean, sd, sem):
+    def get_triangular_parameters(
+        self,
+        minimum: float,
+        maximum: float,
+        median: float,
+        mean: float,
+        sd: float,
+        sem: float,
+    ) -> tuple[float, float, float]:
         """
         Estimate the parameters for a triangular distribution based on the provided
         statistics: minimum, maximum, median, mean, and standard deviation.
@@ -705,7 +765,9 @@ class RetinaMath:
 
     # Fit & RetinaVAE method
 
-    def flip_negative_spatial_rf(self, spatial_rf_unflipped, data_noise_threshold=0):
+    def flip_negative_spatial_rf(
+        self, spatial_rf_unflipped: np.ndarray, data_noise_threshold: float = 0
+    ) -> np.ndarray:
         """
         Flips negative values of a spatial RF to positive values.
 
@@ -756,17 +818,17 @@ class RetinaMath:
     # Fit & SimulateRetina method
     def DoG2D_fixed_surround(
         self,
-        xy_tuple,
-        ampl_c,
-        xoc,
-        yoc,
-        semi_xc,
-        semi_yc,
-        orient_cen_rad,
-        ampl_s,
-        relat_sur_diam,
-        offset,
-    ):
+        xy_tuple: tuple[np.ndarray, np.ndarray],
+        ampl_c: float,
+        xoc: float,
+        yoc: float,
+        semi_xc: float,
+        semi_yc: float,
+        orient_cen_rad: float,
+        ampl_s: float,
+        relat_sur_diam: float,
+        offset: float,
+    ) -> np.ndarray:
         """
         DoG model with xo, yo, theta for surround coming from center.
         Note that semi_xc and semi_yc correspond to radii while matplotlib Ellipse assumes diameters.
@@ -818,21 +880,21 @@ class RetinaMath:
 
     def DoG2D_independent_surround(
         self,
-        xy_tuple,
-        ampl_c,
-        xoc,
-        yoc,
-        semi_xc,
-        semi_yc,
-        orient_cen_rad,
-        ampl_s,
-        xos,
-        yos,
-        semi_xs,
-        semi_ys,
-        orient_sur_rad,
-        offset,
-    ):
+        xy_tuple: tuple[np.ndarray, np.ndarray],
+        ampl_c: float,
+        xoc: float,
+        yoc: float,
+        semi_xc: float,
+        semi_yc: float,
+        orient_cen_rad: float,
+        ampl_s: float,
+        xos: float,
+        yos: float,
+        semi_xs: float,
+        semi_ys: float,
+        orient_sur_rad: float,
+        offset: float,
+    ) -> np.ndarray:
         """
         DoG model with xo, yo, theta for surround independent from center.
         """
@@ -881,7 +943,17 @@ class RetinaMath:
 
         return model_fit.ravel()
 
-    def DoG2D_circular(self, xy_tuple, ampl_c, x0, y0, rad_c, ampl_s, rad_s, offset):
+    def DoG2D_circular(
+        self,
+        xy_tuple: tuple[np.ndarray, np.ndarray],
+        ampl_c: float,
+        x0: float,
+        y0: float,
+        rad_c: float,
+        ampl_s: float,
+        rad_s: float,
+        offset: float,
+    ) -> np.ndarray:
         """
         DoG model with the center and surround as concentric circles and a shared center (x0, y0).
         """
@@ -902,7 +974,9 @@ class RetinaMath:
 
         return model_fit.ravel()
 
-    def diff_of_lowpass_filters(self, t, n, p1, p2, tau1, tau2):
+    def diff_of_lowpass_filters(
+        self, t: np.ndarray, n: float, p1: float, p2: float, tau1: float, tau2: float
+    ) -> np.ndarray:
         """
         Returns the difference between two lowpass filters with different time constants and orders.
         From Chichilnisky & Kalmar JNeurosci 2002
@@ -926,8 +1000,13 @@ class RetinaMath:
         return y
 
     def calculate_gaussian_volumes(
-        self, ampl_c, ampl_s, semi_xc, semi_yc, relat_sur_diam
-    ):
+        self,
+        ampl_c: float,
+        ampl_s: float,
+        semi_xc: float,
+        semi_yc: float,
+        relat_sur_diam: float,
+    ) -> tuple[float, float]:
         # Central Gaussian Volume
         sigma_xc = semi_xc
         sigma_yc = semi_yc
@@ -941,7 +1020,9 @@ class RetinaMath:
         return volume_central, volume_surround
 
     # Validation
-    def naka_rushton(self, c: np.ndarray, Rmax: float, c50: float, baseline: float):
+    def naka_rushton(
+        self, c: np.ndarray, Rmax: float, c50: float, baseline: float
+    ) -> np.ndarray:
         """
         Naka-Rushton function.
         Ref: Naka & Rushton 1966 J Physiol
@@ -996,7 +1077,7 @@ class RetinaMath:
         r_c: float,
         k_s: float,
         r_s: float,
-    ):
+    ) -> float | np.ndarray:
         """
         Calculate the spatial contrast sensitivity function F(sf) = C(sf) - S(sf),
         where sf is the spatial frequency.
@@ -1030,7 +1111,7 @@ class RetinaMath:
 
     def temporal_contrast_sensitivity(
         self, tf: float | np.ndarray, s1: float, k1: float, s2: float, k2: float
-    ):
+    ) -> float | np.ndarray:
         """
         Calculate the temporal contrast sensitivity function, with a difference of
         two exponential functions, where tf is the temporal frequency.
