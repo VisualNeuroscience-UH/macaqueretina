@@ -3423,7 +3423,7 @@ class GanglionCellProduct(ReceptiveFieldsBase):
         Set gain adjustment for ganglion cells.
 
         """
-        self.gc_gain_adjustment = self.config.gain_calibration.signal_gain_table[
+        self.gain_galibration = self.config.gain_calibration.signal_gain_table[
             self.config.retina_parameters.gc_type
         ][self.retina_parameters.response_type][
             self.retina_parameters.spatial_model_type
