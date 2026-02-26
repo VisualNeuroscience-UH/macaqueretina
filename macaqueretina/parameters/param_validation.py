@@ -15,7 +15,7 @@ from __future__ import annotations
 # Built-in
 import random
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal, Self
+from typing import TYPE_CHECKING, Literal, Self
 
 # Third-party
 import brian2.units as b2u
