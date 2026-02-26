@@ -2,7 +2,7 @@
 import math
 from abc import ABC, abstractmethod
 from copy import deepcopy
-from typing import Any, Callable, Dict, List, Tuple
+from typing import TYPE_CHECKING, Any, Callable
 
 # Third-party
 import matplotlib.pyplot as plt
@@ -19,6 +19,15 @@ from shapely.geometry import Polygon as ShapelyPolygon
 from .rf_repulsion_utils import apply_rf_repulsion
 from macaqueretina.project.project_utilities_module import PrintableMixin
 from macaqueretina.retina.retina_math_module import RetinaMath
+
+if TYPE_CHECKING:
+    from numpy.lib.npyio import NpzFile
+
+    from macaqueretina.data_io.config_io import Configuration
+    from macaqueretina.data_io.data_io_module import DataIO
+    from macaqueretina.fit.fit_module import Fit
+    from macaqueretina.retina.retina_vae_module import RetinaVAE
+    from macaqueretina.viz.viz_module import Viz
 
 
 class Retina(PrintableMixin):
@@ -104,7 +113,7 @@ class Retina(PrintableMixin):
         Proportion of OFF-response ganglion cells in the model.
     """
 
-    def __init__(self, retina_parameters: Dict[str, Any]) -> None:
+    def __init__(self, retina_parameters: dict[str, Any]) -> None:
         # Computed downstream
         self.whole_ret_img: np.ndarray | None = None
         self.whole_ret_lu_mm: np.ndarray | None = None
@@ -283,7 +292,7 @@ class DistributionSampler:
         return multivariate_samples_df
 
 
-class GanglionCellBase(ABC, PrintableMixin):
+class GanglionCell(ABC, PrintableMixin):
     """
     Abstract base class for storing and processing data related to ganglion cell receptive field models.
 
@@ -362,7 +371,7 @@ class GanglionCellBase(ABC, PrintableMixin):
         pass
 
 
-class GanglionCellParasol(GanglionCellBase):
+class GanglionCellParasol(GanglionCell):
     """
     A class to build parasol ganglion cells.
 
@@ -390,7 +399,7 @@ class GanglionCellParasol(GanglionCellBase):
         return BK_parameter_names
 
 
-class GanglionCellMidget(GanglionCellBase):
+class GanglionCellMidget(GanglionCell):
     """
     A class to build midget ganglion cells.
 
@@ -422,7 +431,7 @@ class GanglionCellMidget(GanglionCellBase):
         return BK_parameter_names
 
 
-class DoGModelBase(ABC):
+class DoGModel(ABC):
     """
     Abstract base class for building Difference of Gaussian (DoG) models.
 
@@ -432,14 +441,14 @@ class DoGModelBase(ABC):
         Includes necessary parameters for fetching receptive field data.
     fit : Fit
         Fit instance responsible for managing model fitting.
-    retina_math : Any
+    retina_math : RetinaMath
         Instance for mathematical operations related to the retina model.
     """
 
-    def __init__(self, ret: Any, fit: Any, retina_math: Any) -> None:
-        self.ret: Any = ret
-        self.fit: Any = fit
-        self.retina_math: Any = retina_math
+    def __init__(self, ret: Retina, fit: Fit, retina_math: RetinaMath) -> None:
+        self.ret: Retina = ret
+        self.fit: Fit = fit
+        self.retina_math: RetinaMath = retina_math
 
         dog_statistics = ret.experimental_archive["dog_statistics"]
         for key, value in dog_statistics.items():
@@ -486,13 +495,14 @@ class DoGModelBase(ABC):
         pass
 
     @abstractmethod
-    def get_param_names(self, gc: Any) -> list[str]:
+    def get_param_names(self, gc: GanglionCell) -> list[str]:
         """
         Abstract method to retrieve the parameter names for the ganglion cell model.
 
         Parameters
         ----------
-        gc : Ganglion cell object.
+        gc : GanglionCell
+            The ganglion cell object for which to retrieve parameter names.
 
         Returns
         -------
@@ -524,34 +534,36 @@ class DoGModelBase(ABC):
         """
         pass
 
-    def _add_center_fit_area_to_df(self, gc: Any) -> Any:
+    def _add_center_fit_area_to_df(self, gc: GanglionCell) -> GanglionCell:
         """
         Adds the center fit area to the ganglion cell DataFrame.
 
         Parameters
         ----------
-        gc : Ganglion cell object.
+        gc : GanglionCell
+            The ganglion cell object for which to add the center fit area.
 
         Returns
         -------
-        Any
+        GanglionCell
             Updated ganglion cell object with the center fit area added.
         """
         gc.df["center_fit_area_mm2"] = np.pi * gc.df["semi_xc_mm"] * gc.df["semi_yc_mm"]
         return gc
 
-    def _get_dd_in_um(self, gc: Any) -> Any:
+    def _get_dd_in_um(self, gc: GanglionCell) -> GanglionCell:
         """
         Calculates the dendritic diameter in micrometers and adds it to the DataFrame.
 
         Parameters
         ----------
-        gc : Ganglion cell object.
+        gc : GanglionCell
+            The ganglion cell object for which to calculate the dendritic diameter.
 
         Returns
         -------
-        Any
-            Updated ganglion cell object with dendritic diameter in micrometers.
+        GanglionCell
+            Updated ganglion cell object with the dendritic diameter in micrometers added to the DataFrame.
         """
         den_diam_um_s = pd.Series(
             self.retina_math.ellipse2diam(
@@ -562,13 +574,14 @@ class DoGModelBase(ABC):
         gc.df["den_diam_um"] = den_diam_um_s
         return gc
 
-    def _get_center_volume(self, gc: Any) -> np.ndarray:
+    def _get_center_volume(self, gc: GanglionCell) -> np.ndarray:
         """
         Calculates the volume of the center of the receptive field in cubic millimeters.
 
         Parameters
         ----------
-        gc : Ganglion cell object.
+        gc : GanglionCell
+            The ganglion cell object for which to calculate the center volume.
 
         Returns
         -------
@@ -581,7 +594,7 @@ class DoGModelBase(ABC):
         return cen_vol_mm3
 
 
-class DoGModelEllipseFixed(DoGModelBase):
+class DoGModelEllipseFixed(DoGModel):
     """
     A class to build Difference of Gaussian (DoG) models with fixed ellipses.
 
@@ -593,14 +606,14 @@ class DoGModelEllipseFixed(DoGModelBase):
     generate_fit_img(x_grid: np.ndarray, y_grid: np.ndarray, popt: np.ndarray) -> np.ndarray
         Generates the fitted image for the ganglion cell model using grid coordinates and optimized parameters.
 
-    get_param_names(gc: Any) -> Any
+    get_param_names(gc: GanglionCell) -> GanglionCell
         Sets the parameter names, scaling, and zoom parameters for the ganglion cell model and returns the updated object.
 
     transform_vae_dog_to_mm(df: pd.DataFrame, gc_df_in: pd.DataFrame, mm_per_pix: float) -> pd.DataFrame
         Transforms VAE DoG model data from pixel to millimeter units, updating the DataFrame with additional parameters.
     """
 
-    def __init__(self, ret: Any, fit: Any, retina_math: Any) -> None:
+    def __init__(self, ret: Retina, fit: Fit, retina_math: RetinaMath) -> None:
         super().__init__(ret, fit, retina_math)
 
     def scale_to_mm(self, df: pd.DataFrame, um_per_pixel: float) -> pd.DataFrame:
@@ -654,17 +667,18 @@ class DoGModelEllipseFixed(DoGModelBase):
         gc_img_fitted = self.retina_math.DoG2D_fixed_surround((x_grid, y_grid), *popt)
         return gc_img_fitted
 
-    def get_param_names(self, gc: Any) -> Any:
+    def get_param_names(self, gc: GanglionCell) -> GanglionCell:
         """
         Sets the parameter names, scaling, and zoom parameters for the ganglion cell model.
 
         Parameters
         ----------
-        gc : Ganglion cell object.
+        gc : GanglionCell
+            The ganglion cell object for which to set parameter names and scaling information.
 
         Returns
         -------
-        gc : Ganglion cell object
+        gc : GanglionCell
             Updated ganglion cell object with parameter names and scaling information.
         """
         gc.parameter_names = [
@@ -731,7 +745,7 @@ class DoGModelEllipseFixed(DoGModelBase):
         return df
 
 
-class DoGModelEllipseIndependent(DoGModelBase):
+class DoGModelEllipseIndependent(DoGModel):
     """
     A class to build Difference of Gaussian (DoG) models with independent ellipses.
 
@@ -743,14 +757,14 @@ class DoGModelEllipseIndependent(DoGModelBase):
     generate_fit_img(x_grid: np.ndarray, y_grid: np.ndarray, popt: np.ndarray) -> np.ndarray
         Generates the fitted image for the ganglion cell model using grid coordinates and optimized parameters.
 
-    get_param_names(gc: Any) -> Any
+    get_param_names(gc: GanglionCell) -> GanglionCell
         Sets the parameter names, scaling, and zoom parameters for the ganglion cell model and returns the updated object.
 
     transform_vae_dog_to_mm(df: pd.DataFrame, gc_df_in: pd.DataFrame, mm_per_pix: float) -> pd.DataFrame
         Transforms VAE DoG model data from pixel to millimeter units, updating the DataFrame with additional parameters.
     """
 
-    def __init__(self, ret: Any, fit: Any, retina_math: Any) -> None:
+    def __init__(self, ret: Retina, fit: Fit, retina_math: RetinaMath) -> None:
         super().__init__(ret, fit, retina_math)
 
     def scale_to_mm(self, df: pd.DataFrame, um_per_pixel: float) -> pd.DataFrame:
@@ -812,18 +826,18 @@ class DoGModelEllipseIndependent(DoGModelBase):
         )
         return gc_img_fitted
 
-    def get_param_names(self, gc: Any) -> Any:
+    def get_param_names(self, gc: GanglionCell) -> GanglionCell:
         """
         Sets the parameter names, scaling, and zoom parameters for the ganglion cell model.
 
         Parameters
         ----------
-        gc : Any
-            Ganglion cell object.
+        gc : GanglionCell
+            The ganglion cell object for which to set parameter names and scaling information.
 
         Returns
         -------
-        gc
+        GanglionCell
             Updated ganglion cell object with parameter names and scaling information.
         """
         gc.parameter_names = [
@@ -907,7 +921,7 @@ class DoGModelEllipseIndependent(DoGModelBase):
         return df
 
 
-class DoGModelCircular(DoGModelBase):
+class DoGModelCircular(DoGModel):
     """
     A class to build Difference of Gaussian (DoG) models with circular shapes.
 
@@ -919,56 +933,58 @@ class DoGModelCircular(DoGModelBase):
     generate_fit_img(x_grid: np.ndarray, y_grid: np.ndarray, popt: np.ndarray) -> np.ndarray
         Generates the fitted image for the ganglion cell model using grid coordinates and optimized parameters.
 
-    get_param_names(gc: Any) -> Any
+    get_param_names(gc: GanglionCell) -> GanglionCell
         Sets the parameter names, scaling, and zoom parameters for the ganglion cell model and returns the updated object.
 
     transform_vae_dog_to_mm(df: pd.DataFrame, gc_df_in: pd.DataFrame, mm_per_pix: float) -> pd.DataFrame
         Transforms VAE DoG model data from pixel to millimeter units, updating the DataFrame with additional parameters.
     """
 
-    def __init__(self, ret: Any, fit: Any, retina_math: Any) -> None:
+    def __init__(self, ret: Retina, fit: Fit, retina_math: RetinaMath) -> None:
         super().__init__(ret, fit, retina_math)
 
-    def _get_dd_in_um(self, gc: Any) -> Any:
+    def _get_dd_in_um(self, gc: GanglionCell) -> GanglionCell:
         """
         Calculates the dendritic diameter in micrometers and adds it to the DataFrame.
 
         Parameters
         ----------
-        gc : Ganglion cell object.
+        gc : GanglionCell
+             The ganglion cell object for which to calculate the dendritic diameter.
 
         Returns
         -------
-        Any
+        GanglionCell
             Updated ganglion cell object with dendritic diameter in micrometers.
         """
         gc.df["den_diam_um"] = gc.df["rad_c_mm"] * 2 * 1000
         return gc
 
-    def _add_center_fit_area_to_df(self, gc: Any) -> Any:
+    def _add_center_fit_area_to_df(self, gc: GanglionCell) -> GanglionCell:
         """
         Adds the center fit area to the ganglion cell DataFrame.
 
         Parameters
         ----------
-        gc : Any
-            Ganglion cell object.
+        gc : GanglionCell
+            The ganglion cell object for which to add the center fit area.
 
         Returns
         -------
-        Any
+        GanglionCell
             Updated ganglion cell object with the center fit area added.
         """
         gc.df["center_fit_area_mm2"] = np.pi * gc.df["rad_c_mm"] ** 2
         return gc
 
-    def _get_center_volume(self, gc: Any) -> np.ndarray:
+    def _get_center_volume(self, gc: GanglionCell) -> np.ndarray:
         """
         Calculates the center volume of the receptive field in cubic millimeters.
 
         Parameters
         ----------
-        gc : Ganglion cell object.
+        gc : GanglionCell
+            The ganglion cell object for which to calculate the center volume.
 
         Returns
         -------
@@ -1029,17 +1045,18 @@ class DoGModelCircular(DoGModelBase):
         gc_img_fitted = self.retina_math.DoG2D_circular((x_grid, y_grid), *popt)
         return gc_img_fitted
 
-    def get_param_names(self, gc: Any) -> Any:
+    def get_param_names(self, gc: GanglionCell) -> GanglionCell:
         """
         Sets the parameter names, scaling, and zoom parameters for the ganglion cell model.
 
         Parameters
         ----------
-        gc : Ganglion cell object.
+        gc : GanglionCell
+            The ganglion cell object for which to set parameter names and scaling information.
 
         Returns
         -------
-        Any
+        gc: GanglionCell
             Updated ganglion cell object with parameter names and scaling information.
         """
         gc.parameter_names = [
@@ -1104,30 +1121,29 @@ class SpatialModelBase(ABC):
 
     Attributes
     ----------
-    DoG_model : Any
+    DoG_model : DoGModel
         Difference of Gaussian model used to generate receptive fields.
-    sampler : Any
+    sampler : Callable
         Distribution sampler for generating receptive fields.
-    project_data : dict
-        Stores project-related data.
+
     """
 
     def __init__(
         self,
-        DoG_model: Any,
+        DoG_model: DoGModel,
         distribution_sampler: Callable,
-        retina_vae: Any,
-        fit: Any,
-        retina_math: Any,
-        viz: Any,
+        retina_vae: RetinaVAE,
+        fit: Fit,
+        retina_math: RetinaMath,
+        viz: Viz,
     ) -> None:
-        self.DoG_model: Any = DoG_model
-        self.sampler: Callable = distribution_sampler
-        self.retina_vae: Any = retina_vae
-        self.fit: Any = fit
-        self.retina_math: Any = retina_math
-        self.viz: Any = viz
-        self.project_data: dict = {}
+        self.DoG_model = DoG_model
+        self.sampler = distribution_sampler
+        self.retina_vae = retina_vae
+        self.fit = fit
+        self.retina_math = retina_math
+        self.viz = viz
+        self.project_data = {}
 
     @abstractmethod
     def create(self) -> None:
@@ -1162,21 +1178,23 @@ class SpatialModelBase(ABC):
         return pix_scaled
 
     def _get_img_grid_from_selected_img_stack(
-        self, ret: Any, gc: Any, mask: Any
-    ) -> Any:
+        self, ret: Retina, gc: GanglionCell, mask: np.ndarray
+    ) -> tuple[np.ndarray, np.ndarray]:
         """
         Get the image grid from the selected image stack.
 
         Parameters
         ----------
-        gc : Any
-            Ganglion cell object.
-        mask : Any
+        ret : Retina
+            Retina instance containing necessary parameters for grid extraction.
+        gc : GanglionCell
+            Ganglion cell instance containing necessary parameters for grid extraction.
+        mask : np.ndarray
             Mask to extract the grid from.
 
         Returns
         -------
-        Any
+        tuple[np.ndarray, np.ndarray]
             Extracted image grid.
         """
 
@@ -1226,20 +1244,20 @@ class SpatialModelBase(ABC):
 
         return X_grid_cen_mm, Y_grid_cen_mm
 
-    def _get_img_grid_mm(self, ret: Any, gc: Any) -> Any:
+    def _get_img_grid_mm(self, ret: Retina, gc: GanglionCell) -> GanglionCell:
         """
         Get receptive field center x and y coordinate grids in millimeters for downstream distance calculations.
 
         Parameters
         ----------
-        ret : Any
+        ret : Retina
             Retina instance.
-        gc : Any
-            Ganglion cell object with the attributes `img_mask`, `um_per_pix`, `n_units`, and `img_lu_pix`.
+        gc : GanglionCell
+            Ganglion cell instance containing necessary parameters for grid extraction.
 
         Returns
         -------
-        Any
+        GanglionCell
             Updated ganglion cell object with X and Y coordinate grids (X_grid_cen_mm and Y_grid_cen_mm) in millimeters.
         """
 
@@ -1256,7 +1274,10 @@ class SpatialModelBase(ABC):
         return gc
 
     def _get_retina_corners(
-        self, ret: Any, rot_deg: float, pol2cart: Callable[[float, float], np.ndarray]
+        self,
+        ret: Retina,
+        rot_deg: float,
+        pol2cart: Callable[[float, float], np.ndarray],
     ) -> np.ndarray:
         """Calculate the four corners of the retina in mm using eccentricity and polar coordinates."""
         ecc_lim_mm = ret.ecc_lim_mm
@@ -1308,7 +1329,7 @@ class SpatialModelBase(ABC):
         return x_pix_c, y_pix_c
 
     def _apply_pixel_scaling(
-        self, df: pd.DataFrame, apply_pix_scaler: bool, gc: Any
+        self, df: pd.DataFrame, apply_pix_scaler: bool, gc: GanglionCell
     ) -> tuple[np.ndarray, np.ndarray]:
         """Apply pixel scaling if required, or return the original pixel positions."""
         y_pix = df["yoc_pix"].values.astype(float)
@@ -1334,7 +1355,7 @@ class SpatialModelBase(ABC):
         max_y_mm_im: float,
         mm_per_pix: float,
         apply_pix_scaler: bool,
-        gc: Any,
+        gc: GanglionCell,
     ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """Convert ganglion cell center positions to pixel coordinates, and apply optional scaling."""
 
@@ -1382,7 +1403,11 @@ class SpatialModelBase(ABC):
         return ret_img_pix, gc_img_lu_pix
 
     def _get_full_retina_with_rf_images(
-        self, ret: Any, gc: Any, gc_img: np.ndarray, apply_pix_scaler: bool = False
+        self,
+        ret: Retina,
+        gc: GanglionCell,
+        gc_img: np.ndarray,
+        apply_pix_scaler: bool = False,
     ) -> tuple:
         """
         Build a full retina image containing all receptive fields and return updated retina
@@ -1390,16 +1415,16 @@ class SpatialModelBase(ABC):
 
         Parameters
         ----------
-        ret : Any
-            Retina object.
-        gc : Any
-            Ganglion cell object.
+        ret : Retina
+            Retina instance.
+        gc : GanglionCell
+            Ganglion cell instance.
         gc_img : np.ndarray
             Ganglion cell images to be laid onto retina. Eg mask and img separately, thus the distinct input from gc.
 
         Returns
         -------
-        tuple
+        tuple : [Retina, GanglionCell, np.ndarray]
             Updated retina and ganglion cell objects, and the full retina image.
         """
 
@@ -1450,21 +1475,21 @@ class SpatialModelBase(ABC):
 
         return ret, gc, ret_img_pix
 
-    def _generate_center_masks(self, ret: Any, gc: Any) -> Any:
+    def _generate_center_masks(self, ret: Retina, gc: GanglionCell) -> GanglionCell:
         """
         Extract contours around the receptive field center based on the mask threshold.
 
         Parameters
         ----------
-        ret : Any
+        ret : Retina
             Retina instance.
-        gc : Any
-            Ganglion cell object with the attribute `img`.
+        gc : GanglionCell
+            Ganglion cell instance with the attribute `img`.
 
         Returns
         -------
-        Any
-            Updated ganglion cell object with center masks added.
+        GanglionCell
+            Updated ganglion cell instance with center masks added.
         """
         img_stack = gc.img
         mask_threshold = ret.mask_threshold
@@ -1482,21 +1507,21 @@ class SpatialModelBase(ABC):
         gc.img_mask = np.array(masks)
         return gc
 
-    def _generate_surround_masks(self, ret: Any, gc: Any) -> Any:
+    def _generate_surround_masks(self, ret: Retina, gc: GanglionCell) -> GanglionCell:
         """
         Extract contours around the receptive field surround based on the mask threshold.
 
         Parameters
         ----------
-        ret : Any
+        ret : Retina
             Retina instance.
-        gc : Any
-            Ganglion cell object with the attribute `img` containing the receptive fields.
+        gc : GanglionCell
+            Ganglion cell instance with the attribute `img` containing the receptive fields.
 
         Returns
         -------
-        Any
-            Updated ganglion cell object with surround masks added.
+        GanglionCell
+            Updated ganglion cell instance with surround masks added.
         """
         img_stack = gc.img
         mask_threshold = ret.mask_threshold
@@ -1516,19 +1541,19 @@ class SpatialModelBase(ABC):
 
         return gc
 
-    def _add_center_mask_area_to_df(self, gc: Any) -> Any:
+    def _add_center_mask_area_to_df(self, gc: GanglionCell) -> GanglionCell:
         """
         Add the area of the center mask to the ganglion cell DataFrame in mm^2.
 
         Parameters
         ----------
-        gc : Any
-            Ganglion cell object with attributes `img_mask` and `um_per_pix`.
+        gc : GanglionCell
+            Ganglion cell instance with attributes `img_mask` and `um_per_pix`.
 
         Returns
         -------
-        Any
-            Updated ganglion cell object with center mask areas added to the DataFrame.
+        GanglionCell
+            Updated ganglion cell instance with center mask areas added to the DataFrame.
         """
         center_mask_area_mm2 = np.sum(gc.img_mask, axis=(1, 2)) * gc.um_per_pix**2 / 1e6
         gc.df["center_mask_area_mm2"] = center_mask_area_mm2
@@ -1536,26 +1561,26 @@ class SpatialModelBase(ABC):
 
     def _update_vae_gc_df(
         self,
-        ret: Any,
-        gc: Any,
+        ret: Retina,
+        gc: GanglionCell,
         gc_df_in: pd.DataFrame,
-    ) -> Any:
+    ) -> GanglionCell:
         """
         Update the ganglion cell DataFrame with new values in millimeter units.
 
         Parameters
         ----------
-        ret : Any
+        ret : Retina
             Retina object containing retinal parameters.
-        gc : Any
-            GanglionCell object containing ganglion cell data.
+        gc : GanglionCell
+            Ganglion cell instance containing ganglion cell data.
         gc_df_in : pd.DataFrame
             DataFrame containing new ganglion cell data.
 
         Returns
         -------
-        gc : Any
-            Updated GanglionCell object with updated DataFrame.
+        gc : GanglionCell
+            Updated ganglion cell instance with updated DataFrame.
         """
         _df = gc_df_in.reindex(columns=gc.df.columns)
         mm_per_pix = gc.um_per_pix / 1000
@@ -1601,18 +1626,24 @@ class SpatialModelDOG(SpatialModelBase):
         )
 
     def _generate_DoG_with_rf_from_literature(
-        self, ret: Any, gc: Any, experimental_metadata: dict
-    ) -> Any:
+        self, ret: Retina, gc: GanglionCell, experimental_metadata: dict
+    ) -> GanglionCell:
         """
         Generate Difference of Gaussians (DoG) model with dendritic field sizes from literature.
 
-        Parameters:
-        ret: Object containing retina information
-        gc: Object for ganglion cell data
-        experimental_metadata: Metadata containing image scaling information
+        Parameters
+        ----------
+        ret : Retina
+            Retina object containing retinal parameters.
+        gc : GanglionCell
+            Ganglion cell instance containing ganglion cell data.
+        experimental_metadata : dict
+            Metadata containing image scaling information.
 
-        Returns:
-        Updated gc object with spatial parameters in millimeters.
+        Returns
+        -------
+        gc : GanglionCell
+            Updated ganglion cell instance with spatial parameters in millimeters.
         """
         n_cells = len(gc.df)
         stat = self.DoG_model.exp_univariate_stat
@@ -1653,15 +1684,19 @@ class SpatialModelDOG(SpatialModelBase):
 
         return gc
 
-    def _get_gc_fit_img(self, gc: Any) -> Any:
+    def _get_gc_fit_img(self, gc: GanglionCell) -> GanglionCell:
         """
         Generate receptive field images from the DOG model parameters.
 
-        Parameters:
-        gc: Ganglion cell object containing parameters for image generation
+        Parameters
+        ----------
+        gc: GanglionCell
+            Ganglion cell instance containing parameters for image generation
 
-        Returns:
-        Updated gc object with generated receptive field images.
+        Returns
+        -------
+        GanglionCell
+            Updated gc instance with generated receptive field images.
         """
         n_units = gc.n_units
         pix_per_side = gc.pix_per_side
@@ -1698,7 +1733,7 @@ class SpatialModelDOG(SpatialModelBase):
 
         return gc
 
-    def _get_spatial_covariances_of_interest(self) -> List[str]:
+    def _get_spatial_covariances_of_interest(self) -> list[str]:
         """
         Get the list of spatial covariances of interest.
 
@@ -1715,16 +1750,23 @@ class SpatialModelDOG(SpatialModelBase):
             "relative_surround_volume",
         ]
 
-    def create(self, ret: Any, gc: Any) -> Tuple[Any, Any, Any]:
+    def create(
+        self, ret: Retina, gc: GanglionCell
+    ) -> tuple[Retina, GanglionCell, np.ndarray]:
         """
         Create spatial receptive fields using the DOG model.
 
-        Parameters:
-        ret: Object containing retina information
-        gc: Object for ganglion cell data
+        Parameters
+        ----------
+        ret : Retina
+            Retina object containing retina information
+        gc : GanglionCell
+            Ganglion cell instance containing data
 
-        Returns:
-        Tuple containing updated retina, ganglion cell data, and visualization image.
+        Returns
+        -------
+        tuple[Retina, GanglionCell, np.ndarray]
+            Tuple containing updated retina, ganglion cell data, and visualization image.
         """
         experimental_metadata = ret.experimental_archive["experimental_metadata"]
 
@@ -1814,17 +1856,17 @@ class SpatialModelVAE(SpatialModelBase):
 
     Parameters
     ----------
-    DoG_model : Any
+    DoG_model : DoGModel
         Model used for fitting Difference-of-Gaussians to RFs.
     distribution_sampler : Callable
         A function or callable object used to sample distributions.
-    retina_vae : Any
+    retina_vae : RetinaVAE
         Trained VAE model for generating RFs.
-    fit : Any
+    fit : Fit
         An object for fitting models to data.
-    retina_math : Any
+    retina_math : RetinaMath
         An object providing mathematical utilities for retinal computations.
-    viz : Any
+    viz : Viz
         Visualization object for plotting and displaying data.
 
     Attributes
@@ -1835,29 +1877,29 @@ class SpatialModelVAE(SpatialModelBase):
 
     def __init__(
         self,
-        DoG_model: Any,
+        DoG_model: DoGModel,
         distribution_sampler: Callable,
-        retina_vae: Any,
-        fit: Any,
-        retina_math: Any,
-        viz: Any,
+        retina_vae: RetinaVAE,
+        fit: Fit,
+        retina_math: RetinaMath,
+        viz: Viz,
     ) -> None:
         """
         Initialize the SpatialModelVAE.
 
         Parameters
         ----------
-        DoG_model : Any
+        DoG_model : DoGModel
             Model used for fitting Difference-of-Gaussians to RFs.
         distribution_sampler : Callable
             A function or callable object used to sample distributions.
-        retina_vae : Any
+        retina_vae : RetinaVAE
             Trained VAE model for generating RFs.
-        fit : Any
+        fit : Fit
             An object for fitting models to data.
-        retina_math : Any
+        retina_math : RetinaMath
             An object providing mathematical utilities for retinal computations.
-        viz : Any
+        viz : Viz
             Visualization object for plotting and displaying data.
         """
         super().__init__(
@@ -1940,23 +1982,25 @@ class SpatialModelVAE(SpatialModelBase):
             img_upsampled[i] = img_cropped
         return img_upsampled
 
-    def _get_vae_imgs_with_good_fits(self, ret: Any, gc: Any, retina_vae: Any) -> Any:
+    def _get_vae_imgs_with_good_fits(
+        self, ret: Retina, gc: GanglionCell, retina_vae: RetinaVAE
+    ) -> GanglionCell:
         """
         Generate eccentricity-scaled spatial receptive fields from the VAE model with good DoG fits.
 
         Parameters
         ----------
-        ret : Any
+        ret : Retina
             Retina object containing retinal parameters.
-        gc : Any
-            GanglionCell object containing ganglion cell data.
-        retina_vae : Any
+        gc :  GanglionCell
+            GanglionCell instance containing ganglion cell data.
+        retina_vae : RetinaVAE
             Variational Autoencoder model for creating spatial receptive fields.
 
         Returns
         -------
-        gc : Any
-            Updated GanglionCell object with new RF images.
+        gc : GanglionCell
+            Updated GanglionCell instance with new RF images.
 
         Notes
         -----
@@ -2054,14 +2098,14 @@ class SpatialModelVAE(SpatialModelBase):
         return gc
 
     def _get_generated_rfs(
-        self, retina_vae: Any, n_samples: int = 10
-    ) -> Tuple[np.ndarray, np.ndarray]:
+        self, retina_vae: RetinaVAE, n_samples: int = 10
+    ) -> tuple[np.ndarray, np.ndarray]:
         """
         Get the spatial data generated by the retina VAE.
 
         Parameters
         ----------
-        retina_vae : Any
+        retina_vae : RetinaVAE
             A RetinaVAE object.
         n_samples : int, optional
             Number of samples to generate (default is 10).
@@ -2115,23 +2159,25 @@ class SpatialModelVAE(SpatialModelBase):
 
         return img_flipped, img_reshaped
 
-    def create(self, ret: Any, gc: Any) -> Tuple[Any, Any, np.ndarray]:
+    def create(
+        self, ret: Retina, gc: GanglionCell
+    ) -> tuple[Retina, GanglionCell, np.ndarray]:
         """
         Create spatial receptive fields using the VAE model.
 
         Parameters
         ----------
-        ret : Any
+        ret : Retina
             Retina object containing retinal parameters.
-        gc : Any
-            GanglionCell object containing ganglion cell data.
+        gc : GanglionCell
+            GanglionCell instance containing ganglion cell data.
 
         Returns
         -------
-        ret : Any
-            Updated Retina object.
-        gc : Any
-            Updated GanglionCell object with new RFs.
+        ret : Retina
+            Updated Retina instance.
+        gc : GanglionCell
+            Updated GanglionCell instance with new RFs.
         viz_whole_ret_img : np.ndarray
             Visualization image of the whole retina.
         """
@@ -2246,8 +2292,8 @@ class TemporalModelBase(ABC):
 
     def __init__(
         self,
-        ganglion_cell: Any,
-        DoG_model: Any,
+        ganglion_cell: GanglionCell,
+        DoG_model: DoGModel,
         distribution_sampler: DistributionSampler,
         retina_math: RetinaMath,
         device: str = "cpu",
@@ -2272,34 +2318,14 @@ class TemporalModelBase(ABC):
         self.device = device
 
     @abstractmethod
-    def create(self, ret: Retina, gc: Any) -> None:
-        """
-        Create temporal models.
-
-        Parameters
-        ----------
-        ret : Retina
-            The retina model instance.
-        gc : GanglionCell
-            The ganglion cell model instance.
-        """
+    def create(self, ret: Retina, gc: GanglionCell) -> None:
         pass
 
     @abstractmethod
-    def connect_units(self, ret: Retina, gc: Any) -> None:
-        """
-        Connect units according to temporal model type.
-
-        Parameters
-        ----------
-        ret : Retina
-            The retina model instance.
-        gc : GanglionCell
-            The ganglion cell model instance.
-        """
+    def connect_units(self, ret: Retina, gc: GanglionCell) -> None:
         pass
 
-    def _link_cone_noise_units_to_gcs(self, ret: Retina, gc: Any) -> Retina:
+    def _link_cone_noise_units_to_gcs(self, ret: Retina, gc: GanglionCell) -> Retina:
         """
         Connect cones to ganglion cells for shared cone noise.
 
@@ -2432,7 +2458,9 @@ class TemporalModelBase(ABC):
 
         return temporal_exp_univariate_stat
 
-    def _sample_temporal_rfs(self, gc: Any, stat_df: pd.DataFrame) -> Any:
+    def _sample_temporal_rfs(
+        self, gc: GanglionCell, stat_df: pd.DataFrame
+    ) -> GanglionCell:
         """
         Sample temporal receptive fields for ganglion cells based on provided statistics.
 
@@ -2543,8 +2571,8 @@ class TemporalModelFixed(TemporalModelBase):
 
     def __init__(
         self,
-        ganglion_cell: Any,
-        DoG_model: Any,
+        ganglion_cell: GanglionCell,
+        DoG_model: DoGModel,
         distribution_sampler: DistributionSampler,
         retina_math: RetinaMath,
         device: str = "cpu",
@@ -2579,7 +2607,7 @@ class TemporalModelFixed(TemporalModelBase):
         temporal_covariances_of_interest = ["n", "p1", "p2", "tau1", "tau2"]
         return temporal_covariances_of_interest
 
-    def create(self, ret: Retina, gc: Any) -> Any:
+    def create(self, ret: Retina, gc: GanglionCell) -> GanglionCell:
         """
         Create fixed temporal models by sampling temporal receptive fields.
 
@@ -2624,7 +2652,7 @@ class TemporalModelFixed(TemporalModelBase):
 
         return gc
 
-    def connect_units(self, ret: Retina, gc: Any) -> Retina:
+    def connect_units(self, ret: Retina, gc: GanglionCell) -> Retina:
         """
         Connect units according to the fixed temporal model type.
         Only noise units are connected.
@@ -2656,8 +2684,8 @@ class TemporalModelDynamic(TemporalModelBase):
 
     def __init__(
         self,
-        ganglion_cell: Any,
-        DoG_model: Any,
+        ganglion_cell: GanglionCell,
+        DoG_model: DoGModel,
         distribution_sampler: DistributionSampler,
         retina_math: RetinaMath,
         device: str = "cpu",
@@ -2680,7 +2708,7 @@ class TemporalModelDynamic(TemporalModelBase):
             ganglion_cell, DoG_model, distribution_sampler, retina_math, device
         )
 
-    def create(self, ret: Retina, gc: Any) -> Any:
+    def create(self, ret: Retina, gc: GanglionCell) -> GanglionCell:
         """
         Create dynamic temporal models by sampling temporal receptive fields.
 
@@ -2701,7 +2729,7 @@ class TemporalModelDynamic(TemporalModelBase):
 
         return gc
 
-    def connect_units(self, ret: Retina, gc: Any) -> Retina:
+    def connect_units(self, ret: Retina, gc: GanglionCell) -> Retina:
         """
         Connect units according to the dynamic temporal model type.
         Only noise units are connected.
@@ -2733,8 +2761,8 @@ class TemporalModelSubunit(TemporalModelBase):
 
     def __init__(
         self,
-        ganglion_cell: Any,
-        DoG_model: Any,
+        ganglion_cell: GanglionCell,
+        DoG_model: DoGModel,
         distribution_sampler: DistributionSampler,
         retina_math: RetinaMath,
         device: str = "cpu",
@@ -2827,7 +2855,7 @@ class TemporalModelSubunit(TemporalModelBase):
 
         def _extract_range_and_average_from(
             df: pd.DataFrame,
-        ) -> Tuple[float, float, float]:
+        ) -> tuple[float, float, float]:
             """
             Extract range and average values from the DataFrame.
 
@@ -2838,7 +2866,7 @@ class TemporalModelSubunit(TemporalModelBase):
 
             Returns
             -------
-            Tuple[float, float, float]
+            tuple[float, float, float]
                 A tuple containing the minimum range, maximum range, and average.
             """
             range_strings = df.loc["Cone_contacts_Range", :].values
@@ -2995,7 +3023,7 @@ class TemporalModelSubunit(TemporalModelBase):
 
         return weights
 
-    def _link_bipolar_units_to_gcs(self, ret: Retina, gc: Any) -> Retina:
+    def _link_bipolar_units_to_gcs(self, ret: Retina, gc: GanglionCell) -> Retina:
         """
         Connect bipolar units to ganglion cell units for shared subunit model.
 
@@ -3048,7 +3076,7 @@ class TemporalModelSubunit(TemporalModelBase):
 
         return ret
 
-    def create(self, ret: Retina, gc: Any) -> Any:
+    def create(self, ret: Retina, gc: GanglionCell) -> GanglionCell:
         """
         Create subunit temporal models.
 
@@ -3075,7 +3103,7 @@ class TemporalModelSubunit(TemporalModelBase):
 
         return gc
 
-    def connect_units(self, ret: Retina, gc: Any) -> Retina:
+    def connect_units(self, ret: Retina, gc: GanglionCell) -> Retina:
         """
         Connect units from cones to bipolars and further to ganglion cells.
 
@@ -3298,7 +3326,7 @@ class ConcreteRetinaBuilder(RetinaBuilder):
 
     def _pol2cart_torch(
         self, radius: torch.Tensor, phi: torch.Tensor, deg: bool = True
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         """
         Convert polar coordinates to Cartesian coordinates using PyTorch tensors.
 
@@ -3313,7 +3341,7 @@ class ConcreteRetinaBuilder(RetinaBuilder):
 
         Returns
         -------
-        Tuple[torch.Tensor, torch.Tensor]
+        tuple[torch.Tensor, torch.Tensor]
             Tensors representing the x and y Cartesian coordinates.
         """
 
@@ -3328,7 +3356,7 @@ class ConcreteRetinaBuilder(RetinaBuilder):
 
     def _cart2pol_torch(
         self, x: torch.Tensor, y: torch.Tensor, deg: bool = True
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         """
         Convert Cartesian coordinates to polar coordinates using PyTorch tensors.
 
@@ -3343,7 +3371,7 @@ class ConcreteRetinaBuilder(RetinaBuilder):
 
         Returns
         -------
-        Tuple[torch.Tensor, torch.Tensor]
+        tuple[torch.Tensor, torch.Tensor]
             Tensors representing the radius and angle in polar coordinates.
         """
 
@@ -3396,7 +3424,7 @@ class ConcreteRetinaBuilder(RetinaBuilder):
         min_ecc: float,
         max_ecc: float,
         n_units: int,
-        polar_lim_deg: Tuple[float, float],
+        polar_lim_deg: tuple[float, float],
     ) -> np.ndarray:
         """
         Generate hexagonal positions for a group of units within specified eccentricity and polar angle limits.
@@ -3409,7 +3437,7 @@ class ConcreteRetinaBuilder(RetinaBuilder):
             Maximum eccentricity in mm.
         n_units : int
             Number of units to place within the specified area.
-        polar_lim_deg : Tuple[float, float]
+        polar_lim_deg : tuple[float, float]
             Tuple containing the minimum and maximum polar angle in degrees.
 
         Returns
@@ -3455,7 +3483,7 @@ class ConcreteRetinaBuilder(RetinaBuilder):
 
         return positions
 
-    def _initialize_positions_by_group(self, ret: Retina) -> Tuple:
+    def _initialize_positions_by_group(self, ret: Retina) -> tuple:
         """
         Initialize unit positions based on grouped eccentricities.
 
@@ -3466,7 +3494,7 @@ class ConcreteRetinaBuilder(RetinaBuilder):
 
         Returns
         -------
-        Tuple
+        tuple
             A tuple containing eccentricity groups, sector surface areas, initial positions,
             and densities for ganglion cells, cones, and bipolars.
         """
@@ -3932,10 +3960,10 @@ class ConcreteRetinaBuilder(RetinaBuilder):
     def _optimize_positions(
         self,
         ret: Retina,
-        initial_positions: List[np.ndarray],
+        initial_positions: list[np.ndarray],
         cell_density: np.ndarray,
         unit_placement_params: dict[str, Any],
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray]:
         """
         Optimize positions for units using specified placement algorithm.
 
@@ -3989,7 +4017,7 @@ class ConcreteRetinaBuilder(RetinaBuilder):
         return optimized_positions, optimized_positions_mm
 
     # create_spatial_receptive_fields helper functions
-    def _fit_dd_vs_ecc(self, ret: Retina, gc: Any) -> dict:
+    def _fit_dd_vs_ecc(self, ret: Retina, gc: GanglionCell) -> dict:
         """
         Fit dendritic field diameter with respect to eccentricity.
 
@@ -4000,7 +4028,7 @@ class ConcreteRetinaBuilder(RetinaBuilder):
         ret : Retina
             The retina model instance.
         gc : GanglionCell
-            The ganglion cell model instance.
+            The ganglion cell instance.
 
         Returns
         -------
@@ -4121,9 +4149,9 @@ class ConcreteRetinaBuilder(RetinaBuilder):
     def _get_gc_pixel_parameters(
         self,
         ret: Retina,
-        gc: Any,
+        gc: GanglionCell,
         ecc2dd_params: dict,
-    ) -> Any:
+    ) -> GanglionCell:
         """
         Place RF images to pixel space.
 
@@ -4139,15 +4167,15 @@ class ConcreteRetinaBuilder(RetinaBuilder):
         ----------
         ret : Retina
             The retina model instance.
-        gc : GanglionCellModel
-            The ganglion cell model instance.
+        gc : GanglionCell
+            The ganglion cell instance.
         ecc2dd_params : dict
             Dendritic diameter parameters obtained from fitting.
 
         Returns
         -------
-        GanglionCellModel
-            Updated ganglion cell model with pixel parameters.
+        GanglionCell
+            Updated ganglion cell with pixel parameters.
         """
         gc_pos_ecc_mm = np.array(gc.df.pos_ecc_mm.values)
 
@@ -4216,19 +4244,19 @@ class ConcreteRetinaBuilder(RetinaBuilder):
 
         return gc
 
-    def _scale_DoG_amplitudes(self, gc: Any) -> Any:
+    def _scale_DoG_amplitudes(self, gc: GanglionCell) -> GanglionCell:
         """
         Scale DoG amplitudes for each unit based on the center volume.
 
         Parameters
         ----------
-        gc : GanglionCellModel
-            The ganglion cell model instance.
+        gc : GanglionCell
+            The ganglion cell instance.
 
         Returns
         -------
-        GanglionCellModel
-            Updated ganglion cell model with scaled amplitude values.
+        GanglionCell
+            Updated ganglion cell with scaled amplitude values.
         """
         cen_vol_mm3 = self.DoG_model._get_center_volume(gc)
 
@@ -4301,7 +4329,7 @@ class ConcreteRetinaBuilder(RetinaBuilder):
             b = params["b"]
             return np.power(dd / a, 1 / b)
 
-    def _merge_density_data(self, lit: dict) -> Tuple[np.ndarray, np.ndarray]:
+    def _merge_density_data(self, lit: dict) -> tuple[np.ndarray, np.ndarray]:
         """
         Merge ganglion cell density data from literature.
 
@@ -4727,7 +4755,7 @@ class RetinaBuildDirector:
         self.builder.create_temporal_receptive_fields()
         self.builder.create_tonic_drive()
 
-    def get_retina(self) -> tuple[Retina, Any]:
+    def get_retina(self) -> tuple[Retina, GanglionCell]:
         """
         Retrieve the constructed retina and ganglion cell.
 
@@ -4765,7 +4793,7 @@ class ConstructRetina(PrintableMixin):
         An object providing mathematical operations for retina modeling.
     project_data : dict
         A dictionary for storing project-related data.
-    get_xy_from_npz : Callable[[Any], Tuple[np.ndarray, np.ndarray]]
+    get_xy_from_npz : Callable[NpzFile]
         Function to extract X and Y data from a .npz file.
     device : torch.device
         The device (CPU/GPU) to use for computations.
@@ -4773,14 +4801,14 @@ class ConstructRetina(PrintableMixin):
 
     def __init__(
         self,
-        config: Any,
-        data_io: Any,
-        viz: Any,
-        fit: Any,
-        retina_vae: Any,
+        config: Configuration,
+        data_io: DataIO,
+        viz: Viz,
+        fit: Fit,
+        retina_vae: RetinaVAE,
         retina_math: RetinaMath,
         project_data: dict,
-        get_xy_from_npz: Callable[[Any], Tuple[np.ndarray, np.ndarray]],
+        get_xy_from_npz: Callable[NpzFile],
     ) -> None:
         """
         Initialize the ConstructRetina instance with dependencies.
@@ -4791,7 +4819,7 @@ class ConstructRetina(PrintableMixin):
             The config object containing configuration and parameters.
         data_io : DataIO
             An object for handling data input/output operations.
-        viz : Visualization
+        viz : Viz
             An object for handling visualization tasks.
         fit : Fit
             An object providing fitting functions.
@@ -4801,7 +4829,7 @@ class ConstructRetina(PrintableMixin):
             An object providing mathematical operations for retina modeling.
         project_data : dict
             A dictionary for storing project-related data.
-        get_xy_from_npz : Callable[[Any], Tuple[np.ndarray, np.ndarray]]
+        get_xy_from_npz : Callable[NpzFile]
             Function to extract X and Y data from a .npz file.
         """
         # Dependency injection at ProjectManager construction
@@ -4918,7 +4946,7 @@ class ConstructRetina(PrintableMixin):
             print("Retina construction hash does not exist. Building the retina.")
             return False
 
-    def _get_density_from(self, filepaths: List[str]) -> Tuple[np.ndarray, np.ndarray]:
+    def _get_density_from(self, filepaths: list[str]) -> tuple[np.ndarray, np.ndarray]:
         """
         Get density data from given filepaths.
 
@@ -5365,16 +5393,16 @@ class ConstructRetina(PrintableMixin):
             self.save_retina(retina, ganglion_cell)
             self.project_data.construct_retina.update(builder.project_data)
 
-    def save_retina(self, ret: "Retina", gc: Any) -> None:
+    def save_retina(self, ret: "Retina", gc: GanglionCell) -> None:
         """
         Save the constructed retina and ganglion cell data to files.
 
         Parameters
         ----------
         ret : Retina
-            The constructed retina object.
+            The constructed retina instance.
         gc : GanglionCell
-            The ganglion cell object associated with the retina.
+            The ganglion cell instance associated with the retina.
         """
         print("\nSaving gc and ret data...")
         output_path = self.config.output_folder
