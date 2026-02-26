@@ -2402,7 +2402,7 @@ class SimulationDirector:
         return vs, gcs
 
 
-class ReceptiveFieldsBase(ABC, PrintableMixin):
+class NeuralUnits(ABC, PrintableMixin):
     """
     Base class for receptive fields information.
 
@@ -2440,7 +2440,7 @@ class ReceptiveFieldsBase(ABC, PrintableMixin):
 
     def __init__(self, retina_parameters: dict[str, Any]) -> None:
         """
-        Initialize the ReceptiveFieldsBase instance.
+        Initialize the NeuralUnits instance.
 
         Parameters
         ----------
@@ -2501,11 +2501,11 @@ class ReceptiveFieldsBase(ABC, PrintableMixin):
             return self.retina_parameters["temporal_model_type"]
 
 
-class ConeProduct(ReceptiveFieldsBase):
+class ConeProduct(NeuralUnits):
     """
     A class representing cone photoreceptors in the retina.
 
-    This class inherits from ReceptiveFieldsBase and handles the processing
+    This class inherits from NeuralUnits and handles the processing
     of visual signals through cone photoreceptors, including signal generation
     and noise creation.
 
@@ -3092,11 +3092,11 @@ class ConeProduct(ReceptiveFieldsBase):
         return vs
 
 
-class BipolarProduct(ReceptiveFieldsBase):
+class BipolarProduct(NeuralUnits):
     """
     A class representing bipolar cells in the retina.
 
-    This class inherits from ReceptiveFieldsBase and handles the processing
+    This class inherits from NeuralUnits and handles the processing
     of visual signals through bipolar cells.
 
     Parameters
@@ -3250,9 +3250,9 @@ class BipolarProduct(ReceptiveFieldsBase):
         return vs
 
 
-class GanglionCellProduct(ReceptiveFieldsBase):
+class GanglionCellProduct(NeuralUnits):
     """
-    A class representing ganglion cell data, inheriting from ReceptiveFieldsBase.
+    A class representing ganglion cell data, inheriting from NeuralUnits.
 
     This class processes and stores information about ganglion cells, including
     their receptive fields, spatial and temporal properties, and relationships
