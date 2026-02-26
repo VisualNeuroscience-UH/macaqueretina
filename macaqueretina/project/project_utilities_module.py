@@ -15,7 +15,7 @@ class ProjectUtilitiesMixin:
     Utilities for ProjectManager class. This class is not instantiated. It serves as a container for project independent helper functions.
     """
 
-    def pp_df_full(self, df):
+    def pp_df_full(self, df: pd.DataFrame):
         with pd.option_context(
             "display.max_rows",
             None,
@@ -26,7 +26,9 @@ class ProjectUtilitiesMixin:
         ):
             print(df)
 
-    def get_xy_from_npz(self, npz_data):
+    def get_xy_from_npz(
+        self, npz_data: dict[str, np.ndarray]
+    ) -> tuple[np.ndarray, np.ndarray]:
         """
         Return sorted and squeezed data from an npz data file.
         """
@@ -39,7 +41,13 @@ class ProjectUtilitiesMixin:
 
         return x_data, y_data
 
-    def countlines(self, startpath, lines=0, header=True, begin_start=None):
+    def countlines(
+        self,
+        startpath: Path,
+        lines: int = 0,
+        header: bool = True,
+        begin_start: Path | None = None,
+    ) -> int:
         """
         Counts lines in folder .py files.
         From https://stackoverflow.com/questions/38543709/count-lines-of-code-in-directory-using-python
@@ -117,7 +125,16 @@ class DataSampler:
         Interactively collect calibration and data points from the image.
     """
 
-    def __init__(self, filename, min_X, max_X, min_Y, max_Y, logX=False, logY=False):
+    def __init__(
+        self,
+        filename: str,
+        min_X: float,
+        max_X: float,
+        min_Y: float,
+        max_Y: float,
+        logX: bool = False,
+        logY: bool = False,
+    ):
         self.filename = filename
         self.min_X = min_X
         self.max_X = max_X
@@ -129,11 +146,11 @@ class DataSampler:
         self.calibration_points = []
         self.data_points = []
 
-    def _add_calibration_point(self, point):
+    def _add_calibration_point(self, point: tuple[float, float]):
         """Adds a point to the list of calibration points."""
         self.calibration_points.append(point)
 
-    def _add_data_point(self, point):
+    def _add_data_point(self, point: tuple[float, float]):
         """Adds a point to the list of data points."""
         Xdata, Ydata = self._to_data_units(point[0], point[1])
         self.data_points.append((Xdata, Ydata))
@@ -150,7 +167,7 @@ class DataSampler:
             x_min < x_max and y_min > y_max
         ), "The calibration set is not valid, 1. origo, 2. y max, 3. x max"
 
-    def _to_data_units(self, x, y):
+    def _to_data_units(self, x: float, y: float) -> tuple[float, float]:
         """Converts image units (pixels) to data units."""
         pix_x_min, pix_y_min = self.calibration_points[0]
         _, pix_y_max = self.calibration_points[1]
@@ -183,7 +200,7 @@ class DataSampler:
 
         return x_scaled, y_scaled
 
-    def _to_image_units(self, x_data, y_data):
+    def _to_image_units(self, x_data: float, y_data: float) -> tuple[float, float]:
         """Converts data units back to image units (pixels)."""
         pix_x_min, pix_y_min = self.calibration_points[0]
         _, pix_y_max = self.calibration_points[1]
