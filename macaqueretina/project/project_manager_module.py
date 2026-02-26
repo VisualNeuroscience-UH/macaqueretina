@@ -13,7 +13,7 @@ from __future__ import annotations
 # Built-in
 import warnings
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, Callable
 
 if TYPE_CHECKING:
     from macaqueretina.analysis.analysis_module import Analysis
