@@ -4,6 +4,7 @@ from copy import deepcopy
 from datetime import datetime
 from itertools import product
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 # Third-party
 import numpy as np  # this module is useful to work with numerical arrays
@@ -13,7 +14,7 @@ import torch.optim.lr_scheduler as lr_scheduler
 from scipy.ndimage import fourier_shift, rotate
 from sklearn.model_selection import train_test_split
 from torch import nn
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Dataset
 from torchmetrics import MeanSquaredError, StructuralSimilarityIndexMeasure
 from torchmetrics.image.kid import KernelInceptionDistance
 from torchsummary import summary
@@ -23,6 +24,9 @@ from tqdm import tqdm
 # Local
 from macaqueretina.retina.experimental_data_module import ExperimentalData
 from macaqueretina.retina.retina_math_module import RetinaMath
+
+if TYPE_CHECKING:
+    from macaqueretina.data_io.config_io import Configuration
 
 
 class AugmentedDataset(torch.utils.data.Dataset):
@@ -37,11 +41,11 @@ class AugmentedDataset(torch.utils.data.Dataset):
     logged into the ExperimentalDataset instance object.
     """
 
-    def __init__(self, data, labels, resolution_hw, augmentation_dict=None):
-        if augmentation_dict is not None:
+    def __init__(self, data, labels, resolution_hw, augmentation=None):
+        if augmentation is not None:
             # Multiply the amount of images by the data_multiplier. Take random samples from the data
             len_data = data.shape[0]
-            data_multiplier = augmentation_dict["data_multiplier"]
+            data_multiplier = augmentation["data_multiplier"]
 
             # Get the number of images to be added
             n_images_to_add = int(data_multiplier * len_data) - len_data
@@ -62,10 +66,10 @@ class AugmentedDataset(torch.utils.data.Dataset):
         self.data = data
         self.labels = self._to_tensor(labels)
 
-        self.augmentation_dict = augmentation_dict
+        self.augmentation = augmentation
 
         # Define transforms
-        if self.augmentation_dict is None:
+        if self.augmentation is None:
             self.transform = transforms.Compose(
                 [
                     transforms.Lambda(self._feature_scaling),
@@ -79,27 +83,27 @@ class AugmentedDataset(torch.utils.data.Dataset):
                 [transforms.Lambda(self._feature_scaling)]
             )
 
-            if self.augmentation_dict["noise"] > 0:
+            if self.augmentation["noise"] > 0:
                 self.transform.transforms.append(transforms.Lambda(self._add_noise))
 
-            if self.augmentation_dict["rotation"] > 0:
+            if self.augmentation["rotation"] > 0:
                 self.transform.transforms.append(
                     transforms.Lambda(self._random_rotate_image)
                 )
 
-            if np.sum(self.augmentation_dict["translation"]) > 0:
+            if np.sum(self.augmentation["translation"]) > 0:
                 self.transform.transforms.append(
                     transforms.Lambda(self._random_shift_image)
                 )
 
             self.transform.transforms.append(transforms.Lambda(self._to_tensor))
 
-            if self.augmentation_dict["flip"] > 0:
+            if self.augmentation["flip"] > 0:
                 self.transform.transforms.append(
-                    transforms.RandomHorizontalFlip(self.augmentation_dict["flip"])
+                    transforms.RandomHorizontalFlip(self.augmentation["flip"])
                 )
                 self.transform.transforms.append(
-                    transforms.RandomVerticalFlip(self.augmentation_dict["flip"])
+                    transforms.RandomVerticalFlip(self.augmentation["flip"])
                 )
 
             self.transform.transforms.append(
@@ -158,7 +162,7 @@ class AugmentedDataset(torch.utils.data.Dataset):
         image_noise : np.ndarray
 
         """
-        noise_factor = self.augmentation_dict["noise"]
+        noise_factor = self.augmentation["noise"]
         noise = np.random.normal(loc=0, scale=noise_factor, size=image.shape)
         image_noise = np.clip(image + noise, -3.0, 3.0)
 
@@ -179,7 +183,7 @@ class AugmentedDataset(torch.utils.data.Dataset):
         -------
         image_noise : torch.Tensor
         """
-        noise_factor = self.augmentation_dict["noise"]
+        noise_factor = self.augmentation["noise"]
         noise = torch.randn_like(image) * noise_factor
         image_noise = torch.clamp(image + noise, -3.0, 3.0)
 
@@ -199,7 +203,7 @@ class AugmentedDataset(torch.utils.data.Dataset):
         image_rot : np.ndarray
             Rotated image
         """
-        rot = self.augmentation_dict["rotation"]
+        rot = self.augmentation["rotation"]
         # Take random rot as float
         rot = np.random.uniform(-rot, rot)
         image_rot = rotate(image, rot, axes=(2, 1), reshape=False, mode="reflect")
@@ -219,7 +223,7 @@ class AugmentedDataset(torch.utils.data.Dataset):
         image_shift : np.ndarray
             Shifted image
         """
-        shift_proportions = self.augmentation_dict["translation"]
+        shift_proportions = self.augmentation["translation"]
 
         if isinstance(shift_proportions, float):
             shift_proportions = (shift_proportions, shift_proportions)
@@ -649,7 +653,7 @@ class RetinaVAE(RetinaMath):
     SSIM : Wang_2009_IEEESignProcMag, Wang_2004_IEEETransImProc
     """
 
-    def __init__(self, config) -> None:
+    def __init__(self, config: Configuration) -> None:
         self._config = config
         self.vae_run_mode = config.vae_train_parameters["vae_run_mode"]
         self.gc_type = config.retina_parameters["gc_type"]
@@ -683,7 +687,7 @@ class RetinaVAE(RetinaMath):
         self.conv_layers = vae_train_parameters["conv_layers"]
         self.batch_norm = vae_train_parameters["batch_norm"]
         self.latent_distribution = vae_train_parameters["latent_distribution"]
-        self.augmentation_dict = vae_train_parameters["augmentation_dict"]
+        self.augmentation = vae_train_parameters["augmentation"]
 
         ####################
         # Utility parameters
@@ -731,13 +735,13 @@ class RetinaVAE(RetinaMath):
 
                 self.train_loader = self.augment_and_get_dataloader(
                     data_type="train",
-                    augmentation_dict=self.augmentation_dict,
+                    augmentation=self.augmentation,
                     batch_size=self.batch_size,
                     shuffle=True,
                 )
                 self.val_loader = self.augment_and_get_dataloader(
                     data_type="val",
-                    augmentation_dict=self.augmentation_dict,
+                    augmentation=self.augmentation,
                     batch_size=self.batch_size,
                     shuffle=True,
                 )
@@ -759,7 +763,7 @@ class RetinaVAE(RetinaMath):
                     batch_size=-1,
                 )
 
-    def _validate_model_file_name(self, model_file_name):
+    def _validate_model_file_name(self, model_file_name: str):
         assert (
             self.gc_type in model_file_name
         ), "gc_type does not match model_file_name, aborting..."
@@ -767,7 +771,7 @@ class RetinaVAE(RetinaMath):
             self.response_type in model_file_name
         ), "response_type not in model_file_name, aborting..."
 
-    def _set_models_folder(self, config=None):
+    def _set_models_folder(self, config: Configuration = None):
         """Set the folder where models are saved"""
 
         # Check if the gen_rf_stat_folder folder exists using pathlib methods
@@ -817,7 +821,7 @@ class RetinaVAE(RetinaMath):
 
         return vae_latent_stats
 
-    def _parse_timestamp_from_model_filename(self, model_file_name):
+    def _parse_timestamp_from_model_filename(self, model_file_name: str) -> str:
         """
         Parse the timestamp from the model file name.
         The timestamp is expected to be in the format 'YYYYMMDD_HHMMSS'.
@@ -829,7 +833,7 @@ class RetinaVAE(RetinaMath):
 
         return timestamp
 
-    def _load_latent_stats(self, model_file_name=None):
+    def _load_latent_stats(self, model_file_name: str = None):
         # Load latent data after 'load_model' vae_run_mode
         if model_file_name is None:
             latent_stats_file_name = f"latent_stats_{self.gc_type}_{self.response_type}_{self.device}_{self.timestamp_for_loading}.npy"  # timestamp_for_loading is set in _load_model
@@ -860,8 +864,10 @@ class RetinaVAE(RetinaMath):
         print(f"Loading latent data from {latent_stats_path}")
         self.vae_latent_stats = np.load(latent_stats_path)
 
-    def _load_model(self, model_path=None, best_result=None, trial_name=None):
-        """Load model if exists. Use either model_path, best_result, or trial_name to load model"""
+    def _load_model(
+        self, model_path: str = None, trial_name: str = None
+    ) -> VariationalAutoencoder:
+        """Load model if exists. Use either model_path, or trial_name to load model"""
 
         vae_model = self._create_empty_model()
 
@@ -915,7 +921,7 @@ class RetinaVAE(RetinaMath):
 
         return vae_model
 
-    def _get_spatial_experimental_data(self):
+    def _get_spatial_experimental_data(self) -> tuple[np.ndarray, np.ndarray, dict]:
         """
         Get spatial ganglion cell data from file using the experimental_data method read_spatial_filter_data().
         All data is returned, the requested data is logged in the class attributes gc_type and response_type.
@@ -1000,7 +1006,7 @@ class RetinaVAE(RetinaMath):
             experimental_data.data_names2labels_dict,
         )
 
-    def _create_empty_model(self):
+    def _create_empty_model(self) -> VariationalAutoencoder:
         vae = VariationalAutoencoder(
             latent_dims=self.latent_dim,
             resolution_hw=self.resolution_hw,
@@ -1018,7 +1024,7 @@ class RetinaVAE(RetinaMath):
 
         self.vae.test_data = self.test_data
         self.vae.test_labels = self.test_labels
-        self.vae.augmentation_dict = self.augmentation_dict
+        self.vae.augmentation = self.augmentation
 
         self.optim = torch.optim.Adam(
             self.vae.parameters(), lr=self.lr, weight_decay=1e-5
@@ -1079,7 +1085,14 @@ class RetinaVAE(RetinaMath):
             columns=self.dependent_variables, index=range(self.epochs)
         )
 
-    def _train_epoch(self, vae, device, dataloader, optimizer, scheduler):
+    def _train_epoch(
+        self,
+        vae: VariationalAutoencoder,
+        device: torch.device,
+        dataloader: DataLoader,
+        optimizer: torch.optim.Optimizer,
+        scheduler: torch.optim.lr_scheduler._LRScheduler,
+    ):
         """Train model"""
 
         # Set train mode for both the encoder and the decoder
@@ -1109,7 +1122,9 @@ class RetinaVAE(RetinaMath):
 
         return train_loss_out / len(dataloader.dataset)
 
-    def _validate_epoch(self, vae, device, dataloader):
+    def _validate_epoch(
+        self, vae: VariationalAutoencoder, device: torch.device, dataloader: DataLoader
+    ) -> tuple[float, float, float, float, float]:
         """Test model"""
 
         # Set evaluation mode for encoder and decoder
@@ -1258,20 +1273,30 @@ class RetinaVAE(RetinaMath):
         self.test_labels = test_labels_np
 
     def augment_and_get_dataloader(
-        self, data_type="train", augmentation_dict=None, batch_size=32, shuffle=True
+        self,
+        data_type: str = "train",
+        augmentation: dict = None,
+        batch_size: int = 32,
+        shuffle: bool = True,
     ):
         """
         Augmenting data
         Creating dataloaders
 
-        Parameters:
-            data_type (str): "train", "val" or "test"
-            augmentation_dict (dict): augmentation dictionary
-            batch_size (int): batch size
-            shuffle (bool): shuffle data
+        Parameters
+        ----------
+        data_type: str
+            "train", "val" or "test"
+        augmentation: dict, optional
+            Augmentation dictionary
+        batch_size: int, optional
+            Batch size
+        shuffle: bool, optional
+            Shuffle data
 
-        Returns:
-            dataloader (torch.utils.data.DataLoader): dataloader
+        Returns
+        -------
+        DataLoader
         """
 
         # Assert that data_type is "train", "val" or "test"
@@ -1294,7 +1319,7 @@ class RetinaVAE(RetinaMath):
             data,
             labels,
             self.resolution_hw,
-            augmentation_dict=augmentation_dict,
+            augmentation=augmentation,
         )
 
         # set self. attribute "n_train", "n_val" or "n_test"
@@ -1307,14 +1332,16 @@ class RetinaVAE(RetinaMath):
 
         return data_loader
 
-    def get_encoded_samples(self, ds_name=None, dataset=None):
+    def get_encoded_samples(
+        self, ds_name: str = None, dataset: Dataset = None
+    ) -> pd.DataFrame:
         """Get encoded samples from a dataset.
 
         Parameters
         ----------
         ds_name : str, optional
             Dataset name
-        dataset : torch.utils.data.Dataset, optional
+        dataset : Dataset, optional
             Dataset to encode. If ds_name is given, this is ignored.
 
         Returns
