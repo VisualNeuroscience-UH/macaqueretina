@@ -218,26 +218,6 @@ def data_sampler(filename, min_X, max_X, min_Y, max_Y, logX=False, logY=False):
     return DataSampler(filename, min_X, max_X, min_Y, max_Y, logX, logY)
 
 
-def analog_input(config, data_io, viz, simulate_retina):
-    from macaqueretina.retina.simulate_retina_module import ReceptiveFieldsBase
-    from macaqueretina.stimuli.visual_stimulus_module import AnalogInput
-
-    if data_io is None:
-        data_io = create_data_io(config)
-
-    if viz is None:
-        viz = create_viz(config, data_io)
-
-    return AnalogInput(
-        config,
-        data_io,
-        viz,
-        ReceptiveFields=ReceptiveFieldsBase,
-        pol2cart_df=simulate_retina.pol2cart_df,
-        get_w_z_coords=simulate_retina.get_w_z_coords,
-    )
-
-
 def create_stimulus(config, data_io=None, get_xy_from_npz=None):
     from macaqueretina.stimuli.visual_stimulus_module import VisualStimulus
 
