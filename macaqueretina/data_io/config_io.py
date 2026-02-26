@@ -30,7 +30,7 @@ import numpy as np
 from brian2.units.fundamentalunits import Quantity
 from yaml import YAMLError, safe_load
 
-_SENTINEL = object()
+_SENTINEL = object()  # TODO: what is this?
 
 
 class _YamlLoader:
@@ -255,8 +255,7 @@ class Configuration(MutableMapping):
         """Supports attribute-like access (config.param)"""
         if name in self._data:
             return self._data[name]
-        if name in self._dependent:
-            return self._dependent[name]()
+
         raise AttributeError(f"No attribute '{name}' found.")
 
     def __setattr__(self, name: str, value: Any) -> None:
