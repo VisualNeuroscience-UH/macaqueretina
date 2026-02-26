@@ -5,7 +5,7 @@ import shutil
 import tempfile
 import time
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, Optional, Union
+from typing import TYPE_CHECKING, Any
 
 # Third-party
 import brian2 as b2
@@ -749,7 +749,7 @@ class SpatialModelBase(ABC):
         return self._DoG_model
 
     def _get_crop_pixels(
-        self, gcs: object, unit_index: Union[int, np.ndarray]
+        self, gcs: object, unit_index: int | np.ndarray
     ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """
         Get pixel coordinates for a stimulus crop matching the spatial filter size.
@@ -1668,7 +1668,7 @@ class ConcreteSimulationBuilder(SimulationBuildInterface):
         return np.array(masks)
 
     def _get_surround_masks(
-        self, gcs: "GanglionCellProduct", img_stack: np.ndarray, mask_threshold: float
+        self, gcs: GanglionCellProduct, img_stack: np.ndarray, mask_threshold: float
     ) -> np.ndarray:
         """
         Generate surround masks for the given receptive fields and image stack.
@@ -1679,7 +1679,8 @@ class ConcreteSimulationBuilder(SimulationBuildInterface):
             The ganglion cell data object containing the receptive fields.
         img_stack : np.ndarray
             Stack of images to process.
-
+        mask_threshold : float
+            Threshold for mask generation.
         Returns
         -------
         np.ndarray
@@ -2522,21 +2523,8 @@ class ConeProduct(ReceptiveFieldsBase):
         Function to interpolate data.
     lin_interp_and_double_lorenzian : callable
         Function for linear interpolation and double Lorenzian.
-    target_gc_for_multiple_trials : Optional[int], optional
-        Index of the target ganglion cell for multiple trials, by default None.
-
-    Attributes
-    ----------
-    cones_to_gcs_weights : np.ndarray
-        Weights connecting cones to ganglion cells.
-    cone_noise_parameters : np.ndarray
-        Parameters for cone noise generation.
-    cone_general_parameters : dict[str, Any]
-        General parameters for cones.
-    n_units : int
-        Number of cone units.
     target_gc_for_multiple_trials : Optional[int]
-        Index of the target ganglion cell for multiple trials.
+        Index of the target ganglion cell for multiple trials, by default None.
     """
 
     def __init__(
@@ -2549,7 +2537,7 @@ class ConeProduct(ReceptiveFieldsBase):
         lin_interp_and_double_lorenzian: callable,
         get_photoisomerizations_from_luminance: callable,
         noise_fr_mean: dict[str, Any],
-        target_gc_for_multiple_trials: Optional[int] = None,
+        target_gc_for_multiple_trials: int | None = None,
     ) -> None:
         super().__init__(retina_parameters)
 
@@ -3137,7 +3125,7 @@ class BipolarProduct(ReceptiveFieldsBase):
         retina_parameters: dict[str, Any],
         ret_npz: dict[str, np.ndarray],
         parabola: callable,
-        target_gc_for_multiple_trials: Optional[int] = None,
+        target_gc_for_multiple_trials: int | None = None,
     ) -> None:
         super().__init__(retina_parameters)
         self.retina_parameters = retina_parameters
@@ -3564,7 +3552,7 @@ class VisualSignal(PrintableMixin):
         deg_per_mm: float,
         optical_aberration: float,
         pix_per_deg: float,
-        stimulus_video: Optional[Any] = None,
+        stimulus_video: VisualStimulus | None = None,
     ):
         # Parameters directly passed to the constructor
         self.visual_stimulus_parameters = visual_stimulus_parameters
