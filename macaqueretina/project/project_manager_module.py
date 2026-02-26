@@ -13,7 +13,7 @@ from __future__ import annotations
 # Built-in
 import warnings
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from macaqueretina.analysis.analysis_module import Analysis
@@ -32,13 +32,13 @@ warnings.filterwarnings("ignore", category=UserWarning)
 ## Internal
 
 
-def _get_validation_params_method(parameters_folder: Path) -> Callable | None:
+def _get_validation_params_method(parameters_folder: Path) -> callable | None:
     """
     Get parameter validation method if a .py file with 'validation' in its name
     is found in the parameters/ subfolder.
 
     Returns:
-        Callable or None: validation function () if found, None otherwise
+        callable or None: validation function () if found, None otherwise
     """
     validation_files = list(parameters_folder.glob("*validation*.py"))
     match len(validation_files):
@@ -79,7 +79,7 @@ def create_retina_math_instance() -> RetinaMath:
     return RetinaMath()
 
 
-def _create_get_xy_from_npz() -> Callable:
+def _create_get_xy_from_npz() -> callable:
     """Provides get_xy_from_npz from the ProjectUtilitiesMixin."""
     from macaqueretina.project.project_utilities_module import ProjectUtilitiesMixin
 
@@ -154,7 +154,7 @@ def construct_retina_instance(
     retina_vae: RetinaVAE | None = None,
     retina_math: RetinaMath | None = None,
     project_data: ProjectData | None = None,
-    get_xy_from_npz: Callable | None = None,
+    get_xy_from_npz: callable | None = None,
 ) -> ConstructRetina:
     from macaqueretina.retina.construct_retina_module import ConstructRetina
     from macaqueretina.retina.fit_module import Fit
@@ -216,11 +216,6 @@ def data_sampler(filename, min_X, max_X, min_Y, max_Y, logX=False, logY=False):
     from macaqueretina.project.project_utilities_module import DataSampler
 
     return DataSampler(filename, min_X, max_X, min_Y, max_Y, logX, logY)
-
-
-def create_data_sampler_instance():
-    """Instantiates DataSampler."""
-    from macaqueretina.project.project_utilities_module import DataSampler
 
 
 def analog_input(config, data_io, viz, simulate_retina):
@@ -304,7 +299,7 @@ def load_parameters() -> Configuration:
 
     parameters_folder: Path = git_repo_root_path.joinpath("parameters/")
     yaml_files = list(parameters_folder.glob("*.yaml"))
-    validate_params: Callable | None = _get_validation_params_method(parameters_folder)
+    validate_params: callable | None = _get_validation_params_method(parameters_folder)
 
     config: Configuration = load_yaml(yaml_files)
 
