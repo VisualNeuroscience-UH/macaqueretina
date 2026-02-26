@@ -1,5 +1,5 @@
 # Built-in
-from typing import Any, Tuple
+from typing import TYPE_CHECKING
 
 # Third-party
 import matplotlib.path as mplPath
@@ -13,8 +13,14 @@ brute force to chop a long function into subsubfunctions. The subfunctions have 
 They are not very readable though, because of the semi-infinite function signatures.
 """
 
+if TYPE_CHECKING:
+    from macaqueretina.retina.construct_retina_module import GanglionCell, Retina
+    from macaqueretina.viz.viz_module import Viz
 
-def apply_rf_repulsion(ret: Any, gc: Any, viz: Any) -> Tuple[Any, Any]:
+
+def apply_rf_repulsion(
+    ret: Retina, gc: GanglionCell, viz: Viz
+) -> tuple[Retina, GanglionCell]:
     """
     Apply mutual repulsion to receptive fields (RFs) to ensure optimal coverage of a simulated retina.
     It involves multiple iterations to gradually move the RFs until they cover the retina
@@ -22,17 +28,17 @@ def apply_rf_repulsion(ret: Any, gc: Any, viz: Any) -> Tuple[Any, Any]:
 
     Parameters:
     -----------
-    ret : Retina object
-        The retina object containing retina parameters and images.
-    gc : GanglionCell object
-        The ganglion cell object containing RFs and their properties.
+    ret : Retina
+        The retina instance containing retina parameters and images.
+    gc : GanglionCell
+        The ganglion cell instance containing RFs and their properties.
 
     Returns:
     --------
-    ret : Retina object
-        Updated retina object after RF adjustments.
-    gc : GanglionCell object
-        Updated ganglion cell object with new RF positions.
+    ret : Retina
+        Updated retina instance after RF adjustments.
+    gc : GanglionCell
+        Updated ganglion cell instance with new RF positions.
     """
     # Extract parameters and initialize variables
     (
@@ -172,8 +178,10 @@ def apply_rf_repulsion(ret: Any, gc: Any, viz: Any) -> Tuple[Any, Any]:
     return ret, gc
 
 
-def _initialize_parameters(ret: Any, gc: Any, viz: Any) -> Tuple[
-    Tuple[int, int],
+def _initialize_parameters(
+    ret: Retina, gc: GanglionCell, viz: Viz
+) -> tuple[
+    tuple[int, int],
     dict,
     int,
     int,
@@ -228,11 +236,11 @@ def _initialize_parameters(ret: Any, gc: Any, viz: Any) -> Tuple[
 
 
 def _initialize_visualization(
-    ret: Any,
-    gc: Any,
-    img_ret_shape: Tuple[int, int],
+    ret: Retina,
+    gc: GanglionCell,
+    img_ret_shape: tuple[int, int],
     H: int,
-    viz: Any,
+    viz: Viz,
 ) -> dict:
     """Initializes visualization settings."""
 
@@ -249,13 +257,13 @@ def _initialize_visualization(
 
 
 def _compute_boundary_effect(
-    ret: Any,
-    gc: Any,
-    img_ret_shape: Tuple[int, int],
+    ret: Retina,
+    gc: GanglionCell,
+    img_ret_shape: tuple[int, int],
     H: int,
     border_repulsion_strength: float,
-    viz: Any,
-) -> Tuple[mplPath.Path, np.ndarray]:
+    viz: Viz,
+) -> tuple[mplPath.Path, np.ndarray]:
     """Computes the boundary effect for the retina."""
     boundary_polygon = viz.boundary_polygon(
         ret.ecc_lim_mm,
@@ -278,7 +286,7 @@ def _compute_boundary_effect(
 
 def _initialize_rigid_body_matrices(
     n_units: int, rf_positions: np.ndarray, homogeneous_coords: np.ndarray
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray]:
     """Initializes rigid body matrices for each RF."""
     Mrb_pre = np.tile(np.eye(3), (n_units, 1, 1))
     Mrb_pre[:, :2, 2] = rf_positions
@@ -288,7 +296,7 @@ def _initialize_rigid_body_matrices(
 
 def _update_rf_coordinates(
     new_coords: np.ndarray, n_units: int, H: int, W: int
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray]:
     """Updates RF coordinates based on transformations."""
     Xt = new_coords[:, 0, ...].round().reshape(n_units, H, W).astype(int)
     Yt = new_coords[:, 1, ...].round().reshape(n_units, H, W).astype(int)
@@ -300,7 +308,7 @@ def _update_retina(
     Xt: np.ndarray,
     Yt: np.ndarray,
     rfs: np.ndarray,
-    ret: Any,
+    ret: Retina,
     boundary_polygon_path: mplPath.Path,
     retina_boundary_effect: np.ndarray,
     border_repulsion_strength: float,
@@ -345,7 +353,7 @@ def _compute_forces(
     n_units: int,
     H: int,
     W: int,
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Computes forces and torques acting on each RF."""
     force_y = -1 * grad_y[Yt, Xt] * rfs * rfs_mask
     force_x = -1 * grad_x[Yt, Xt] * rfs * rfs_mask
@@ -378,7 +386,7 @@ def _update_positions_and_rotations(
     cooling_rate: float,
     homogeneous_coords: np.ndarray,
     n_units: int,
-) -> Tuple[np.ndarray, np.ndarray, float]:
+) -> tuple[np.ndarray, np.ndarray, float]:
     """Updates the positions and rotations of RFs."""
     rot = change_rate * net_torque
     tr_x = change_rate * net_force_x
@@ -408,7 +416,11 @@ def _update_positions_and_rotations(
     return Mrb_pre, new_coords, change_rate
 
 
-def _drop_boundary_effect(reference_retina, retina, boundary_polygon_path):
+def _drop_boundary_effect(
+    reference_retina: np.ndarray,
+    retina: np.ndarray,
+    boundary_polygon_path: mplPath.Path,
+) -> tuple[np.ndarray, np.ndarray]:
     """Drops the boundary effect from the retina."""
 
     # Create mask and use it to zero areas outside the polygon
@@ -429,8 +441,8 @@ def _drop_boundary_effect(reference_retina, retina, boundary_polygon_path):
 def _visualize_progress(
     iteration: int,
     params: dict,
-    ret: Any,
-    gc: Any,
+    ret: Retina,
+    gc: GanglionCell,
     Xt: np.ndarray,
     Yt: np.ndarray,
     rfs_mask: np.ndarray,
@@ -440,7 +452,7 @@ def _visualize_progress(
     fig_args: dict,
     com_x: np.ndarray,
     com_y: np.ndarray,
-    viz: Any,
+    viz: Viz,
 ) -> None:
     """Handles visualization during optimization."""
     if params["show_only_unit"] is not None:
@@ -475,8 +487,8 @@ def _resample_rfs(
     rfs: np.ndarray,
     Yt: np.ndarray,
     Xt: np.ndarray,
-    img_ret_shape: Tuple[int, int],
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    img_ret_shape: tuple[int, int],
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Resamples RFs to a regular grid and updates positions."""
     new_gc_img = np.zeros((n_units, H, W))
     Yout = np.zeros((n_units, H, W), dtype=np.int32)
@@ -520,10 +532,10 @@ def _final_visualization(
     center_mask: np.ndarray,
     final_retina: np.ndarray,
     iteration: int,
-    gc: Any,
+    gc: GanglionCell,
     H: int,
     fig_args: dict,
-    viz: Any,
+    viz: Viz,
 ) -> None:
     """Displays the final visualization after optimization."""
     viz.show_repulsion_progress(
@@ -541,7 +553,7 @@ def _final_visualization(
 
 
 def _get_center_mask(
-    Yt: np.ndarray, Xt: np.ndarray, rfs_mask: np.ndarray, ret: Any
+    Yt: np.ndarray, Xt: np.ndarray, rfs_mask: np.ndarray, ret: Retina
 ) -> np.ndarray:
     """Computes the center mask for visualization."""
     center_mask = np.zeros(ret.whole_ret_img.shape)
