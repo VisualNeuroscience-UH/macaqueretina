@@ -146,16 +146,16 @@ class DataSampler:
         self.calibration_points = []
         self.data_points = []
 
-    def _add_calibration_point(self, point: tuple[float, float]):
+    def _add_calibration_point(self, point: tuple[float, float]) -> None:
         """Adds a point to the list of calibration points."""
         self.calibration_points.append(point)
 
-    def _add_data_point(self, point: tuple[float, float]):
+    def _add_data_point(self, point: tuple[float, float]) -> None:
         """Adds a point to the list of data points."""
         Xdata, Ydata = self._to_data_units(point[0], point[1])
         self.data_points.append((Xdata, Ydata))
 
-    def _validate_calibration(self):
+    def _validate_calibration(self) -> None:
         """Validates the calibration point input."""
         assert (
             len(self.calibration_points) == 3
@@ -231,7 +231,7 @@ class DataSampler:
 
         return x, y
 
-    def _save_data(self):
+    def _save_data(self) -> None:
         """Saves the digitized data to a file."""
         Xdata, Ydata = zip(*[(x, y) for x, y in self.data_points])
         calib_x, calib_y = zip(*[(x, y) for x, y in self.calibration_points])
@@ -252,7 +252,7 @@ class DataSampler:
             (x, y) for x, y in zip(*[data["calib_x"], data["calib_y"]])
         ]
 
-    def quality_control(self):
+    def quality_control(self) -> None:
         """Displays the original image with calibration and data points."""
         imagedata = plt.imread(self.filename)
 
@@ -277,7 +277,7 @@ class DataSampler:
         ax.scatter(data_x, data_y, color="blue", s=30, label="Data Points")
         ax.legend()
 
-    def collect_and_save_points(self):
+    def collect_and_save_points(self) -> None:
         """Interactively collect calibration and data points from the image."""
         imagedata = plt.imread(self.filename)
         fig, ax = plt.subplots()
@@ -303,7 +303,7 @@ class DataSampler:
 
         self._save_data()
 
-    def get_data_arrays(self):
+    def get_data_arrays(self) -> tuple[np.ndarray, np.ndarray]:
         """Loads the data for plotting."""
         self._load_data()
         return (
@@ -317,7 +317,7 @@ class PrintableMixin:
     Mixin class to add pretty-printing capabilities to classes.
     """
 
-    def __str__(self):
+    def __str__(self) -> str:
         class_info = f"Instance of {self.__class__.__name__}, ID: {id(self)}\n"
 
         # Getting class, module, and line number information
@@ -402,7 +402,7 @@ class PrintableMixin:
 
 class ProjectDecorators:
     @staticmethod
-    def method_profiler():
+    def method_profiler() -> callable:
         def decorator(func):
             def wrapper(*args, **kwargs):
                 import cProfile
