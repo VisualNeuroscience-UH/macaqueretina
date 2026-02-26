@@ -3,7 +3,7 @@ import copy
 import math
 from functools import reduce
 from pathlib import Path
-from typing import Optional
+from typing import TYPE_CHECKING
 
 # Third-party
 import brian2.units as b2u
@@ -24,6 +24,13 @@ from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
 from sklearn.manifold import TSNE
 
 # Local
+if TYPE_CHECKING:
+    from macaqueretina.analysis.analysis_module import Analysis
+    from macaqueretina.data_io.config_io import Configuration
+    from macaqueretina.data_io.data_io_module import DataIO
+    from macaqueretina.project.project_manager_module import ProjectData
+    from macaqueretina.retina.construct_retina_module import GanglionCell
+    from macaqueretina.retina.simulate_retina_module import VisualSignal
 
 
 class Viz:
@@ -35,7 +42,14 @@ class Viz:
 
     cmap = "gist_earth"  # viridis or cividis would be best for color-blind
 
-    def __init__(self, config, data_io, project_data, ana, **kwargs) -> None:
+    def __init__(
+        self,
+        config: Configuration,
+        data_io: DataIO,
+        project_data: ProjectData,
+        ana: Analysis,
+        **kwargs,
+    ) -> None:
         self._config = config
         self._data_io = data_io
         self._project_data = project_data
@@ -49,22 +63,22 @@ class Viz:
         self.cmap_spatial_filter = "bwr"
 
     @property
-    def config(self):
+    def config(self) -> Configuration:
         return self._config
 
     @property
-    def data_io(self):
+    def data_io(self) -> DataIO:
         return self._data_io
 
     @property
-    def project_data(self):
+    def project_data(self) -> ProjectData:
         return self._project_data
 
     @property
-    def ana(self):
+    def ana(self) -> Analysis:
         return self._ana
 
-    def data_is_valid(self, data, accept_empty=False):
+    def data_is_valid(self, data: np.ndarray, accept_empty: bool = False) -> bool:
         try:
             data = data / data.get_best_unit()
         except:
@@ -77,7 +91,13 @@ class Viz:
 
         return is_valid
 
-    def _figsave(self, figurename="", myformat="png", subfolderpath="", suffix=""):
+    def _figsave(
+        self,
+        figurename: str | Path = "",
+        myformat: str = "png",
+        subfolderpath: str | Path = "",
+        suffix: str = "",
+    ) -> None:
         """
         Save the current figure and its configuration to the working directory or a specified subfolder path.
         This method saves the current figure with various customization options for the
@@ -87,14 +107,14 @@ class Viz:
 
         Parameters
         ----------
-        figurename : str, optional
+        figurename : str | Path, optional
             The name of the figure file. If it's specified with an extension, the figure
             is saved with that name. If it's a relative path, the figure is saved to that path.
             If not provided, the figure is saved as 'MyFigure.png'. Defaults to "".
         myformat : str, optional
             The format of the figure (e.g., 'png', 'jpg', 'eps', etc.).
             If provided with a leading ".", the "." is removed. Defaults to 'png'.
-        subfolderpath : str, optional
+        subfolderpath : str | Path, optional
             The subfolder within the working directory to which the figure is saved.
             If figurename is a path, this value will be overridden by the parent directory
             of figurename. Defaults to "".
@@ -164,8 +184,11 @@ class Viz:
 
     # Fit visualization
     def show_temporal_filter_response(
-        self, gc_list=None, n_samples=None, savefigname=None
-    ):
+        self,
+        gc_list: list[int] = None,
+        n_samples: int = None,
+        savefigname: str | None = None,
+    ) -> None:
         """
         Show temporal filter response for each unit.
         """
@@ -204,13 +227,13 @@ class Viz:
 
     def show_spatial_filter_response(
         self,
-        spat_filt,
-        n_samples=1,
-        gc_list=None,
-        com_data=None,
-        title="",
-        savefigname=None,
-    ):
+        spat_filt: dict,
+        n_samples: int = 1,
+        gc_list: list[int] = None,
+        com_data: dict = None,
+        title: str = "",
+        savefigname: str = None,
+    ) -> None:
         """
         Display the spatial filter response of the selected units, along with the corresponding DoG models.
 
@@ -392,11 +415,14 @@ class Viz:
             self._figsave(figurename=title + "_" + savefigname)
 
     # ConstructRetina visualization
-    def show_gc_positions(self, gc):
+    def show_gc_positions(self, gc: GanglionCell) -> None:
         """
         Show retina unit positions and receptive fields
 
-        ConstructRetina call.
+        Parameters
+        ----------
+        gc : GanglionCell
+            The ganglion cell instance containing the data to be visualized.
         """
 
         ecc_mm = gc.df["pos_ecc_mm"].to_numpy()
@@ -416,7 +442,13 @@ class Viz:
         ax.set_xlabel("Eccentricity (mm)")
         ax.set_ylabel("Elevation (mm)")
 
-    def boundary_polygon(self, ecc_lim_mm, polar_lim_deg, um_per_pix=None, sidelen=0):
+    def boundary_polygon(
+        self,
+        ecc_lim_mm: np.ndarray,
+        polar_lim_deg: np.ndarray,
+        um_per_pix: float | None = None,
+        sidelen: int | None = 0,
+    ) -> np.ndarray:
         """
         Create a boundary polygon based on given eccentricity and polar angle limits.
 
@@ -441,16 +473,6 @@ class Viz:
         """
 
         n_points = 100
-
-        # # Generate points for bottom and top polar angle limits
-        # bottom_x, bottom_y = self.pol2cart(
-        #     np.full(n_points, ecc_lim_mm[0]),
-        #     np.linspace(polar_lim_deg[0], polar_lim_deg[1], n_points),
-        # )
-        # top_x, top_y = self.pol2cart(
-        #     np.full(n_points, ecc_lim_mm[1]),
-        #     np.linspace(polar_lim_deg[0], polar_lim_deg[1], n_points),
-        # )
 
         # Generate points along the arcs for min and max eccentricities
         theta_range = np.linspace(polar_lim_deg[0], polar_lim_deg[1], n_points)
@@ -495,7 +517,7 @@ class Viz:
 
         return np.array(boundary_polygon)
 
-    def visualize_mosaic(self, df: pd.DataFrame = None, savefigname=None):
+    def visualize_mosaic(self, df: pd.DataFrame = None, savefigname: str | None = None):
         """
         Visualize the mosaic of ganglion cells in retinal mm coordinates.
 
@@ -584,7 +606,7 @@ class Viz:
         statistics,
         distribution="spatial",
         correlation_reference=None,
-        savefigname=None,
+        savefigname: str | None = None,
     ):
         """
         Show histograms of receptive field parameters, and correlation between receptive field parameters.
@@ -884,7 +906,9 @@ class Viz:
             if savefigname:
                 self._figsave(figurename=savefigname, suffix="_covariance")
 
-    def show_dendrite_diam_vs_ecc(self, log_x=False, log_y=False, savefigname=None):
+    def show_dendrite_diam_vs_ecc(
+        self, log_x=False, log_y=False, savefigname: str | None = None
+    ):
         """
         Plot dendritic diameter as a function of retinal eccentricity with linear, quadratic, or cubic fitting.
         """
@@ -1001,7 +1025,7 @@ class Viz:
         if savefigname:
             self._figsave(figurename=savefigname)
 
-    def show_cone_noise_vs_freq(self, savefigname=None):
+    def show_cone_noise_vs_freq(self, savefigname: str | None = None):
         """
         Plot cone noise as a function of temporal frequency using the model by Victor 1987 JPhysiol.
         """
@@ -1101,7 +1125,7 @@ class Viz:
         self.show_dendrite_diam_vs_ecc()
 
     def show_experimental_data_DoG_fit(
-        self, gc_list=None, n_samples=2, savefigname=None
+        self, gc_list=None, n_samples=2, savefigname: str | None = None
     ):
         """
         Show the experimental and generated spatial receptive fields. The type of
@@ -1287,7 +1311,7 @@ class Viz:
         plt.title(f"Generated processed, median: {np.median(img_post):.2f}")
 
     def show_gen_exp_spatial_rf(
-        self, ds_name="test_ds", n_samples=10, savefigname=None
+        self, ds_name="test_ds", n_samples=10, savefigname: str | None = None
     ):
         """
         Plot the outputs of the autoencoder.
@@ -1524,7 +1548,7 @@ class Viz:
         iteration=0,
         um_per_pix=None,
         sidelen=0,
-        savefigname=None,
+        savefigname: str | None = None,
         **fig_args,
     ):
         if stage == "init":
@@ -1641,7 +1665,9 @@ class Viz:
                 if savefigname:
                     self._figsave(figurename=savefigname)
 
-    def show_cones_linked_to_gc(self, gc_list=None, n_samples=None, savefigname=None):
+    def show_cones_linked_to_gc(
+        self, gc_list=None, n_samples=None, savefigname: str | None = None
+    ):
         """
         Visualize a ganglion cell and its connected cones.
         """
@@ -1736,7 +1762,7 @@ class Viz:
             self._figsave(figurename=savefigname)
 
     def show_bipolars_linked_to_gc(
-        self, gc_list=None, n_samples=None, savefigname=None
+        self, gc_list=None, n_samples=None, savefigname: str | None = None
     ):
         """
         Visualize a ganglion cell and its connected bipolars.
@@ -1824,7 +1850,7 @@ class Viz:
             self._figsave(figurename=savefigname)
 
     def show_cones_linked_to_bipolars(
-        self, bipo_list=None, n_samples=None, savefigname=None
+        self, bipo_list=None, n_samples=None, savefigname: str | None = None
     ):
         """
         Visualize a ganglion cell and its connected bipolars.
@@ -1897,7 +1923,9 @@ class Viz:
         if savefigname:
             self._figsave(figurename=savefigname)
 
-    def show_connection_histograms(self, weight_cutoff=0.001, savefigname=None):
+    def show_connection_histograms(
+        self, weight_cutoff=0.001, savefigname: str | None = None
+    ):
         """
         Display histograms and heatmaps of retinal connection weights.
 
@@ -1946,7 +1974,9 @@ class Viz:
         if savefigname:
             self._figsave(figurename=savefigname)
 
-    def show_fan_in_out_distributions(self, weight_cutoff=0.0, savefigname=None):
+    def show_fan_in_out_distributions(
+        self, weight_cutoff=0.0, savefigname: str | None = None
+    ):
         """
         Display fan-in and fan-out distributions for retinal connection weights.
 
@@ -2013,7 +2043,9 @@ class Viz:
         if savefigname:
             self._figsave(figurename=savefigname)
 
-    def show_DoG_img_grid(self, gc_list=None, n_samples=None, savefigname=None):
+    def show_DoG_img_grid(
+        self, gc_list=None, n_samples=None, savefigname: str | None = None
+    ):
         """
         Visualize a ganglion cell image, DoG fit and center grid points.
         """
@@ -2107,7 +2139,7 @@ class Viz:
         self,
         unit_type="gc",
         show_control_data=False,
-        savefigname=None,
+        savefigname: str | None = None,
     ):
         cell_density_dict = self.project_data.construct_retina[f"{unit_type}_n_vs_ecc"]
         cell_eccentricity = cell_density_dict["cell_eccentricity"]
@@ -2172,7 +2204,7 @@ class Viz:
         if savefigname:
             self._figsave(figurename=savefigname)
 
-    def show_bipolar_nonlinearity(self, savefigname=None):
+    def show_bipolar_nonlinearity(self, savefigname: str | None = None):
         ret_file_npz = self.data_io.load_data(self.config.retina_parameters["ret_file"])
         popt = ret_file_npz["bipolar_nonlinearity_parameters"]
         bipolar_g_sur_scaled = ret_file_npz["bipolar_g_sur_scaled"]
@@ -2198,7 +2230,7 @@ class Viz:
         frame_number=0,
         ax=None,
         show_rf_id=False,
-        savefigname=None,
+        savefigname: str | None = None,
     ):
         """
         Plots the 1SD ellipses of the RGC mosaic. This method is a SimulateRetina call.
@@ -2299,7 +2331,7 @@ class Viz:
             self._figsave(figurename=savefigname)
 
     def show_single_gc_view(
-        self, unit_index, frame_number=0, ax=None, savefigname=None
+        self, unit_index, frame_number=0, ax=None, savefigname: str | None = None
     ):
         """
         Overlays the receptive field center of the specified retinal ganglion cell (RGC) on top of
@@ -2358,7 +2390,7 @@ class Viz:
             self._figsave(figurename=savefigname)
 
     def show_temporal_kernel_frequency_response(
-        self, unit_index=0, ax=None, savefigname=None
+        self, unit_index=0, ax=None, savefigname: str | None = None
     ):
         """
         Plot the frequency response of the temporal kernel for a specified or all retinal ganglion cells (RGCs).
@@ -2510,7 +2542,7 @@ class Viz:
             self._figsave(figurename=savefigname)
 
     def show_spikes_from_gz_file(
-        self, filename: str, sweepname="spikes_0", savefigname: Optional[str] = None
+        self, filename: str, sweepname="spikes_0", savefigname: str | None = None
     ) -> None:
         """
         Visualize ganglion cell (gc) responses loaded from file.
@@ -2566,7 +2598,7 @@ class Viz:
         if savefigname is not None:
             self._figsave(figurename=savefigname)
 
-    def show_all_gc_responses(self, sweep_idx=0, savefigname=None):
+    def show_all_gc_responses(self, sweep_idx=0, savefigname: str | None = None):
         """
         Visualize ganglion cell (gc) responses based on the data in the SimulateRetina object.
 
@@ -2686,7 +2718,7 @@ class Viz:
         if savefigname is not None:
             self._figsave(figurename=savefigname)
 
-    def show_all_generator_potentials(self, savefigname=None):
+    def show_all_generator_potentials(self, savefigname: str | None = None):
         """
         Visualize ganglion cell (gc) generator potentials based on the data in the SimulateRetina object.
 
@@ -2745,7 +2777,7 @@ class Viz:
         if savefigname is not None:
             self._figsave(figurename=savefigname)
 
-    def show_generator_potential_histogram(self, savefigname=None):
+    def show_generator_potential_histogram(self, savefigname: str | None = None):
         """
         Display a histogram of generator potentials and related plots.
 
@@ -2845,7 +2877,9 @@ class Viz:
         if savefigname is not None:
             self._figsave(figurename=savefigname)
 
-    def show_cone_responses(self, time_range=None, savefigname=None):
+    def show_cone_responses(
+        self, time_range: tuple | None = None, savefigname: str | None = None
+    ):
         # Load data
         simulate_retina = self.project_data.simulate_retina
         gc_responses = simulate_retina["gc_responses_to_show"]
@@ -2921,7 +2955,7 @@ class Viz:
         if savefigname:
             plt.savefig(savefigname)
 
-    def show_corr_mtx(self, corr_matrix: np.ndarray, savefigname=None):
+    def show_corr_mtx(self, corr_matrix: np.ndarray, savefigname: str | None = None):
         cmap = plt.get_cmap("coolwarm")
 
         plt.figure()
@@ -2932,7 +2966,7 @@ class Viz:
         if savefigname:
             self._figsave(figurename=savefigname)
 
-    def show_gc_noise_hist_cov_mtx(self, savefigname=None):
+    def show_gc_noise_hist_cov_mtx(self, savefigname: str | None = None):
         """
         Display the noise in ganglion cell (gc) responses.
 
@@ -2967,7 +3001,11 @@ class Viz:
             plt.savefig(savefigname)
 
     def show_all_gc_histogram(
-        self, start_time=None, end_time=None, sweep_idx=0, savefigname=None
+        self,
+        start_time: float | None = None,
+        end_time: float | None = None,
+        sweep_idx: int = 0,
+        savefigname: str | None = None,
     ):
         """
         Display histograms for the mean and SD of spike rates of ganglion cell (gc) responses.
@@ -3026,7 +3064,9 @@ class Viz:
         if savefigname is not None:
             plt.savefig(savefigname)
 
-    def show_spatiotemporal_filter(self, unit_index=0, savefigname=None):
+    def show_spatiotemporal_filter(
+        self, unit_index: int | None = 0, savefigname: str | None = None
+    ):
         """
         Display the spatiotemporal filter for a given unit in the retina.
 
@@ -3035,9 +3075,9 @@ class Viz:
 
         Parameters
         ----------
-        unit_index : int, optional
+        unit_index : int | None
             Index of the unit for which the spatiotemporal filter is to be shown.
-        savefigname : str or None, optional
+        savefigname : str |  None
             If a string is provided, the figure will be saved with this filename.
         """
 
@@ -3098,14 +3138,14 @@ class Viz:
                 f"Not available for {temporal_model_type} model, aborting..."
             )
 
-    def show_spatiotemporal_filter_sums(self, savefigname=None):
+    def show_spatiotemporal_filter_sums(self, savefigname: str | None = None):
         """
         Display the spatiotemporal filter for all units in the current simulation.
 
 
         Parameters
         ----------
-        savefigname : str or None, optional
+        savefigname: str | None
             If a string is provided, the figure will be saved with this filename.
         """
         self._check_for_fixed_model()
@@ -3135,7 +3175,7 @@ class Viz:
         if savefigname is not None:
             self._figsave(figurename=savefigname)
 
-    def show_impulse_response(self, savefigname=None):
+    def show_impulse_response(self, savefigname: str | None = None):
         viz_dict = self.project_data.simulate_retina["impulse_to_show"]
 
         tvec = viz_dict["tvec"]  # in seconds
@@ -3186,7 +3226,7 @@ class Viz:
         if savefigname is not None:
             self._figsave(figurename=savefigname)
 
-    def show_unity(self, savefigname=None):
+    def show_unity(self, savefigname: str | None = None):
         """
         Display the uniformity regions of a working retina and optionally save the figure.
 
@@ -3223,7 +3263,13 @@ class Viz:
             self._figsave(figurename=savefigname)
 
     # Cone filtering (natural images and videos) and cone noise visualization
-    def show_cone_filter_response(self, image, image_after_optics, cone_response):
+    def show_cone_filter_response(
+        self,
+        image: np.ndarray,
+        image_after_optics: np.ndarray,
+        cone_response: np.ndarray,
+        savefigname: str | None = None,
+    ):
         """
         PreGCProcessing call.
         """
@@ -3240,7 +3286,10 @@ class Viz:
         axs[5].imshow(cone_response)
         axs[5].set_title("Nonlinear cone response")
 
-    def show_retina_img(self, savefigname=None):
+        if savefigname:
+            self._figsave(figurename=savefigname)
+
+    def show_retina_img(self, savefigname: str | None = None):
         """
         Show the image of whole retina with all the receptive fields summed up.
         """
@@ -3274,7 +3323,7 @@ class Viz:
         if savefigname:
             self._figsave(figurename=savefigname)
 
-    def show_rf_imgs(self, n_samples=10, savefigname=None):
+    def show_rf_imgs(self, n_samples: int = 10, savefigname: str | None = None):
         """
         Show the individual RFs of the VAE retina
 
@@ -3324,7 +3373,7 @@ class Viz:
         if savefigname:
             self._figsave(figurename=savefigname)
 
-    def show_rf_violinplot(self):
+    def show_rf_violinplot(self, savefigname: str | None = None):
         """
         Show the individual RFs of the VAE retina
 
@@ -3357,9 +3406,17 @@ class Viz:
         axs[1].set_title("RF adjusted values")
         axs[1].grid(True)
 
+        if savefigname:
+            self._figsave(figurename=savefigname)
+
     # Experiment visualization
     def _string_on_plot(
-        self, ax, variable_name=None, variable_value=None, variable_unit=None, idx=0
+        self,
+        ax: plt.Axes,
+        variable_name: str | None = None,
+        variable_value: float | None = None,
+        variable_unit: str | None = None,
+        idx: int = 0,
     ):
         plot_str = f"{variable_name} = {variable_value:6.2f} {variable_unit}"
         ax.text(
@@ -3372,7 +3429,7 @@ class Viz:
             bbox=dict(boxstyle="Square,pad=0.2", fc="white", ec="white", lw=1),
         )
 
-    def _get_exp_variables(self, experiment_df):
+    def _get_exp_variables(self, experiment_df: pd.DataFrame) -> list[str]:
         """Get experimental variables from the experiment dataframe."""
         multiple_values_idx = experiment_df.nunique() > 1
         columns = experiment_df.loc[:, multiple_values_idx].columns.tolist()
@@ -3383,13 +3440,13 @@ class Viz:
 
     def show_fr4c_response(
         self,
-        filename,
-        exp_variables,
-        xlog=False,
-        ylog=False,
-        xlim=None,
-        ylim=None,
-        savefigname=None,
+        filename: str,
+        exp_variables: list[str],
+        xlog: bool = False,
+        ylog: bool = False,
+        xlim: tuple[float, float] | None = None,
+        ylim: tuple[float, float] | None = None,
+        savefigname: str | None = None,
     ):
         """
         Plot the mean firing rate response curve.
@@ -3491,7 +3548,12 @@ class Viz:
             self._figsave(figurename=savefigname)
 
     def fr_response(
-        self, filename, exp_variables, xlog=False, ylog=False, savefigname=None
+        self,
+        filename: str,
+        exp_variables: list[str],
+        xlog: bool = False,
+        ylog: bool = False,
+        savefigname: str | None = None,
     ):
         """
         Plot the mean firing rate response curve.
@@ -3550,11 +3612,11 @@ class Viz:
 
     def F1F2_popul_response(
         self,
-        filename,
-        exp_variables,
-        xlog=False,
-        ylog=False,
-        savefigname=None,
+        filename: str,
+        exp_variables: list[str],
+        xlog: bool = False,
+        ylog: bool = False,
+        savefigname: str | None = None,
     ):
         """
         Plot F1 and  F2 frequency response curves (central tendency)
@@ -3650,11 +3712,11 @@ class Viz:
 
     def F1F2_unit_response(
         self,
-        filename,
-        exp_variables,
-        xlog=False,
-        ylog=False,
-        savefigname=None,
+        filename: str,
+        exp_variables: list[str],
+        xlog: bool = False,
+        ylog: bool = False,
+        savefigname: str | None = None,
     ):
         """
         Plot F1 and  F2 frequency response curves (central tendency and a confidence interval)
@@ -3749,7 +3811,12 @@ class Viz:
         if savefigname:
             self._figsave(figurename=savefigname)
 
-    def spike_raster_response(self, filename, sweeps_to_show=None, savefigname=None):
+    def spike_raster_response(
+        self,
+        filename: str,
+        sweeps_to_show: list[int] | None = None,
+        savefigname: str | None = None,
+    ):
         """
         Show spikes from a results file.
 
@@ -3851,7 +3918,9 @@ class Viz:
                 )
                 self._figsave(figurename=savefigname)
 
-    def show_relative_gain(self, filename, exp_variables, savefigname=None):
+    def show_relative_gain(
+        self, filename: str, exp_variables: list[str], savefigname: str | None = None
+    ):
         """
         Display the relative gain of the cone, bipolar, and ganglion cell responses.
 
@@ -3907,7 +3976,11 @@ class Viz:
             self._figsave(figurename=savefigname)
 
     def show_spike_correlation_experiment(
-        self, filename, exp_variables, time_window=None, savefigname=None
+        self,
+        filename: str,
+        exp_variables: list[str],
+        time_window: tuple[float, float] | None = None,
+        savefigname: str | None = None,
     ):
         """ """
 
@@ -3989,12 +4062,12 @@ class Viz:
 
     def tf_vs_fr_cg(
         self,
-        filename,
-        exp_variables,
-        n_contrasts=None,
-        xlog=False,
-        ylog=False,
-        savefigname=None,
+        filename: str,
+        exp_variables: list[str],
+        n_contrasts: int | None = None,
+        xlog: bool = False,
+        ylog: bool = False,
+        savefigname: str | None = None,
     ):
         """
         Plot F1 frequency response curves for 2D frequency-contrast experiment.
@@ -4008,7 +4081,7 @@ class Viz:
             Name of the file containing the experiment metadata.
         exp_variables : list of str
             List of experiment variables to be plotted.
-        n_contrasts : int
+        n_contrasts : int | None
             Number of contrasts to be plotted. If None, all contrasts are plotted.
         xlog : bool
             If True, x-axis is logarithmic.
@@ -4095,7 +4168,9 @@ class Viz:
         if savefigname:
             self._figsave(figurename=savefigname)
 
-    def show_response_vs_background_experiment(self, unit="cd/m2", savefigname=None):
+    def show_response_vs_background_experiment(
+        self, unit: str = "cd/m2", savefigname: str | None = None
+    ):
         """
         Plots the unit responses as a function of flash intensity for different background light levels.
         If a savefigname is provided, the figure is saved.
@@ -4152,7 +4227,9 @@ class Viz:
             self._figsave(figurename=savefigname)
 
     # Validation viz
-    def _build_param_plot(self, coll_ana_df_in, param_plot_dict, to_spa_dict_in):
+    def _build_param_plot(
+        self, coll_ana_df_in: pd.DataFrame, param_plot_dict: dict, to_spa_dict_in: dict
+    ):
         """
         Prepare for parametric plotting of multiple conditions.
 
@@ -4252,7 +4329,7 @@ class Viz:
             outer_name_list,
         )
 
-    def show_catplot(self, param_plot_dict):
+    def show_catplot(self, param_plot_dict: dict):
         """
         Visualization of parameter values in different categories. Data is collected in _build_param_plot, and all plotting is here.
 
@@ -4698,17 +4775,17 @@ class Viz:
 
     def show_data_and_fit(
         self,
-        fit_function,
-        x_data,
-        y_data,
-        p0=None,
-        xlim=None,
-        ylim=None,
-        xlog=False,
-        ylog=False,
-        fit_in_log_space=False,
-        bounds=(-np.inf, np.inf),
-        savefigname=None,
+        fit_function: callable,
+        x_data: np.ndarray,
+        y_data: np.ndarray,
+        p0: tuple | None = None,
+        xlim: tuple[float, float] | None = None,
+        ylim: tuple[float, float] | None = None,
+        xlog: bool = False,
+        ylog: bool = False,
+        fit_in_log_space: bool = False,
+        bounds: tuple[float, float] = (-np.inf, np.inf),
+        savefigname: str | None = None,
     ):
         """
         Show the data with the specified function applied.
@@ -4802,13 +4879,13 @@ class Viz:
 
     def contrast_sensitivity(
         self,
-        filename,
-        exp_variables,
-        xlog=False,
-        ylog=False,
-        xlim=None,
-        ylim=None,
-        savefigname=None,
+        filename: str,
+        exp_variables: list[str],
+        xlog: bool = False,
+        ylog: bool = False,
+        xlim: tuple[float, float] | None = None,
+        ylim: tuple[float, float] | None = None,
+        savefigname: str | None = None,
     ):
         """
         Fits Naka-Rushton model to drifting grating contrast response.
@@ -4819,13 +4896,17 @@ class Viz:
         ----------
         filename : str
             The name of the file containing the experimental metadata.
-        exp_variables : list of str
+        exp_variables : list[str]
             The experimental variables to consider for the analysis.
         xlog : bool
             Whether to use a logarithmic scale for the x-axis.
         ylog : bool
             Whether to use a logarithmic scale for the y-axis.
-        savefigname : str, optional
+        xlim : tuple[float, float] | None
+            The limits for the x-axis. If None, the limits will be determined automatically.
+        ylim : tuple[float, float] | None
+            The limits for the y-axis. If None, the limits will be determined automatically.
+        savefigname : str | None
             The name of the file to save the figure. If None, the figure
             will not be saved.
         """
@@ -5059,7 +5140,13 @@ class VizResponse:
     Show spiking rate dynamically together with the stimulus.
     """
 
-    def __init__(self, config, data_io, project_data, VisualSignal):
+    def __init__(
+        self,
+        config: Configuration,
+        data_io: DataIO,
+        project_data: ProjectData,
+        VisualSignal: VisualSignal,
+    ):
         self.config = config
         self.data_io = data_io
         self.project_data = project_data
