@@ -4888,29 +4888,8 @@ class Viz:
             levels_s = levels_s.round(decimals=2)
             result_df[cond] = result_df[f"{cond_names_string}_names"].map(levels_s)
 
-        # Create an empty "threshold" column
-        result_df["threshold"] = float("nan")
-
-        # Check for existing zero contrast, warn if not found
-        if not (result_df["contrast"] == 0.0).any():
-            print(
-                "Warning, no zero contrast found. Replacing with fixed threshold of 10 Hz."
-            )
-            result_df["threshold"] = 10.0
-        else:
-            # Calculate threshold for contrast == 0.0
-            for this_freq in result_df[frequency_parameter_name].unique():
-                mask = (result_df["contrast"] == 0.0) & (
-                    result_df[frequency_parameter_name] == this_freq
-                )
-                if mask.any():
-                    threshold_value = (
-                        result_df.loc[mask, "amplitudes"].values[0]
-                        + 2 * result_df.loc[mask, "std"].values[0]
-                    )
-                    result_df.loc[
-                        result_df[frequency_parameter_name] == this_freq, "threshold"
-                    ] = threshold_value
+        # Create a "threshold" column for 10 Hz
+        result_df["threshold"] = 10.0
 
         abscissa = result_df[frequency_parameter_name].unique()
 
