@@ -1,7 +1,7 @@
 from macaqueretina.project.project_manager_module import (
     construct_retina_instance,
-    simulate_retina_instance,
     create_retina_math_instance,
+    simulate_retina_instance,
 )
 
 _cached_construct_retina = None
