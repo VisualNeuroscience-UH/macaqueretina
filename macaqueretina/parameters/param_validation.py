@@ -15,7 +15,7 @@ from __future__ import annotations
 # Built-in
 import random
 from pathlib import Path
-from typing import Any, Literal, Self
+from typing import TYPE_CHECKING, Any, Literal, Self
 
 # Third-party
 import brian2.units as b2u
@@ -27,10 +27,10 @@ from pydantic import (
     field_validator,
     model_validator,
 )
-from pydantic_core import PydanticUndefined
 
-# Local
-from macaqueretina.data_io.config_io import Configuration
+if TYPE_CHECKING:
+    # Local
+    from macaqueretina.data_io.config_io import Configuration
 
 
 class BaseConfigModel(BaseModel):
@@ -43,17 +43,15 @@ class BaseConfigModel(BaseModel):
     def __init__(self, **data: dict):
         provided_fields = set(data.keys())
         for field_name, field_content in type(self).model_fields.items():
-            # Only print when a *real* default exists (avoid PydanticUndefined spam)
-            if field_name in provided_fields:
-                continue
-            default = getattr(field_content, "default", PydanticUndefined)
-            if default is PydanticUndefined or default is None:
-                continue
-
-            print(
-                f"Parameter '{field_name}' not provided in the YAML file(s), "
-                f"using default value: {default} (set in param_validation.py)",
-            )
+            if (
+                field_name not in provided_fields
+                and hasattr(field_content, "default")
+                and field_content.default is not None
+            ):
+                print(
+                    f"Parameter '{field_name}' not provided in the YAML file(s), "
+                    f"using default value: {field_content.default} (set in param_validation.py)",
+                )
 
         super().__init__(**data)
 
@@ -80,17 +78,16 @@ class RetinaParameters(BaseConfigModel):
     spatial_model_type: Literal["DOG", "VAE"]
     temporal_model_type: Literal["fixed", "dynamic", "subunit"]
     dog_model_type: Literal["ellipse_fixed", "ellipse_independent", "circular"]
-    ecc_limits_deg: tuple[float, float] = Field(
-        default=(4.5, 5.5), description="eccentricity in degrees"
+    ecc_limits_deg: list[float, float] = Field(
+        default=[4.5, 5.5], description="eccentricity in degrees"
     )
-    pol_limits_deg: tuple[float, float] = Field(
-        default=(-1.5, 1.5), description="polar angle in degrees"
+    pol_limits_deg: list[float, float] = Field(
+        default=[-1.5, 1.5], description="polar angle in degrees"
     )
-
     model_density: float = Field(
         le=1.0,
         default=1.0,
-        description=r"1.0 for 100% of the literature density of ganglion cells",
+        description=r"1.0 for 100% \of the literature density of ganglion cells",
     )
     retina_center: complex = Field(
         default=complex(5.0 + 0j),
@@ -99,74 +96,26 @@ class RetinaParameters(BaseConfigModel):
     force_retina_build: bool = Field(
         default=True, description="If True, rebuilds retina even if the hash matches"
     )
-    model_file_name: Path | None = None
-
-    gain_calibration: GainCalibration | None = None
-
-    @computed_field
-    @property
-    def calibrated_gain(self) -> float:
-        """Dynamically compute calibrated_gain based on gc_type and response_type."""
-        if self.gain_calibration is None:
-            raise ValueError("gain_calibration not set in RetinaParameters")
-
-        return getattr(
-            getattr(
-                getattr(
-                    self.gain_calibration.calibrated_gain_table,
-                    self.gc_type,
-                ),
-                self.response_type,
-            ),
-            self.spatial_model_type,
-        ).get(self.temporal_model_type)
-
-    @computed_field
-    @property
-    def noise_fr_mean(self) -> float:
-        """Dynamically compute noise_fr_mean based on gc_type and response_type."""
-        if self.gain_calibration is None:
-            raise ValueError("gain_calibration not set in RetinaParameters")
-
-        return getattr(
-            getattr(
-                self.gain_calibration.noise_fr_mean_table,
-                self.response_type,
-            ),
-            self.gc_type,
-        )
+    model_file_name: Path | None = Field(
+        default=None,
+        description="null for most recent or 'model_[GC TYPE]_[RESPONSE TYPE]_[DEVICE]_[TIMESTAMP].pt' at input_folder. Applies to VAE only",
+    )
 
     @field_validator("retina_center", mode="before")
     @classmethod
-    def parse_complex(cls, v: Any) -> complex:
-        if v is None:
-            return v
-        if isinstance(v, complex):
-            return v
-        if isinstance(v, (int, float)):
-            return complex(v)
-
+    def parse_complex(cls, v):
         if isinstance(v, str):
-            s = v.strip().replace(" ", "")  # make "6+ 5j" -> "6+5j"
-            try:
-                return complex(s)
-            except ValueError as e:
-                raise ValueError(
-                    f"retina_center must be a complex-like string (e.g. '6+5j', '6-5j') or a number; got {v!r}"
-                ) from e
-
-        # Let Pydantic handle other types (or fail clearly)
-        return v
+            return complex(v)
 
 
 ## From visual_stimulus_parameters.yaml
 class VisualStimulusParameters(BaseConfigModel):
     pattern: str = Field(
         default="temporal_square_pattern",
-        description="Options: 'sine_grating', 'square_grating', 'colored_temporal_noise', 'white_gaussian_noise', 'natural_image', 'natural_video', 'temporal_sine_pattern', 'temporal_square_pattern', 'temporal_chirp_pattern', 'contrast_chirp_pattern', 'spatially_uniform_binary_noise'",
+        description="Options: 'sine_grating', 'square_grating', 'colored_temporal_noise', 'white_gaussian_noise', 'natural_images', 'natural_video', 'temporal_sine_pattern', 'temporal_square_pattern', 'temporal_chirp_pattern', 'contrast_chirp_pattern', 'spatially_uniform_binary_noise'",
     )
+    image_width: int = Field(default=240, description="image (canvas) width in pixels")
     image_height: int = 240
-    image_width: int = 240
     pix_per_deg: int = 60
     dtype_name: Literal["uint8", "float16"] = "float16"
     fps: int = 300
@@ -186,7 +135,7 @@ class VisualStimulusParameters(BaseConfigModel):
     spatial_frequency: float | None = Field(default=2.0, description="cpd")
     orientation: float = Field(default=90.0, description="degrees")
     phase_shift: float = Field(default=0.0, description="radians")
-    stimulus_video_name: str | None = None
+    stimulus_video_name: str | None
     contrast: float = Field(default=1.0)
     mean: float = Field(
         default=128.0, description="Mean luminance in  cd/m2 and adaptation level"
@@ -204,10 +153,11 @@ class VisualStimulusParameters(BaseConfigModel):
 
 
 class StimulusMetadataParameters(BaseConfigModel):
-    ext_stimulus_file: str
-    ext_pix_per_deg: int = Field(
+    stimulus_file: Path
+    pix_per_deg: int = Field(
         default=30, description="VanHateren_1998_ProcRSocLondB 2 arcmin per pixel"
     )
+    fps: int = 25
 
 
 class SimulationParameters(BaseConfigModel):
@@ -255,7 +205,7 @@ class GainCalibration(BaseConfigModel):
         parasol: Parasol
         midget: Midget
 
-    calibrated_gain_table: SignalGainTable
+    signal_gain_table: SignalGainTable
 
     class NoiseFrMean(BaseConfigModel):
         class On(BaseConfigModel):
@@ -366,14 +316,9 @@ class RetinaParametersExtend(BaseConfigModel):
 
     cone_signal_parameters: ConeSignalParameters
 
-    @field_validator("cone_general_parameters", mode="before")
-    @classmethod
-    def _cone_general_none_to_empty(cls, v):
-        return {} if v is None else v
-
     class BipolarGeneralParameters(BaseConfigModel):
         bipo2gc_div: int = 6
-        bipo2gc_cutoff_SD: float = 2.0
+        bipo2gc_cutoff_SD: int = 2
         cone2bipo_cen_sd: int = 10
         cone2bipo_sur_sd: int = 150
         bipo_sub_sur2cen: float = 0.9
@@ -475,19 +420,6 @@ class RetinaParametersExtend(BaseConfigModel):
 
     dd_regr_model: DdRegrModel
 
-    retina_parameters: RetinaParameters | None = Field(
-        default=None, exclude=True, repr=False
-    )
-
-    @computed_field
-    @property
-    def dd_regr_model(self) -> Literal["linear", "quadratic", "cubic", "powerlaw"]:
-        """Dynamically compute dd_regr_model based on gc_type."""
-        return getattr(
-            self.dd_regr_model_options,
-            self.retina_parameters.gc_type,
-        )
-
 
 class DendrDiamUnits(BaseConfigModel):
     data1: list[str, str] = ["mm", "um"]
@@ -525,6 +457,21 @@ class VaeTrainParameters(BaseInternalConfigModel):
     batch_norm: bool = Field(default=True, description="Use batch normalization")
     latent_distribution: Literal["normal", "uniform"] = "uniform"
 
+    @field_validator("latent_dim", mode="after")
+    @classmethod
+    def latent_dim_pow_2(cls, latent_dim: int) -> int:
+        """Check whether latent_dim is a power of 2 between 2 and 128"""
+        if not (2 <= latent_dim <= 128):
+            raise ValueError(
+                "latent_dim (in config/constants.yaml, vae_train_parameters) must be a power of 2 between 2 and 128."
+            )
+        if latent_dim & (latent_dim - 1) != 0:
+            raise ValueError(
+                "latent_dim (in config/constants.yaml, vae_train_parameters) must be a power of 2 between 2 and 128."
+            )
+
+        return latent_dim
+
     class AugmentationDict(BaseInternalConfigModel):
         rotation: int = Field(default=0, description="Rotation in degrees")
         translation: tuple[int, int] = Field(
@@ -559,6 +506,71 @@ class ExperimentalMetadata(BaseInternalConfigModel):
     )
 
 
+class VaeTrainParameters(BaseInternalConfigModel):
+    vae_run_mode: Literal["load_model", "train_model"] = Field(
+        default="load_model", description="train_model requires experimental data"
+    )
+    epochs: int = Field(default=500, description="Number of training epochs")
+    lr_step_size: int = Field(
+        default=20, description="Learning rate decay step size (in epochs)"
+    )
+    lr_gamma: float | int = Field(
+        default=0.9,
+        description="Learning rate decay (multiplier for learning rate)",
+    )
+    resolution_hw: int = Field(
+        default=13, description="Both x and y images will be sampled to this space."
+    )
+    latent_dim: int = Field(
+        default=32, description="Latent dimension (powers of 2 between 2 and 128)"
+    )
+    channels: int = Field(default=16, description="Number of channels")
+    lr: float = Field(default=0.0005, description="Learning rate")
+    batch_size: int | None = Field(default=256, description="Batch size")
+    test_split: float = Field(
+        default=0.2,
+        description="Split data for validation and testing (both will take this fraction of data)",
+    )
+    kernel_stride: Literal["k3s1", "k3s2", "k5s2", "k5s1", "k7s1"] = "k7s1"
+    conv_layers: int = Field(default=2, description="Number of convolutional layers")
+    batch_norm: bool = Field(default=True, description="Use batch normalization")
+    latent_distribution: Literal["normal", "uniform"] = "uniform"
+
+    @field_validator("latent_dim", mode="after")
+    @classmethod
+    def latent_dim_pow_2(cls, latent_dim: int) -> int:
+        """Check whether latent_dim is a power of 2 between 2 and 128"""
+        if not (2 <= latent_dim <= 128):
+            raise ValueError(
+                "latent_dim (in config/constants.yaml, vae_train_parameters) must be a power of 2 between 2 and 128."
+            )
+        if latent_dim & (latent_dim - 1) != 0:
+            raise ValueError(
+                "latent_dim (in config/constants.yaml, vae_train_parameters) must be a power of 2 between 2 and 128."
+            )
+
+        return latent_dim
+
+    class AugmentationDict(BaseInternalConfigModel):
+        rotation: int = Field(default=0, description="Rotation in degrees")
+        translation: tuple[int, int] = Field(
+            default=(0, 0), description="Fraction of image, in (x, y) -directions"
+        )
+        noise: float = Field(
+            default=0,
+            description="Noise float in [0, 1] (noise is added to the image)",
+        )
+        flip: float = Field(
+            default=0.5,
+            description="Flip probability, both horizontal and vertical",
+        )
+        data_multiplier: int = Field(
+            default=4, description="How many times to get the data w/ augmentation"
+        )
+
+    augmentation_dict: AugmentationDict | None = AugmentationDict()
+
+
 class ExperimentalMetadata(BaseInternalConfigModel):
     data_microm_per_pix: int | None = 60
     data_spatialfilter_height: int | None = 13
@@ -587,6 +599,8 @@ class LiteratureDataFiles(BaseConfigModel):
     dendr_diam3_datafile_midget: str
     temporal_BK_model_datafile_parasol: str
     temporal_BK_model_datafile_midget: str
+    spatial_DoG_datafile_parasol: str
+    spatial_DoG_datafile_midget: str
     cone_density1_datafile: str
     cone_density2_datafile: str
     cone_noise_datafile: str
@@ -616,12 +630,12 @@ class ConfigParams(BaseConfigModel):
     experiment: str = Field(
         description="Current experiment. Use distinct folders for distinct stimuli."
     )
-    input_subfolder: str | None
-    output_subfolder: str | None
-    stimulus_subfolder: str | None
+    input_folder: str
+    output_folder: str
     numpy_seed: int | None
     device: Literal["cpu", "cuda"]
     run: dict[str, Any]
+    profile: bool = False
 
     # Retina parameters
     retina_parameters: RetinaParameters
@@ -651,6 +665,12 @@ class ConfigParams(BaseConfigModel):
 
         return Path(model_root_path)
 
+    @computed_field
+    @property
+    def stimulus_folder(self) -> str:
+        """Stimulus images and videos"""
+        return Path(f"stim_{self.output_folder}")
+
     @field_validator("numpy_seed", mode="after")
     @classmethod
     def return_np_seed(cls, n):
@@ -665,7 +685,7 @@ class ConfigParams(BaseConfigModel):
         # Stimulus video name
         if self.visual_stimulus_parameters.stimulus_video_name is None:
             self.visual_stimulus_parameters.stimulus_video_name = (
-                str(self.stimulus_folder) + ".hdf5"
+                f"{self.stimulus_folder}.hdf5"
             )
 
         # Literature data folder
