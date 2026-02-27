@@ -7,6 +7,8 @@ import pytest
 # Local
 import macaqueretina as mr
 
+mr.load_parameters()
+
 
 @pytest.fixture(scope="module")
 def retina_config():
@@ -70,7 +72,7 @@ def test_retina_construction(
         mr.config.retina_parameters.pol_limits_deg = (-2, 2)
 
     mr.config.output_folder = Path(tmp_path)
-    ret, gc = mr.construct_retina(return_objects_do_not_save=True)
+    ret, gc = mr.build_retina(return_objects_do_not_save=True)
 
     assert hasattr(ret, "gc_type")
     assert ret.gc_type == gc_type

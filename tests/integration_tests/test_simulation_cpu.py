@@ -6,6 +6,8 @@ import pytest
 # Local
 import macaqueretina as mr
 
+mr.load_parameters()
+
 # Define parameters to vary
 GC_TYPES = ["parasol", "midget"]
 RESPONSE_TYPES = ["on", "off"]
@@ -92,7 +94,7 @@ def test_simulation_client(
     )
 
     # Construct retina
-    mr.construct_retina()
+    mr.build_retina()
 
     # Run simulation
     gc_type = mr.config.retina_parameters["gc_type"]
