@@ -68,15 +68,20 @@ def simulate_retina(stimulus=None, filename=None, impulse=None, unity=None):
 _cached_retina_math_instance = None
 
 
-def __getattr__(name):
-    global _cached_retina_math_instance
-    if _cached_retina_math_instance is None:
-        _cached_retina_math_instance = create_retina_math_instance()
-    return getattr(_cached_retina_math_instance, name)
+class _RetinaMathWrapper:
+    """Wrapper class that routes attribute access to the RetinaMath instance."""
+
+    def __getattr__(self, name):
+        global _cached_retina_math_instance
+        if _cached_retina_math_instance is None:
+            _cached_retina_math_instance = create_retina_math_instance()
+        return getattr(_cached_retina_math_instance, name)
+
+    def __dir__(self):
+        global _cached_retina_math_instance
+        if _cached_retina_math_instance is None:
+            _cached_retina_math_instance = create_retina_math_instance()
+        return dir(_cached_retina_math_instance)
 
 
-def __dir__():
-    global _cached_retina_math_instance
-    if _cached_retina_math_instance is None:
-        _cached_retina_math_instance = create_retina_math_instance()
-    return dir(_cached_retina_math_instance)
+retina_math = _RetinaMathWrapper()
