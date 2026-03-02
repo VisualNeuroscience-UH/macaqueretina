@@ -4,7 +4,8 @@ import matplotlib.pyplot as plt
 # Local
 import macaqueretina as mr
 
-mr.construct_retina()
+mr.load_parameters()
+mr.build_retina()
 mr.make_stimulus()
 mr.simulate_retina()
 
@@ -12,16 +13,15 @@ mr.simulate_retina()
 ##   Show multiple units for single trial   ###
 ###############################################
 
-# for all temporal models ##
 mr.viz.show_all_gc_responses(savefigname=None)
-# mr.viz.show_all_generator_potentials(savefigname=None)
+mr.viz.show_all_generator_potentials(savefigname=None)
 
-# mr.viz.show_stimulus_with_gcs(
-#     example_gc=None,  # [int,], None for all
-#     frame_number=180,  # depends on fps and baseline lengths
-#     show_rf_id=False,
-#     savefigname=None,
-# )
+mr.viz.show_stimulus_with_gcs(
+    example_gc=None,  # [int,], None for all
+    frame_number=180,  # depends on fps and baseline lengths
+    show_rf_id=False,
+    savefigname=None,
+)
 
 # mr.viz.show_single_gc_view(unit_index=2, frame_number=160, savefigname=None)
 # mr.viz.show_gc_noise_hist_cov_mtx(savefigname=None)
