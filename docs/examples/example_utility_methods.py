@@ -11,9 +11,9 @@ import macaqueretina as mr
 
 mr.load_parameters()
 
-# ##########################
-# ###  Print parameters  ###
-# ##########################
+#########################
+##  Print parameters  ###
+#########################
 
 print("\nRetina parameters:")
 print(mr.config.retina_parameters)
@@ -24,11 +24,11 @@ print(mr.config.visual_stimulus_parameters)
 print("\nSimulation parameters:")
 print(mr.config.simulation_parameters)
 
-# ################################################################
-# ###  Count lines in codebase, relative to working directory  ###
-# ################################################################
+################################################################
+###  Count lines in codebase, relative to working directory  ###
+################################################################
 
-# mr.countlines(Path("macaqueretina"))
+mr.countlines(Path("macaqueretina"))
 
 
 # #####################################################
@@ -84,9 +84,10 @@ print(mr.config.simulation_parameters)
 ##########################################
 ###  Load arbitrary data to workspace  ###
 ##########################################
-# filename_parents = mr.config.output_folder
-# filename = Path(filename_parents).joinpath(mr.config.retina_parameters.mosaic_file)
-
+# output_folder = mr.config.output_folder
+# # Copy the filename from output folder after running build_retina() once.
+# filename_map = output_folder.glob("*_mosaic.csv")
+# filename = list(filename_map)[0]
 # data = mr.load_data(filename)
 # print(type(data))
 # print(data.shape)
@@ -96,13 +97,9 @@ print(mr.config.simulation_parameters)
 # ### Show spikes from gz files  ###
 # ##################################
 
-# filename_parents = mr.config.output_folder
-# Build response filename from scratch
-# gc_type = mr.config.retina_parameters["gc_type"]
-# response_type = mr.config.retina_parameters["response_type"]
-# hashstr = mr.config.retina_parameters["retina_parameters_hash"]
-# filename_offspring = f"{gc_type}_{response_type}_{hashstr}_response_00.gz"
-# filename = Path(filename_parents).joinpath(filename_offspring)
+# output_folder = mr.config.output_folder
+# ret_file_map = output_folder.glob("*.gz")
+# filename = list(ret_file_map)[0]
 # mr.viz.show_spikes_from_gz_file(
 #     filename=filename,
 #     sweepname="spikes_0",  # "spikes_0", "spikes_1", ...
@@ -113,6 +110,7 @@ print(mr.config.simulation_parameters)
 # #########################################
 # ##       Show impulse response        ###
 # #########################################
+# unity and impulse make a dummy video which uses visual stimulus parameters.
 
 # mr.config.retina_parameters.gc_type = "parasol"  # "parasol", "midget"
 # mr.config.retina_parameters.response_type = "on"  # "on", "off"
@@ -122,7 +120,7 @@ print(mr.config.simulation_parameters)
 # )
 # mr.build_retina()
 
-# mr.config.simulation_parameters["contrasts_for_impulse"] = [1.0]
+# mr.config.simulation_parameters["contrasts_for_impulse"] = (1.0,)
 # mr.simulate_retina(impulse=True)
 # mr.viz.show_impulse_response(savefigname=None)
 
@@ -137,4 +135,4 @@ print(mr.config.simulation_parameters)
 # mr.viz.show_unity(savefigname=None)
 
 
-plt.show()
+# plt.show()
