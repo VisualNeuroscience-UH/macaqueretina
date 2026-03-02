@@ -3400,6 +3400,16 @@ class GanglionCellProduct(NeuralUnits):
         )
         # Assert that the pixel coordinates are within the stimulus space
 
+        if not all(
+            (pixspace_pos[:, 0] >= 0)
+            & (pixspace_pos[:, 0] < vs.stimulus_width_pix)
+            & (pixspace_pos[:, 1] >= 0)
+            & (pixspace_pos[:, 1] < vs.stimulus_height_pix)
+        ):
+            raise ValueError(
+                "Some ganglion cells are outside the bounds of the stimulus image. Increase image height and width..."
+            )
+
         if self.dog_model_type in ["ellipse_fixed", "circular"]:
             pixspace_coords = pd.DataFrame(
                 {"q_pix": pixspace_pos[:, 0], "r_pix": pixspace_pos[:, 1]}
@@ -3596,13 +3606,13 @@ class VisualSignal(PrintableMixin):
         assert (
             self.stimulus_video.video_width == self.stimulus_width_pix
             and self.stimulus_video.video_height == self.stimulus_height_pix
-        ), "Check that stimulus dimensions match those of the mosaic"
+        ), "Check that stimulus dimensions match the visual stimulus parameters"
         assert (
             self.stimulus_video.fps == self.fps
-        ), "Check that stimulus frame rate matches that of the mosaic"
+        ), "Check that stimulus frame rate matches the visual stimulus parameters"
         assert (
             self.stimulus_video.pix_per_deg == self.pix_per_deg
-        ), "Check that stimulus resolution matches that of the mosaic"
+        ), "Check that stimulus resolution matches the visual stimulus parameters"
 
         self.video_dt = (1 / self.stimulus_video.fps) * b2u.second  # input
         self.stim_len_tp = self.stimulus_video.video_n_frames
@@ -3615,9 +3625,6 @@ class VisualSignal(PrintableMixin):
     def _vspace_to_pixspace(self, x: float, y: float) -> tuple[float, float]:
         """
         Converts visual space coordinates to pixel space coordinates.
-
-        In pixel space, coordinates (q,r) correspond to matrix locations,
-        i.e. (0,0) is top-left.
 
         Parameters
         ----------
@@ -3991,10 +3998,10 @@ class SimulateRetina:
             )
             self.config.retina_parameters.retina_parameters_hash = hash_part
 
-    def _prepare_impulse_response_if_needed(
-        self, impulse: bool, stimulus: DummyVideoClass | None
+    def _prepare_impulse_and_unity_if_needed(
+        self, impulse: bool, unity: bool, stimulus: DummyVideoClass | None
     ) -> DummyVideoClass | None:
-        if impulse and not stimulus:
+        if (impulse or unity) and not stimulus:
             stimulus = self.stimulate.make_stimulus_video()
         return stimulus
 
@@ -4022,7 +4029,7 @@ class SimulateRetina:
         """
 
         self._get_construct_metadata_if_missing()
-        stimulus = self._prepare_impulse_response_if_needed(impulse, stimulus)
+        stimulus = self._prepare_impulse_and_unity_if_needed(impulse, unity, stimulus)
         vs, gcs, cones, bipolars = self._get_products(stimulus)
         n_sweeps = self.config.simulation_parameters["n_sweeps"]
 
