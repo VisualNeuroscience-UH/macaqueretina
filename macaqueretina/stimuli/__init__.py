@@ -1,6 +1,6 @@
 from macaqueretina.project.project_manager_module import (
-    create_stimulus,
     create_experiment,
+    create_stimulus,
 )
 
 _cached_stimulus_instance = None
