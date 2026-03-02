@@ -39,11 +39,12 @@ mr.viz.show_stimulus_with_gcs(
 # #####     Interactive plot of spike frequency on stimulus video     ############
 # ################################################################################
 # video_file_name = mr.config.visual_stimulus_parameters.stimulus_video_name
-# response_file_name = mr.config.simulation_parameters.gc_response_filenames[0] + ".gz"
+# response_files_map = mr.config.output_folder.glob("*_response_*.gz")
+# response_file_name = next(response_files_map)
 
 # window_length = 0.1  # seconds
 # rate_scale = 20  # Hz, Colorscale max amplitude
-# mr.viz_spikes_with_stimulus(
+# mr.viz.viz_spikes_with_stimulus(
 #     video_file_name, response_file_name, window_length, rate_scale
 # )
 

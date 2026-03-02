@@ -1,6 +1,6 @@
 model_root_path: "/opt3/projects"
 project: "macaqueretina"
-experiment: "test_after_merge_260225"
+experiment: "test_experiment"
 input_folder: "../in"  # input VAE models, images, videos, other data
 output_folder: "test" # spikes, retinas, experiment metadata
 numpy_seed: 42  # null for random or int for fixed seed
