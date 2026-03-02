@@ -9,6 +9,8 @@ import pytest
 import macaqueretina as mr
 from macaqueretina.stimuli.visual_stimulus_module import VideoBaseClass
 
+mr.load_parameters()
+
 test_root = Path(__file__).resolve().parent.parent
 
 
