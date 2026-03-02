@@ -23,7 +23,7 @@ if TYPE_CHECKING:
     from macaqueretina.retina.fit_module import Fit
     from macaqueretina.retina.retina_math_module import RetinaMath
     from macaqueretina.retina.vae_module import RetinaVAE
-    from macaqueretina.viz.viz_module import Viz
+    from macaqueretina.viz.viz_module import Viz, VizResponse
 
 
 warnings.filterwarnings("ignore", category=SyntaxWarning)
@@ -193,7 +193,11 @@ def construct_retina_instance(
     )
 
 
-def viz_spikes_with_stimulus(config, data_io, project_data):
+def create_viz_response_instance(
+    config: Configuration,
+    data_io: DataIO | None = None,
+    project_data: ProjectData | None = None,
+) -> VizResponse:
     from macaqueretina.retina.simulate_retina_module import VisualSignal
     from macaqueretina.viz.viz_module import VizResponse
 
