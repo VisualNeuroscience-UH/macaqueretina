@@ -25,8 +25,8 @@ if TYPE_CHECKING:
 
     from macaqueretina.data_io.config_io import Configuration
     from macaqueretina.data_io.data_io_module import DataIO
-    from macaqueretina.fit.fit_module import Fit
-    from macaqueretina.retina.retina_vae_module import RetinaVAE
+    from macaqueretina.retina.fit_module import Fit
+    from macaqueretina.retina.vae_module import RetinaVAE
     from macaqueretina.viz.viz_module import Viz
 
 
