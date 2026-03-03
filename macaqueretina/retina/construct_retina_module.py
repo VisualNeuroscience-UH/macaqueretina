@@ -4369,12 +4369,7 @@ class ConcreteRetinaBuilder(RetinaBuilder):
         cone_density_1 = lit["gc_density_1"]
         x_points, y_scaler, f_name = lit["gc_density_1_scaling_data_and_function"]
         func = eval(f"self.retina_math.{f_name}")
-
-        # Filter OptimizeWarning if covariance of the parameters can not be estimated.
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", opt.OptimizeWarning)
-
-            popt, _ = opt.curve_fit(func, x_points, y_scaler, p0=[3, -1, 1])
+        popt, _ = opt.curve_fit(func, x_points, y_scaler, p0=[3, -1, 1])
 
         A, B, C = popt
 
