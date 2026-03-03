@@ -1,4 +1,7 @@
-from macaqueretina.project.project_manager_module import create_viz_instance
+from macaqueretina.project.project_manager_module import (
+    create_viz_instance,
+    create_viz_response_instance,
+)
 
 _cached_viz_instance = None
 
@@ -40,3 +43,23 @@ def __dir__():
         _cached_viz_instance = (current_hash, viz_instance)
 
     return dir(_cached_viz_instance[1])
+
+
+def viz_spikes_with_stimulus(
+    video_file_name, response_file_name, window_length, rate_scale
+):
+    from macaqueretina import config as current_config
+
+    if current_config is None:
+        print(
+            "Configuration not found. Run mr.load_parameters() before accessing mr.viz_spikes_with_stimulus."
+        )
+        return []
+
+    data_io = create_data_io(current_config)
+
+    viz_response = create_viz_response_instance(current_config, data_io)
+
+    return viz_response.client(
+        video_file_name, response_file_name, window_length, rate_scale
+    )

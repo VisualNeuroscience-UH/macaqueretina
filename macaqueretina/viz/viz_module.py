@@ -3567,10 +3567,10 @@ class Viz:
 
         experiment_df = pd.read_csv(data_folder / filename, index_col=0)
         data_df = pd.read_csv(
-            data_folder / f"{cond_names_string}_population_means.csv", index_col=0
+            data_folder / f"{cond_names_string}_fr_population_means.csv", index_col=0
         )
         data_df_units = pd.read_csv(
-            data_folder / f"{cond_names_string}_unit_means.csv", index_col=0
+            data_folder / f"{cond_names_string}_fr_unit_means.csv", index_col=0
         )
 
         response_levels_s = experiment_df.loc[:, "contrast"]

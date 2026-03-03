@@ -170,7 +170,11 @@ def create_construct_retina_instance(config: Configuration) -> ConstructRetina:
     )
 
 
-def viz_spikes_with_stimulus(config: Configuration):  # TODO: exposed here
+def create_viz_response_instance(
+    config: Configuration,
+    data_io: DataIO | None = None,
+    project_data: ProjectData | None = None,
+) -> VizResponse:
     from macaqueretina.retina.simulate_retina_module import VisualSignal
     from macaqueretina.viz.viz_module import VizResponse
 
