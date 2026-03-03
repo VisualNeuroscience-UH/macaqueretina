@@ -23,7 +23,7 @@ if TYPE_CHECKING:
     from macaqueretina.retina.retina_math_module import RetinaMath
     from macaqueretina.retina.vae_module import RetinaVAE
     from macaqueretina.stimuli.visual_stimulus_module import VisualStimulus
-    from macaqueretina.viz.viz_module import Viz
+    from macaqueretina.viz.viz_module import Viz, VizResponse
 
 
 warnings.filterwarnings("ignore", category=SyntaxWarning)
