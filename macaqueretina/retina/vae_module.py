@@ -15,7 +15,8 @@ from scipy.ndimage import fourier_shift, rotate
 from sklearn.model_selection import train_test_split
 from torch import nn
 from torch.utils.data import DataLoader, Dataset
-from torchmetrics import MeanSquaredError, StructuralSimilarityIndexMeasure
+from torchmetrics import MeanSquaredError
+from torchmetrics.image import StructuralSimilarityIndexMeasure
 from torchmetrics.image.kid import KernelInceptionDistance
 from torchsummary import summary
 from torchvision import transforms
