@@ -131,7 +131,6 @@ def create_viz(
         data_io,
         project_data,
         analysis,
-        # TODO: these should be unpacked inside Viz, not here
         DoG2D_fixed_surround=retina_math.DoG2D_fixed_surround,
         DoG2D_independent_surround=retina_math.DoG2D_independent_surround,
         DoG2D_circular=retina_math.DoG2D_circular,
