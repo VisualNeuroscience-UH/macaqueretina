@@ -5,10 +5,15 @@ from pathlib import Path
 # Third-party
 import pytest
 
+# from scipy.optimize import OptimizeWarning
 # Local
 import macaqueretina as mr
 
 mr.load_parameters()
+
+
+class OptimizeWarning(RuntimeWarning):
+    pass
 
 
 @pytest.fixture(scope="module")
@@ -58,11 +63,8 @@ def test_retina_construction(
     temporal_model_type,
     dog_model_type,
 ):
-    if temporal_model_type == "subunit":
-        warnings.filterwarnings("ignore", category=RuntimeWarning)
-
-    if spatial_model_type == "VAE":
-        warnings.filterwarnings("ignore", category=UserWarning)
+    warnings.filterwarnings("ignore", category=RuntimeWarning)
+    warnings.filterwarnings("ignore", category=UserWarning)
 
     # Set parameters
     retina_config.retina_parameters.gc_type = gc_type
@@ -162,3 +164,5 @@ def test_retina_construction(
     for attr in gc_attribute_names:
         assert hasattr(gc, attr), f"Attribute {attr} does not exist in macaqueretina"
         assert getattr(gc, attr) is not None, f"Attribute {attr} is None"
+
+    warnings.resetwarnings()
