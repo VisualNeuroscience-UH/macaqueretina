@@ -5,15 +5,10 @@ from pathlib import Path
 # Third-party
 import pytest
 
-# from scipy.optimize import OptimizeWarning
 # Local
 import macaqueretina as mr
 
 mr.load_parameters()
-
-
-class OptimizeWarning(RuntimeWarning):
-    pass
 
 
 @pytest.fixture(scope="module")

@@ -4,7 +4,6 @@ from pathlib import Path
 
 # Third-party
 import pytest
-from scipy.optimize import OptimizeWarning
 
 # Local
 import macaqueretina as mr
