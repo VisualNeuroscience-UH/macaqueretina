@@ -266,9 +266,6 @@ def test_nested_access(deep_nested_dict):
     )
 
 
-# TODO: test from_yaml class method
-
-
 # Test __contains__
 def test_contains(valid_source_dict):
     config = Configuration(valid_source_dict)
