@@ -34,9 +34,8 @@ BrianLogger.log_level_error()
 
 if TYPE_CHECKING:
     from numpy.lib.npyio import NpzFile
-
     from macaqueretina.data_io.config_io import Configuration
-    from macaqueretina.data_io.data_io import DataIO, DummyVideoClass
+    from macaqueretina.data_io.data_io_module import DataIO, DummyVideoClass
     from macaqueretina.project.project_manager_module import ProjectData
     from macaqueretina.retina.retina_math_module import RetinaMath
 
