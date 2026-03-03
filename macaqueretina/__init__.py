@@ -8,7 +8,7 @@ clean separation of concerns and makes it easier to maintain and extend the code
 
 # Local
 from . import analysis, viz
-from .data_io import load_data
+from .data_io import data_io
 from .project import countlines
 from .project.project_manager_module import data_sampler
 from .project.project_manager_module import load_parameters as _load_parameters
@@ -26,12 +26,12 @@ def load_parameters():
 
 
 __all__ = [
+    "data_io",
     "load_parameters",
     "retina_math",
     "analysis",
     "viz",
     "data_sampler",
-    "load_data",
     "config",
     "make_stimulus",
     "run_experiment",

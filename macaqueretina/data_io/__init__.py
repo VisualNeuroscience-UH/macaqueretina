@@ -1,33 +1,48 @@
 from macaqueretina.project.project_manager_module import create_data_io_instance
 
-_cached_data_io = None
+_cached_data_io_instance = None
 
 
-def load_data(
-    filename=None,
-    substring=None,
-    exclude_substring=None,
-    return_filename=False,
-    full_path=None,
-):
-    """Wrapper for DataIO.load_data()."""
-    global _cached_data_io
-    from macaqueretina import config as current_config
+class _DataIOWrapper:
+    """Wrapper class that routes attribute access to the DataIO instance."""
 
-    if current_config is None:
-        print(
-            "Configuration not found. Run mr.load_parameters() before accessing mr.load_data()."
-        )
-        return []
+    def __getattr__(self, name):
+        global _cached_data_io_instance
+        from macaqueretina import config as current_config
 
-    current_hash = current_config.hash()
-    if _cached_data_io is None or _cached_data_io[0] != current_hash:
-        data_io_instance = create_data_io_instance(current_config)
-        _cached_data_io = (current_hash, data_io_instance)
-    return _cached_data_io[1].load_data(
-        filename,
-        substring,
-        exclude_substring,
-        return_filename,
-        full_path,
-    )
+        if current_config is None:
+            raise AttributeError(
+                "Configuration not found. Run mr.load_parameters() before accessing mr.data_io."
+            )
+
+        current_hash = current_config.hash()
+        if (
+            _cached_data_io_instance is None
+            or _cached_data_io_instance[0] != current_hash
+        ):
+            retina_instance = create_data_io_instance(current_config)
+            _cached_data_io_instance = (current_hash, retina_instance)
+
+        return getattr(_cached_data_io_instance[1], name)
+
+    def __dir__(self):
+        global _cached_data_io_instance
+        from macaqueretina import config as current_config
+
+        if current_config is None:
+            raise AttributeError(
+                "Configuration not found. Run mr.load_parameters() before accessing mr.data_io()."
+            )
+
+        current_hash = current_config.hash()
+        if (
+            _cached_data_io_instance is None
+            or _cached_data_io_instance[0] != current_hash
+        ):
+            retina_instance = create_data_io_instance(current_config)
+            _cached_data_io_instance = (current_hash, retina_instance)
+
+        return dir(_cached_data_io_instance[1])
+
+
+data_io = _DataIOWrapper()
