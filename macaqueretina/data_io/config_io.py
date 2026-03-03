@@ -30,7 +30,8 @@ import numpy as np
 from brian2.units.fundamentalunits import Quantity
 from yaml import YAMLError, safe_load
 
-_SENTINEL = object()  # TODO: what is this?
+# Sentinel pattern. Ensures that the pop() method below can return None if so requested by the user.
+_SENTINEL = object()
 
 
 class _YamlLoader:
