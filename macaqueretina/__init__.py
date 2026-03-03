@@ -6,7 +6,7 @@ and methods from the project_manager_module. This design allows for a
 clean separation of concerns and makes it easier to maintain and extend the codebase in the future.
 """
 
-# Local
+# These are visible when you call mr.something in scripts
 from . import analysis, viz
 from .data_io import load_data
 from .project import countlines
@@ -25,30 +25,32 @@ def load_parameters():
     print("Parameters loaded successfully.")
 
 
+# This enables from macaqueretina import something to work.
 __all__ = [
-    "load_parameters",
-    "retina_math",
     "analysis",
-    "viz",
+    "build_retina",
+    "config",
+    "countlines",
     "data_sampler",
     "load_data",
-    "config",
+    "load_parameters",
     "make_stimulus",
+    "retina_math",
     "run_experiment",
-    "build_retina",
     "save_retina",
     "simulate_retina",
-    "countlines",
+    "viz",
 ]
 
 
 def get_version():
     import os
-    import tomli
+
+    import tomllib
 
     pyproject_path = os.path.join(os.path.dirname(__file__), "..", "pyproject.toml")
     with open(pyproject_path, "rb") as f:
-        data = tomli.load(f)
+        data = tomllib.load(f)
         return data["tool"]["poetry"]["version"]
 
 
