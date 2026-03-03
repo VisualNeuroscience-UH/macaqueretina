@@ -185,9 +185,9 @@ def viz_spikes_with_stimulus(config: Configuration):  # TODO: exposed here
     )
 
 
-def data_sampler(
+def create_data_sampler_instance(
     filename, min_X, max_X, min_Y, max_Y, logX=False, logY=False
-):  # TODO: exposed here
+):
     """DataSampler alias."""
     from macaqueretina.project.project_utilities_module import DataSampler
 
