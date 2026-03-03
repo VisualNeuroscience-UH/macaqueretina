@@ -337,7 +337,7 @@ class Configuration(MutableMapping):
         return (type(self), (self.to_dict(),))
 
     @classmethod
-    def from_yaml(cls, *paths: Path | str) -> "Configuration":
+    def from_yaml(cls, *paths: Path | str) -> Configuration:
         """Get parameters from the YAML files. Delegates to _YamlLoader."""
         loader = _YamlLoader(paths)
         raw_config = loader.load_config()
