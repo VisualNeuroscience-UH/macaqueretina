@@ -1,5 +1,4 @@
 from macaqueretina.project.project_manager_module import (
-    create_data_io,
     create_viz,
     create_viz_response_instance,
 )
@@ -57,9 +56,7 @@ def viz_spikes_with_stimulus(
         )
         return []
 
-    data_io = create_data_io(current_config)
-
-    viz_response = create_viz_response_instance(current_config, data_io)
+    viz_response = create_viz_response_instance(current_config)
 
     return viz_response.client(
         video_file_name, response_file_name, window_length, rate_scale
