@@ -1,4 +1,5 @@
 # Built-in
+import warnings
 from pathlib import Path
 
 # Third-party
@@ -49,8 +50,6 @@ DOG_MODEL_TYPES = ["ellipse_fixed", "circular"]
         for dog in DOG_MODEL_TYPES
     ],
 )
-@pytest.mark.filterwarnings("ignore::UserWarning")
-@pytest.mark.filterwarnings("ignore::FutureWarning")
 def test_retina_construction(
     retina_config,
     tmp_path,
@@ -60,6 +59,12 @@ def test_retina_construction(
     temporal_model_type,
     dog_model_type,
 ):
+    if temporal_model_type == "subunit":
+        warnings.filterwarnings("ignore", category=RuntimeWarning)
+
+    if spatial_model_type == "VAE":
+        warnings.filterwarnings("ignore", category=UserWarning)
+
     # Set parameters
     retina_config.retina_parameters.gc_type = gc_type
     retina_config.retina_parameters.response_type = response_type

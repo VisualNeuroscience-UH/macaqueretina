@@ -1,5 +1,6 @@
 # Built-in
 import math
+import warnings
 from abc import ABC, abstractmethod
 from copy import deepcopy
 from typing import TYPE_CHECKING, Any, Callable
@@ -3030,6 +3031,8 @@ class TemporalModelSubunit(TemporalModelBase):
         This method calculates the weights between bipolar units and ganglion cells based on distances
         and other parameters, and updates the retina model instance with these weights.
 
+        This method creates zero divisions which are turned into 0 weights. Pytest ignores these RuntimeWarnings.
+
         Parameters
         ----------
         ret : Retina
@@ -4366,7 +4369,13 @@ class ConcreteRetinaBuilder(RetinaBuilder):
         cone_density_1 = lit["gc_density_1"]
         x_points, y_scaler, f_name = lit["gc_density_1_scaling_data_and_function"]
         func = eval(f"self.retina_math.{f_name}")
-        popt, _ = opt.curve_fit(func, x_points, y_scaler, p0=[3, -1, 1])
+
+        # Filter OptimizeWarning if covariance of the parameters can not be estimated.
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", opt.OptimizeWarning)
+
+            popt, _ = opt.curve_fit(func, x_points, y_scaler, p0=[3, -1, 1])
+
         A, B, C = popt
 
         gc_density_1 = func(gc_eccentricity_1, A, B, C) * cone_density_1
