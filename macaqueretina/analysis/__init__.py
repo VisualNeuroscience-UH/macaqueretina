@@ -1,4 +1,4 @@
-from macaqueretina.project.project_manager_module import create_analysis
+from macaqueretina.project.project_manager_module import create_analysis_instance
 
 _cached_analysis_instance = None
 
@@ -19,7 +19,7 @@ def __getattr__(name):
         _cached_analysis_instance is None
         or _cached_analysis_instance[0] != current_hash
     ):
-        analysis_instance = create_analysis(current_config)
+        analysis_instance = create_analysis_instance(current_config)
         _cached_analysis_instance = (current_hash, analysis_instance)
 
     return getattr(_cached_analysis_instance[1], name)
@@ -42,7 +42,7 @@ def __dir__():
         _cached_analysis_instance is None
         or _cached_analysis_instance[0] != current_hash
     ):
-        analysis_instance = create_analysis(current_config)
+        analysis_instance = create_analysis_instance(current_config)
         _cached_analysis_instance = (current_hash, analysis_instance)
 
     return dir(_cached_analysis_instance[1])

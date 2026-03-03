@@ -1,6 +1,6 @@
 from macaqueretina.project.project_manager_module import (
-    create_stimulus,
-    create_experiment,
+    create_visual_stimulus_instance,
+    create_experiment_instance,
 )
 
 _cached_stimulus_instance = None
@@ -22,7 +22,7 @@ def make_stimulus(options=None):
         _cached_stimulus_instance is None
         or _cached_stimulus_instance[0] != current_hash
     ):
-        stimulus_instance = create_stimulus(current_config)
+        stimulus_instance = create_visual_stimulus_instance(current_config)
         _cached_stimulus_instance = (current_hash, stimulus_instance)
     return _cached_stimulus_instance[1].make_stimulus_video(options)
 
@@ -46,7 +46,7 @@ def run_experiment(build_without_run=False, show_histogram=False):
         _cached_experiment_instance is None
         or _cached_experiment_instance[0] != current_hash
     ):
-        experiment_instance = create_experiment(current_config)
+        experiment_instance = create_experiment_instance(current_config)
         _cached_experiment_instance = (current_hash, experiment_instance)
     return _cached_experiment_instance[1].build_and_run(
         build_without_run, show_histogram

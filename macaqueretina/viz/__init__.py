@@ -1,4 +1,4 @@
-from macaqueretina.project.project_manager_module import create_viz
+from macaqueretina.project.project_manager_module import create_viz_instance
 
 _cached_viz_instance = None
 
@@ -16,7 +16,7 @@ def __getattr__(name):
     current_hash = current_config.hash()
 
     if _cached_viz_instance is None or _cached_viz_instance[0] != current_hash:
-        viz_instance = create_viz(current_config)
+        viz_instance = create_viz_instance(current_config)
         _cached_viz_instance = (current_hash, viz_instance)
 
     return getattr(_cached_viz_instance[1], name)
@@ -36,7 +36,7 @@ def __dir__():
     current_hash = current_config.hash()
 
     if _cached_viz_instance is None or _cached_viz_instance[0] != current_hash:
-        viz_instance = create_viz(current_config)
+        viz_instance = create_viz_instance(current_config)
         _cached_viz_instance = (current_hash, viz_instance)
 
     return dir(_cached_viz_instance[1])

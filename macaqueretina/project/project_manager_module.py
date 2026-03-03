@@ -13,7 +13,7 @@ from __future__ import annotations
 # Built-in
 import warnings
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable
 
 if TYPE_CHECKING:
     from macaqueretina.analysis.analysis_module import Analysis
@@ -22,6 +22,8 @@ if TYPE_CHECKING:
     from macaqueretina.retina.construct_retina_module import ConstructRetina
     from macaqueretina.retina.retina_math_module import RetinaMath
     from macaqueretina.retina.vae_module import RetinaVAE
+    from macaqueretina.stimuli.visual_stimulus_module import VisualStimulus
+    from macaqueretina.viz.viz_module import Viz
 
 
 warnings.filterwarnings("ignore", category=SyntaxWarning)
@@ -30,13 +32,13 @@ warnings.filterwarnings("ignore", category=UserWarning)
 ## Internal
 
 
-def _get_validation_params_method(parameters_folder: Path) -> callable | None:
+def _get_validation_params_method(parameters_folder: Path) -> Callable | None:
     """
     Get parameter validation method if a .py file with 'validation' in its name
     is found in the parameters/ subfolder.
 
     Returns:
-        callable or None: validation function () if found, None otherwise
+        Callable or None: validation function () if found, None otherwise
     """
     validation_files = list(parameters_folder.glob("*validation*.py"))
     match len(validation_files):
@@ -63,7 +65,7 @@ def _get_validation_params_method(parameters_folder: Path) -> callable | None:
             )
 
 
-def create_data_io(config: Configuration) -> DataIO:
+def create_data_io_instance(config: Configuration) -> DataIO:
     """Instantiates DataIO with config."""
     from macaqueretina.data_io.data_io_module import DataIO
 
@@ -77,7 +79,7 @@ def create_retina_math_instance() -> RetinaMath:
     return RetinaMath()
 
 
-def _create_get_xy_from_npz() -> callable:
+def _create_get_xy_from_npz() -> Callable:
     """Provides get_xy_from_npz from the ProjectUtilitiesMixin."""
     from macaqueretina.project.project_utilities_module import ProjectUtilitiesMixin
 
@@ -85,7 +87,7 @@ def _create_get_xy_from_npz() -> callable:
     return utilities.get_xy_from_npz
 
 
-def create_analysis(
+def create_analysis_instance(
     config: Configuration,
     data_io: DataIO | None = None,
     retina_math: RetinaMath | None = None,
@@ -96,7 +98,7 @@ def create_analysis(
     from macaqueretina.analysis.analysis_module import Analysis
 
     if data_io is None:
-        data_io = create_data_io(config)
+        data_io = create_data_io_instance(config)
 
     if retina_math is None:
         retina_math = create_retina_math_instance()
@@ -109,16 +111,20 @@ def create_analysis(
     )
 
 
-def create_viz(config, data_io=None, project_data=None):
+def create_viz_instance(
+    config: Configuration,
+    data_io: DataIO | None = None,
+    project_data: ProjectData | None = None,
+) -> Viz:
     """Instantiates Viz."""
     from macaqueretina.viz.viz_module import Viz
 
     if data_io is None:
-        data_io = create_data_io(config)
+        data_io = create_data_io_instance(config)
     if project_data is None:
         project_data = ProjectData()
 
-    analysis = create_analysis(config, data_io, retina_math)
+    analysis = create_analysis_instance(config, data_io, retina_math)
     retina_math = create_retina_math_instance()
 
     return Viz(
@@ -136,20 +142,19 @@ def create_viz(config, data_io=None, project_data=None):
     )
 
 
-def retina_vae(config):
+def create_retina_vae_instance(config: Configuration) -> RetinaVAE:
     return RetinaVAE(config)
 
 
-def construct_retina_instance(config: Configuration) -> ConstructRetina:
+def create_construct_retina_instance(config: Configuration) -> ConstructRetina:
     from macaqueretina.retina.construct_retina_module import ConstructRetina
     from macaqueretina.retina.fit_module import Fit
-    from macaqueretina.retina.vae_module import RetinaVAE
 
-    data_io = create_data_io(config)
+    data_io = create_data_io_instance(config)
     project_data = ProjectData()
-    viz = create_viz(config, data_io, project_data)
+    viz = create_viz_instance(config, data_io, project_data)
     fit = Fit(project_data, config.experimental_metadata)
-    retina_vae = RetinaVAE(config)
+    retina_vae_instance = create_retina_vae_instance(config)
     retina_math = create_retina_math_instance()
     get_xy_from_npz = _create_get_xy_from_npz()
 
@@ -158,18 +163,18 @@ def construct_retina_instance(config: Configuration) -> ConstructRetina:
         data_io,
         viz,
         fit,
-        retina_vae,
+        retina_vae_instance,
         retina_math,
         project_data,
         get_xy_from_npz,
     )
 
 
-def viz_spikes_with_stimulus(config: Configuration):
+def viz_spikes_with_stimulus(config: Configuration):  # TODO: exposed here
     from macaqueretina.retina.simulate_retina_module import VisualSignal
     from macaqueretina.viz.viz_module import VizResponse
 
-    data_io = create_data_io(config)
+    data_io = create_data_io_instance(config)
     project_data = ProjectData()
 
     return VizResponse(
@@ -180,52 +185,61 @@ def viz_spikes_with_stimulus(config: Configuration):
     )
 
 
-def data_sampler(filename, min_X, max_X, min_Y, max_Y, logX=False, logY=False):
+def data_sampler(
+    filename, min_X, max_X, min_Y, max_Y, logX=False, logY=False
+):  # TODO: exposed here
     """DataSampler alias."""
     from macaqueretina.project.project_utilities_module import DataSampler
 
     return DataSampler(filename, min_X, max_X, min_Y, max_Y, logX, logY)
 
 
-def create_stimulus(config, data_io=None):
+def create_visual_stimulus_instance(
+    config: Configuration, data_io: DataIO | None = None
+):
     from macaqueretina.stimuli.visual_stimulus_module import VisualStimulus
 
     if data_io is None:
-        data_io = create_data_io(config)
-
+        data_io = create_data_io_instance(config)
     get_xy_from_npz = _create_get_xy_from_npz()
 
     return VisualStimulus(config, data_io, get_xy_from_npz)
 
 
-def simulate_retina_instance(config, data_io=None, stimulate=None):
+def create_simulate_retina_instance(
+    config: Configuration,
+    data_io: DataIO | None = None,
+    visual_stimulus_instance: VisualStimulus | None = None,
+):
     from macaqueretina.retina.simulate_retina_module import SimulateRetina
 
     if data_io is None:
-        data_io = create_data_io(config)
+        data_io = create_data_io_instance(config)
     project_data = ProjectData()
     retina_math = create_retina_math_instance()
-    if stimulate is None:
-        stimulate = create_stimulus(config, data_io)
+    if visual_stimulus_instance is None:
+        visual_stimulus_instance = create_visual_stimulus_instance(config, data_io)
 
     return SimulateRetina(
         config,
         data_io,
         project_data,
         retina_math,
-        stimulate,
+        visual_stimulus_instance,
     )
 
 
-def create_experiment(
-    config,
-):
+def create_experiment_instance(config):
     from macaqueretina.stimuli.experiment_module import Experiment
 
-    data_io = create_data_io(config)
-    stimulate = create_stimulus(config, data_io)
-    simulate_retina = simulate_retina_instance(config, data_io, stimulate)
-    return Experiment(config, data_io, stimulate, simulate_retina)
+    data_io = create_data_io_instance(config)
+    visual_stimulus_instance = create_visual_stimulus_instance(config, data_io)
+    simulate_retina_instance = create_simulate_retina_instance(
+        config, data_io, visual_stimulus_instance
+    )
+    return Experiment(
+        config, data_io, visual_stimulus_instance, simulate_retina_instance
+    )
 
 
 ## Exposed
@@ -240,7 +254,7 @@ def load_parameters() -> Configuration:
 
     parameters_folder: Path = git_repo_root_path.joinpath("parameters/")
     yaml_files = list(parameters_folder.glob("*.yaml"))
-    validate_params: callable | None = _get_validation_params_method(parameters_folder)
+    validate_params: Callable | None = _get_validation_params_method(parameters_folder)
 
     config: Configuration = load_yaml(yaml_files)
 
@@ -271,6 +285,6 @@ class ProjectData:
         if cls._instance is None:
             cls._instance = super().__new__(cls)
             cls._instance.construct_retina = {}
-            cls._instance.simulate_retina = {}
+            cls._instance.simulate_retina_instance = {}
             cls._instance.fit = {}
         return cls._instance
