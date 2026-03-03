@@ -1,6 +1,5 @@
 # Built-in
 import math
-import warnings
 from abc import ABC, abstractmethod
 from copy import deepcopy
 from typing import TYPE_CHECKING, Any, Callable
