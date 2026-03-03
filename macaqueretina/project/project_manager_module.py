@@ -193,19 +193,12 @@ def construct_retina_instance(
     )
 
 
-def create_viz_response_instance(
-    config: Configuration,
-    data_io: DataIO | None = None,
-    project_data: ProjectData | None = None,
-) -> VizResponse:
+def create_viz_response_instance(config: Configuration) -> VizResponse:
     from macaqueretina.retina.simulate_retina_module import VisualSignal
     from macaqueretina.viz.viz_module import VizResponse
 
-    if data_io is None:
-        data_io = create_data_io(config)
-
-    if project_data is None:
-        project_data = ProjectData()
+    data_io = create_data_io(config)
+    project_data = ProjectData()
 
     return VizResponse(
         config,
@@ -213,13 +206,6 @@ def create_viz_response_instance(
         project_data,
         VisualSignal,
     )
-
-
-def data_sampler(filename, min_X, max_X, min_Y, max_Y, logX=False, logY=False):
-    """DataSampler alias."""
-    from macaqueretina.project.project_utilities_module import DataSampler
-
-    return DataSampler(filename, min_X, max_X, min_Y, max_Y, logX, logY)
 
 
 def create_stimulus(config, data_io=None, get_xy_from_npz=None):
@@ -272,6 +258,15 @@ def create_experiment(config, data_io=None, stimulate=None, simulate_retina=None
 
 
 ## Exposed
+# These methods become exposed at repo root __init__.py
+# Some of these are lazy aliases to avoid importing everything at the first import macaqueretina.
+
+
+def data_sampler(filename, min_X, max_X, min_Y, max_Y, logX=False, logY=False):
+    """DataSampler alias."""
+    from macaqueretina.project.project_utilities_module import DataSampler
+
+    return DataSampler(filename, min_X, max_X, min_Y, max_Y, logX, logY)
 
 
 def load_parameters() -> Configuration:
