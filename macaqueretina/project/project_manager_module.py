@@ -124,8 +124,9 @@ def create_viz_instance(
     if project_data is None:
         project_data = ProjectData()
 
-    analysis = create_analysis_instance(config, data_io, retina_math)
     retina_math = create_retina_math_instance()
+
+    analysis = create_analysis_instance(config, data_io, retina_math)
 
     return Viz(
         config,
@@ -143,6 +144,8 @@ def create_viz_instance(
 
 
 def create_retina_vae_instance(config: Configuration) -> RetinaVAE:
+    from macaqueretina.retina.vae_module import RetinaVAE
+
     return RetinaVAE(config)
 
 
@@ -289,6 +292,6 @@ class ProjectData:
         if cls._instance is None:
             cls._instance = super().__new__(cls)
             cls._instance.construct_retina = {}
-            cls._instance.simulate_retina_instance = {}
+            cls._instance.simulate_retina = {}
             cls._instance.fit = {}
         return cls._instance
