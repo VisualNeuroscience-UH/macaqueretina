@@ -11,7 +11,7 @@ from macaqueretina.stimuli.visual_stimulus_module import VideoBaseClass
 
 if TYPE_CHECKING:
     from macaqueretina.data_io.config_io import Configuration
-    from macaqueretina.data_io.data_io import DataIO
+    from macaqueretina.data_io.data_io_module import DataIO
     from macaqueretina.retina.simulate_retina_module import SimulateRetina
     from macaqueretina.stimuli.visual_stimulus_module import VisualStimulus
 
@@ -215,11 +215,13 @@ class Experiment(VideoBaseClass):
                 values_ = _count_log((max_value / 1e2), max_value, n_steps)
                 values = np.zeros(n_steps)
                 values[1:] = _count_log(values_[0], max_value, n_steps - 1)
-                print("""
+                print(
+                    """
                 NOTE: logarithmic experiment_parameters initial value is 0,
                 which is passed as such, the value next to min becomes max / 100,
                 and np.logspace(max / 100, max, steps - 1) thereafter.
-                """)
+                """
+                )
             elif min_value > 0:
                 values = _count_log(min_value, max_value, n_steps)
         else:
