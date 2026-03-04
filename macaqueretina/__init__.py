@@ -7,12 +7,13 @@ clean separation of concerns and makes it easier to maintain and extend the code
 """
 
 # Local
-from . import analysis, viz
+from . import analysis
 from .data_io import data_io
 from .project import data_sampler, project_utilities
 from .project.project_manager_module import load_parameters as _load_parameters
 from .retina import construct_retina, retina_math, simulate_retina
 from .stimuli import experiment, visual_stimulus
+from .viz import viz, viz_response
 
 config = None
 
@@ -35,8 +36,9 @@ __all__ = [
     "retina_math",
     "simulate_retina",
     "visual_stimulus",
-    "analysis",
     "viz",
+    "viz_response",
+    "analysis",
 ]
 
 

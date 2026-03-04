@@ -1,5 +1,4 @@
 from macaqueretina.project.project_manager_module import (
-    create_data_io_instance,
     create_viz_instance,
     create_viz_response_instance,
 )
@@ -7,60 +6,87 @@ from macaqueretina.project.project_manager_module import (
 _cached_viz_instance = None
 
 
-def __getattr__(name):
-    global _cached_viz_instance
+class _VizWrapper:
+    """Wrapper class that routes attribute access to the Viz instance."""
 
-    from macaqueretina import config as current_config
+    def __getattr__(self, name):
+        global _cached_viz_instance
+        from macaqueretina import config as current_config
 
-    if current_config is None:
-        raise AttributeError(
-            f"Cannot access attribute '{name}' without configuration. Run mr.load_parameters() first."
-        )
+        if current_config is None:
+            raise AttributeError(
+                "Configuration not found. Run mr.load_parameters() before accessing mr.viz."
+            )
 
-    current_hash = current_config.hash()
+        current_hash = current_config.hash()
+        if _cached_viz_instance is None or _cached_viz_instance[0] != current_hash:
+            viz_instance = create_viz_instance(current_config)
+            _cached_viz_instance = (current_hash, viz_instance)
 
-    if _cached_viz_instance is None or _cached_viz_instance[0] != current_hash:
-        viz_instance = create_viz_instance(current_config)
-        _cached_viz_instance = (current_hash, viz_instance)
+        return getattr(_cached_viz_instance[1], name)
 
-    return getattr(_cached_viz_instance[1], name)
+    def __dir__(self):
+        global _cached_viz_instance
+        from macaqueretina import config as current_config
 
+        if current_config is None:
+            raise AttributeError(
+                "Configuration not found. Run mr.load_parameters() before accessing mr.viz."
+            )
 
-def __dir__():
-    global _cached_viz_instance
+        current_hash = current_config.hash()
+        if _cached_viz_instance is None or _cached_viz_instance[0] != current_hash:
+            viz_instance = create_viz_instance(current_config)
+            _cached_viz_instance = (current_hash, viz_instance)
 
-    from macaqueretina import config as current_config
-
-    if current_config is None:
-        print(
-            "Configuration not found. Run mr.load_parameters() before accessing mr.viz."
-        )
-        return []
-
-    current_hash = current_config.hash()
-
-    if _cached_viz_instance is None or _cached_viz_instance[0] != current_hash:
-        viz_instance = create_viz_instance(current_config)
-        _cached_viz_instance = (current_hash, viz_instance)
-
-    return dir(_cached_viz_instance[1])
+        return dir(_cached_viz_instance[1])
 
 
-def viz_spikes_with_stimulus(
-    video_file_name, response_file_name, window_length, rate_scale
-):
-    from macaqueretina import config as current_config
+viz = _VizWrapper()
 
-    if current_config is None:
-        print(
-            "Configuration not found. Run mr.load_parameters() before accessing mr.viz_spikes_with_stimulus."
-        )
-        return []
+_cached_viz_response_instance = None
 
-    data_io = create_data_io_instance(current_config)
 
-    viz_response = create_viz_response_instance(current_config, data_io)
+class _VizResponseWrapper:
+    """Wrapper class that routes attribute access to the VizResponse instance."""
 
-    return viz_response.client(
-        video_file_name, response_file_name, window_length, rate_scale
-    )
+    def __getattr__(self, name):
+        global _cached_viz_response_instance
+        from macaqueretina import config as current_config
+
+        if current_config is None:
+            raise AttributeError(
+                "Configuration not found. Run mr.load_parameters() before accessing mr.viz_response."
+            )
+
+        current_hash = current_config.hash()
+        if (
+            _cached_viz_response_instance is None
+            or _cached_viz_response_instance[0] != current_hash
+        ):
+            viz_response_instance = create_viz_response_instance(current_config)
+            _cached_viz_response_instance = (current_hash, viz_response_instance)
+
+        return getattr(_cached_viz_response_instance[1], name)
+
+    def __dir__(self):
+        global _cached_viz_response_instance
+        from macaqueretina import config as current_config
+
+        if current_config is None:
+            raise AttributeError(
+                "Configuration not found. Run mr.load_parameters() before accessing mr.viz_response."
+            )
+
+        current_hash = current_config.hash()
+        if (
+            _cached_viz_response_instance is None
+            or _cached_viz_response_instance[0] != current_hash
+        ):
+            viz_response_instance = create_viz_response_instance(current_config)
+            _cached_viz_response_instance = (current_hash, viz_response_instance)
+
+        return dir(_cached_viz_response_instance[1])
+
+
+viz_response = _VizResponseWrapper()
