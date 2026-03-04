@@ -4,66 +4,100 @@ from macaqueretina.project.project_manager_module import (
     create_simulate_retina_instance,
 )
 
-_cached_construct_retina = None
+_cached_construct_retina_instance = None
 
 
-def build_retina(return_objects_do_not_save=False):
-    """Wrapper for ConstructRetina.build_retina_client()."""
-    global _cached_construct_retina
-    from macaqueretina import config as current_config
+class _ConstructRetinaWrapper:
+    """Wrapper class that routes attribute access to the ConstructRetina instance."""
 
-    if current_config is None:
-        print(
-            "Configuration not found. Run mr.load_parameters() before accessing mr.build_retina()."
-        )
-        return []
+    def __getattr__(self, name):
+        global _cached_construct_retina_instance
+        from macaqueretina import config as current_config
 
-    current_hash = current_config.hash()
-    if _cached_construct_retina is None or _cached_construct_retina[0] != current_hash:
-        retina_instance = create_construct_retina_instance(current_config)
-        _cached_construct_retina = (current_hash, retina_instance)
-    return _cached_construct_retina[1].build_retina_client(return_objects_do_not_save)
+        if current_config is None:
+            raise AttributeError(
+                "Configuration not found. Run mr.load_parameters() before accessing mr.construct_retina."
+            )
+
+        current_hash = current_config.hash()
+        if (
+            _cached_construct_retina_instance is None
+            or _cached_construct_retina_instance[0] != current_hash
+        ):
+            retina_instance = create_construct_retina_instance(current_config)
+            _cached_construct_retina_instance = (current_hash, retina_instance)
+
+        return getattr(_cached_construct_retina_instance[1], name)
+
+    def __dir__(self):
+        global _cached_construct_retina_instance
+        from macaqueretina import config as current_config
+
+        if current_config is None:
+            raise AttributeError(
+                "Configuration not found. Run mr.load_parameters() before accessing mr.construct_retina."
+            )
+
+        current_hash = current_config.hash()
+        if (
+            _cached_construct_retina_instance is None
+            or _cached_construct_retina_instance[0] != current_hash
+        ):
+            retina_instance = create_construct_retina_instance(current_config)
+            _cached_construct_retina_instance = (current_hash, retina_instance)
+
+        return dir(_cached_construct_retina_instance[1])
 
 
-def save_retina(ret, gc):
-    """Wrapper for ConstructRetina.save_retina()."""
-    global _cached_construct_retina
-    from macaqueretina import config as current_config
-
-    if current_config is None:
-        print(
-            "Configuration not found. Run mr.load_parameters() before accessing mr.save_retina()."
-        )
-        return []
-
-    current_hash = current_config.hash()
-    if _cached_construct_retina is None or _cached_construct_retina[0] != current_hash:
-        retina_instance = create_construct_retina_instance(current_config)
-        _cached_construct_retina = (current_hash, retina_instance)
-    return _cached_construct_retina[1].save_retina(ret, gc)
+construct_retina = _ConstructRetinaWrapper()
 
 
-_cached_simulate_retina = None
+_cached_simulate_retina_instance = None
 
 
-def simulate_retina(stimulus=None, filename=None, impulse=None, unity=None):
-    """Wrapper for SimulateRetina.client()."""
-    # TODO: change "client" name. Not informative and not a client
-    global _cached_simulate_retina
-    from macaqueretina import config as current_config
+class _SimulateRetinaWrapper:
+    """Wrapper class that routes attribute access to the ConstructRetina instance."""
 
-    if current_config is None:
-        print(
-            "Configuration not found. Run mr.load_parameters() before accessing mr.simulate_retina()."
-        )
-        return []
+    def __getattr__(self, name):
+        global _cached_simulate_retina_instance
+        from macaqueretina import config as current_config
 
-    current_hash = current_config.hash()
-    if _cached_simulate_retina is None or _cached_simulate_retina[0] != current_hash:
-        retina_instance = create_simulate_retina_instance(current_config)
-        _cached_simulate_retina = (current_hash, retina_instance)
-    return _cached_simulate_retina[1].client(stimulus, filename, impulse, unity)
+        if current_config is None:
+            raise AttributeError(
+                "Configuration not found. Run mr.load_parameters() before accessing mr.simulate_retina."
+            )
 
+        current_hash = current_config.hash()
+        if (
+            _cached_simulate_retina_instance is None
+            or _cached_simulate_retina_instance[0] != current_hash
+        ):
+            retina_instance = create_simulate_retina_instance(current_config)
+            _cached_simulate_retina_instance = (current_hash, retina_instance)
+
+        return getattr(_cached_simulate_retina_instance[1], name)
+
+    def __dir__(self):
+        global _cached_simulate_retina_instance
+        from macaqueretina import config as current_config
+
+        if current_config is None:
+            raise AttributeError(
+                "Configuration not found. Run mr.load_parameters() before accessing mr.simulate_retina."
+            )
+
+        current_hash = current_config.hash()
+        if (
+            _cached_simulate_retina_instance is None
+            or _cached_simulate_retina_instance[0] != current_hash
+        ):
+            retina_instance = create_simulate_retina_instance(current_config)
+            _cached_simulate_retina_instance = (current_hash, retina_instance)
+
+        return dir(_cached_simulate_retina_instance[1])
+
+
+simulate_retina = _SimulateRetinaWrapper()
 
 _cached_retina_math_instance = None
 

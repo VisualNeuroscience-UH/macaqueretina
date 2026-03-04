@@ -11,7 +11,7 @@ from . import analysis, viz
 from .data_io import data_io
 from .project import data_sampler, project_utilities
 from .project.project_manager_module import load_parameters as _load_parameters
-from .retina import build_retina, retina_math, save_retina, simulate_retina
+from .retina import construct_retina, retina_math, simulate_retina
 from .stimuli import make_stimulus, run_experiment
 
 config = None
@@ -25,11 +25,13 @@ def load_parameters():
 
 
 __all__ = [
+    "construct_retina",
     "data_io",
     "data_sampler",
-    "project_utilities",
     "load_parameters",
+    "project_utilities",
     "retina_math",
+    "simulate_retina",
     "analysis",
     "viz",
     "config",
@@ -37,7 +39,6 @@ __all__ = [
     "run_experiment",
     "build_retina",
     "save_retina",
-    "simulate_retina",
     "countlines",
 ]
 
