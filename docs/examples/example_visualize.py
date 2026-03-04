@@ -5,9 +5,9 @@ import matplotlib.pyplot as plt
 import macaqueretina as mr
 
 mr.load_parameters()
-mr.build_retina()
-mr.make_stimulus()
-mr.simulate_retina()
+mr.construct_retina.build_retina_client()
+mr.visual_stimulus.make_stimulus_video()
+mr.simulate_retina.client()
 
 ###############################################
 ##   Show multiple units for single trial   ###
@@ -31,8 +31,8 @@ mr.viz.show_stimulus_with_gcs(
 # mr.viz.show_spatiotemporal_filter(unit_index=1, savefigname=None)
 # mr.viz.show_temporal_kernel_frequency_response(unit_index=2, savefigname=None)
 
-# # for subunit temporal model only ##
-# mr.viz.show_cone_responses(time_range=[0.0, 1.1], savefigname=None)
+# # # for subunit temporal model only ##
+# # mr.viz.show_cone_responses(time_range=[0.0, 1.1], savefigname=None)
 
 
 # ################################################################################
@@ -44,11 +44,9 @@ mr.viz.show_stimulus_with_gcs(
 
 # window_length = 0.1  # seconds
 # rate_scale = 20  # Hz, Colorscale max amplitude
-# mr.viz.viz_spikes_with_stimulus(
-#     video_file_name, response_file_name, window_length, rate_scale
-# )
+# mr.viz_response.client(video_file_name, response_file_name, window_length, rate_scale)
 
 
-###############################################
+# ##############################################
 
-plt.show()
+# plt.show()
