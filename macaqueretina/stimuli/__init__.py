@@ -70,7 +70,7 @@ class _VisualStimulusWrapper:
             _cached_visual_stimulus_instance is None
             or _cached_visual_stimulus_instance[0] != current_hash
         ):
-            visual_stimulus_instance = create_visual_stimulus_instance, (current_config)
+            visual_stimulus_instance = create_visual_stimulus_instance(current_config)
             _cached_visual_stimulus_instance = (current_hash, visual_stimulus_instance)
 
         return getattr(_cached_visual_stimulus_instance[1], name)
@@ -89,7 +89,7 @@ class _VisualStimulusWrapper:
             _cached_visual_stimulus_instance is None
             or _cached_visual_stimulus_instance[0] != current_hash
         ):
-            visual_stimulus_instance = create_visual_stimulus_instance, (current_config)
+            visual_stimulus_instance = create_visual_stimulus_instance(current_config)
             _cached_visual_stimulus_instance = (current_hash, visual_stimulus_instance)
 
         return dir(_cached_visual_stimulus_instance[1])
