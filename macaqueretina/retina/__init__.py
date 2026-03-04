@@ -24,8 +24,11 @@ class _ConstructRetinaWrapper:
             _cached_construct_retina_instance is None
             or _cached_construct_retina_instance[0] != current_hash
         ):
-            retina_instance = create_construct_retina_instance(current_config)
-            _cached_construct_retina_instance = (current_hash, retina_instance)
+            construct_retina_instance = create_construct_retina_instance(current_config)
+            _cached_construct_retina_instance = (
+                current_hash,
+                construct_retina_instance,
+            )
 
         return getattr(_cached_construct_retina_instance[1], name)
 
@@ -43,8 +46,11 @@ class _ConstructRetinaWrapper:
             _cached_construct_retina_instance is None
             or _cached_construct_retina_instance[0] != current_hash
         ):
-            retina_instance = create_construct_retina_instance(current_config)
-            _cached_construct_retina_instance = (current_hash, retina_instance)
+            construct_retina_instance = create_construct_retina_instance(current_config)
+            _cached_construct_retina_instance = (
+                current_hash,
+                construct_retina_instance,
+            )
 
         return dir(_cached_construct_retina_instance[1])
 
@@ -72,8 +78,8 @@ class _SimulateRetinaWrapper:
             _cached_simulate_retina_instance is None
             or _cached_simulate_retina_instance[0] != current_hash
         ):
-            retina_instance = create_simulate_retina_instance(current_config)
-            _cached_simulate_retina_instance = (current_hash, retina_instance)
+            simulate_retina_instance = create_simulate_retina_instance(current_config)
+            _cached_simulate_retina_instance = (current_hash, simulate_retina_instance)
 
         return getattr(_cached_simulate_retina_instance[1], name)
 
@@ -91,8 +97,8 @@ class _SimulateRetinaWrapper:
             _cached_simulate_retina_instance is None
             or _cached_simulate_retina_instance[0] != current_hash
         ):
-            retina_instance = create_simulate_retina_instance(current_config)
-            _cached_simulate_retina_instance = (current_hash, retina_instance)
+            simulate_retina_instance = create_simulate_retina_instance(current_config)
+            _cached_simulate_retina_instance = (current_hash, simulate_retina_instance)
 
         return dir(_cached_simulate_retina_instance[1])
 
