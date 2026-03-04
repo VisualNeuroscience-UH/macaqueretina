@@ -1,5 +1,6 @@
 from macaqueretina.project.project_manager_module import (
-    create_viz,
+    create_data_io_instance,
+    create_viz_instance,
     create_viz_response_instance,
 )
 
@@ -19,7 +20,7 @@ def __getattr__(name):
     current_hash = current_config.hash()
 
     if _cached_viz_instance is None or _cached_viz_instance[0] != current_hash:
-        viz_instance = create_viz(current_config)
+        viz_instance = create_viz_instance(current_config)
         _cached_viz_instance = (current_hash, viz_instance)
 
     return getattr(_cached_viz_instance[1], name)
@@ -39,7 +40,7 @@ def __dir__():
     current_hash = current_config.hash()
 
     if _cached_viz_instance is None or _cached_viz_instance[0] != current_hash:
-        viz_instance = create_viz(current_config)
+        viz_instance = create_viz_instance(current_config)
         _cached_viz_instance = (current_hash, viz_instance)
 
     return dir(_cached_viz_instance[1])
@@ -56,7 +57,9 @@ def viz_spikes_with_stimulus(
         )
         return []
 
-    viz_response = create_viz_response_instance(current_config)
+    data_io = create_data_io_instance(current_config)
+
+    viz_response = create_viz_response_instance(current_config, data_io)
 
     return viz_response.client(
         video_file_name, response_file_name, window_length, rate_scale

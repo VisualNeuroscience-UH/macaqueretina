@@ -8,9 +8,8 @@ clean separation of concerns and makes it easier to maintain and extend the code
 
 # These are visible when you call mr.something in scripts
 from . import analysis, viz
-from .data_io import load_data
-from .project import countlines
-from .project.project_manager_module import data_sampler
+from .data_io import data_io
+from .project import data_sampler, project_utilities
 from .project.project_manager_module import load_parameters as _load_parameters
 from .retina import build_retina, retina_math, save_retina, simulate_retina
 from .stimuli import make_stimulus, run_experiment
@@ -30,11 +29,12 @@ __all__ = [
     "analysis",
     "build_retina",
     "config",
-    "countlines",
+    "data_io",
     "data_sampler",
-    "load_data",
     "load_parameters",
     "make_stimulus",
+    "project_utilities",
+    "retina_math",
     "retina_math",
     "run_experiment",
     "save_retina",

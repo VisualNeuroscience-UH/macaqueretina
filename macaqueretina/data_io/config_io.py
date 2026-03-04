@@ -30,7 +30,8 @@ import numpy as np
 from brian2.units.fundamentalunits import Quantity
 from yaml import YAMLError, safe_load
 
-_SENTINEL = object()  # TODO: what is this?
+# Sentinel pattern. Ensures that the pop() method below can return None if so requested by the user.
+_SENTINEL = object()
 
 
 class _YamlLoader:
@@ -336,7 +337,7 @@ class Configuration(MutableMapping):
         return (type(self), (self.to_dict(),))
 
     @classmethod
-    def from_yaml(cls, *paths: Path | str) -> "Configuration":
+    def from_yaml(cls, *paths: Path | str) -> Configuration:
         """Get parameters from the YAML files. Delegates to _YamlLoader."""
         loader = _YamlLoader(paths)
         raw_config = loader.load_config()

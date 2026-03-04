@@ -25,8 +25,8 @@ if TYPE_CHECKING:
 
     from macaqueretina.data_io.config_io import Configuration
     from macaqueretina.data_io.data_io_module import DataIO
-    from macaqueretina.fit.fit_module import Fit
-    from macaqueretina.retina.retina_vae_module import RetinaVAE
+    from macaqueretina.retina.fit_module import Fit
+    from macaqueretina.retina.vae_module import RetinaVAE
     from macaqueretina.viz.viz_module import Viz
 
 
@@ -5295,15 +5295,17 @@ class ConstructRetina(PrintableMixin):
             if key in main_retina_parameters_list
         }
 
-        main_retina_parameters["signal_gain"] = (
-            self.config.gain_calibration.signal_gain_table[
-                self.config.retina_parameters.gc_type
-            ][
-                self.config.retina_parameters.response_type
-            ][
-                self.config.retina_parameters.spatial_model_type
-            ][self.config.retina_parameters.temporal_model_type]
-        )
+        main_retina_parameters[
+            "signal_gain"
+        ] = self.config.gain_calibration.signal_gain_table[
+            self.config.retina_parameters.gc_type
+        ][
+            self.config.retina_parameters.response_type
+        ][
+            self.config.retina_parameters.spatial_model_type
+        ][
+            self.config.retina_parameters.temporal_model_type
+        ]
 
         yaml_filename = self.config.retina_parameters["retina_metadata_file"]
         yaml_filename_full = self.config.output_folder.joinpath(yaml_filename)

@@ -1,7 +1,7 @@
 from macaqueretina.project.project_manager_module import (
-    construct_retina_instance,
+    create_construct_retina_instance,
     create_retina_math_instance,
-    simulate_retina_instance,
+    create_simulate_retina_instance,
 )
 
 _cached_construct_retina = None
@@ -20,7 +20,7 @@ def build_retina(return_objects_do_not_save=False):
 
     current_hash = current_config.hash()
     if _cached_construct_retina is None or _cached_construct_retina[0] != current_hash:
-        retina_instance = construct_retina_instance(current_config)
+        retina_instance = create_construct_retina_instance(current_config)
         _cached_construct_retina = (current_hash, retina_instance)
     return _cached_construct_retina[1].build_retina_client(return_objects_do_not_save)
 
@@ -38,7 +38,7 @@ def save_retina(ret, gc):
 
     current_hash = current_config.hash()
     if _cached_construct_retina is None or _cached_construct_retina[0] != current_hash:
-        retina_instance = construct_retina_instance(current_config)
+        retina_instance = create_construct_retina_instance(current_config)
         _cached_construct_retina = (current_hash, retina_instance)
     return _cached_construct_retina[1].save_retina(ret, gc)
 
@@ -60,7 +60,7 @@ def simulate_retina(stimulus=None, filename=None, impulse=None, unity=None):
 
     current_hash = current_config.hash()
     if _cached_simulate_retina is None or _cached_simulate_retina[0] != current_hash:
-        retina_instance = simulate_retina_instance(current_config)
+        retina_instance = create_simulate_retina_instance(current_config)
         _cached_simulate_retina = (current_hash, retina_instance)
     return _cached_simulate_retina[1].client(stimulus, filename, impulse, unity)
 

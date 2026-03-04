@@ -266,9 +266,6 @@ def test_nested_access(deep_nested_dict):
     )
 
 
-# TODO: test from_yaml class method
-
-
 # Test __contains__
 def test_contains(valid_source_dict):
     config = Configuration(valid_source_dict)
@@ -332,7 +329,7 @@ def test_mutablemapping_iter_len(valid_source_dict):
     assert keys_from_iter == expected_keys
 
 
-# Test get(), keys(), items(), values() # TODO: add tests for items()
+# Test get(), keys(), items(), values()
 def test_dict_methods(valid_source_dict):
     config = Configuration(valid_source_dict)
 
@@ -520,9 +517,6 @@ def test_copying(valid_source_dict):
     assert config.analysis_parameters is not deep_copy.analysis_parameters
 
 
-# TODO: test serialization
-
-
 # Test hash()
 def test_hashing(valid_source_dict):
     config = Configuration(valid_source_dict)
@@ -551,8 +545,31 @@ def test_hashing(valid_source_dict):
         hash(config)
 
 
+@pytest.fixture
+def another_valid_yaml_filepath():
+    """
+    Fixture to create a second valid YAML file.
+    The file will be created in a temporary directory and deleted after the test.
+    """
+    with tempfile.NamedTemporaryFile(suffix=".yaml", delete=False, mode="w") as f:
+        global yaml_content
+        yaml_content = {
+            "extra_parameter": "extra",
+        }
+
+        yaml.dump(yaml_content, f, default_flow_style=False, sort_keys=False)
+
+        file_path = f.name
+
+    # Yield the file path after closing the file
+    yield file_path
+
+    # Cleanup the file after the test
+    os.unlink(file_path)
+
+
 # Test load_yaml
-def test_load_yaml(valid_yaml_filepath):
+def test_load_yaml(valid_yaml_filepath, another_valid_yaml_filepath):
     config = load_yaml(valid_yaml_filepath)
 
     assert isinstance(config, Configuration)
@@ -562,4 +579,8 @@ def test_load_yaml(valid_yaml_filepath):
     assert isinstance(config_from_path, Configuration)
     assert "root_path" in config_from_path
 
-    # TODO: test when passing multiple paths
+    config_from_two_paths = load_yaml(
+        [Path(valid_yaml_filepath), Path(another_valid_yaml_filepath)]
+    )
+    assert isinstance(config_from_two_paths, Configuration)
+    assert "root_path" in config_from_two_paths
