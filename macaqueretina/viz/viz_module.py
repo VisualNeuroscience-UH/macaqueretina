@@ -29,15 +29,15 @@ if TYPE_CHECKING:
     from macaqueretina.data_io.config_io import Configuration
     from macaqueretina.data_io.data_io_module import DataIO
     from macaqueretina.project.project_manager_module import ProjectData
-    from macaqueretina.retina.construct_retina_module import GanglionCell
-    from macaqueretina.retina.simulate_retina_module import VisualSignal
+    from macaqueretina.retina.retina_constructor_module import GanglionCell
+    from macaqueretina.retina.retina_simulator_module import VisualSignal
 
 
 class Viz:
     """
     Methods to viz_module the retina
 
-    Some methods import object instance as call parameter (ConstructRetina, SimulateRetina, etc).
+    Some methods import object instance as call parameter (RetinaConstructor, RetinaSimulator, etc).
     """
 
     cmap = "gist_earth"  # viridis or cividis would be best for color-blind
@@ -414,7 +414,7 @@ class Viz:
         if savefigname:
             self._figsave(figurename=title + "_" + savefigname)
 
-    # ConstructRetina visualization
+    # RetinaConstructor visualization
     def show_gc_positions(self, gc: GanglionCell) -> None:
         """
         Show retina unit positions and receptive fields
@@ -610,7 +610,7 @@ class Viz:
     ):
         """
         Show histograms of receptive field parameters, and correlation between receptive field parameters.
-        ConstructRetina call.
+        RetinaConstructor call.
 
         Parameters
         ----------
@@ -647,7 +647,7 @@ class Viz:
                     multivariate_statistics = self.project_data.fit[
                         "spatial_data_and_model"
                     ]["multivariate_statistics"]
-                    covariances_of_interest = self.project_data.construct_retina[
+                    covariances_of_interest = self.project_data.retina_constructor[
                         "spatial_covariances_of_interest"
                     ]
 
@@ -665,7 +665,7 @@ class Viz:
                     multivariate_statistics = self.project_data.fit[
                         "temporal_data_and_model"
                     ]["multivariate_statistics"]
-                    covariances_of_interest = self.project_data.construct_retina[
+                    covariances_of_interest = self.project_data.retina_constructor[
                         "temporal_covariances_of_interest"
                     ]
 
@@ -912,7 +912,7 @@ class Viz:
         """
         Plot dendritic diameter as a function of retinal eccentricity with linear, quadratic, or cubic fitting.
         """
-        dd_vs_ecc = self.project_data.construct_retina["dd_vs_ecc"]
+        dd_vs_ecc = self.project_data.retina_constructor["dd_vs_ecc"]
         data_all_x = dd_vs_ecc["data_all_x"]
         data_all_y = dd_vs_ecc["data_all_y"]
         dd_DoG_x = dd_vs_ecc["dd_DoG_x"]
@@ -1152,7 +1152,7 @@ class Viz:
                 savefigname=savefigname,
             )
         elif self.config.retina_parameters["spatial_model_type"] == "VAE":
-            gen_rfs = self.project_data.construct_retina["gen_rfs"]
+            gen_rfs = self.project_data.retina_constructor["gen_rfs"]
             spat_filt = self.project_data.fit["gen_spat_filt"]
             self.show_spatial_filter_response(
                 spat_filt,
@@ -1170,7 +1170,7 @@ class Viz:
         # Third-party
         from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 
-        gen_latent_space = self.project_data.construct_retina["gen_latent_space"]
+        gen_latent_space = self.project_data.retina_constructor["gen_latent_space"]
 
         latent_samples = gen_latent_space["samples"]
         latent_stats = gen_latent_space["data"]
@@ -1291,8 +1291,8 @@ class Viz:
                 "spatial_data_array"
             ]
 
-        img_pre = self.project_data.construct_retina["gen_spat_img"]["img_raw"]
-        img_post = self.project_data.construct_retina["gen_spat_img"]["img_processed"]
+        img_pre = self.project_data.retina_constructor["gen_spat_img"]["img_raw"]
+        img_post = self.project_data.retina_constructor["gen_spat_img"]["img_processed"]
 
         plt.subplot(1, 3, 1)
         plt.hist(img_exp.flatten(), bins=100)
@@ -1316,7 +1316,7 @@ class Viz:
         """
         Plot the outputs of the autoencoder.
         """
-        retina_vae = self.project_data.construct_retina["retina_vae"]
+        retina_vae = self.project_data.retina_constructor["retina_vae"]
         assert (
             self.config.retina_parameters["spatial_model_type"] == "VAE"
         ), "Only model type VAE is supported for show_gen_exp_spatial_rf()"
@@ -1369,7 +1369,7 @@ class Viz:
             self._figsave(figurename=savefigname)
 
     def show_latent_tsne_space(self):
-        retina_vae = self.project_data.construct_retina["retina_vae"]
+        retina_vae = self.project_data.retina_constructor["retina_vae"]
         train_df = retina_vae.get_encoded_samples(
             dataset=retina_vae.train_loader.dataset
         )
@@ -1415,8 +1415,8 @@ class Viz:
         **fig_args,
     ):
         if init is True:
-            # ecc_lim_mm = self.construct_retina.ecc_lim_mm
-            # polar_lim_deg = self.construct_retina.polar_lim_deg
+            # ecc_lim_mm = self.retina_constructor.ecc_lim_mm
+            # polar_lim_deg = self.retina_constructor.polar_lim_deg
 
             # Init plotting
             # Convert self.polar_lim_deg to Cartesian coordinates
@@ -2141,7 +2141,9 @@ class Viz:
         show_control_data=False,
         savefigname: str | None = None,
     ):
-        cell_density_dict = self.project_data.construct_retina[f"{unit_type}_n_vs_ecc"]
+        cell_density_dict = self.project_data.retina_constructor[
+            f"{unit_type}_n_vs_ecc"
+        ]
         cell_eccentricity = cell_density_dict["cell_eccentricity"]
         cell_density = cell_density_dict["cell_density"]
         this_function = cell_density_dict["function"]
@@ -2186,7 +2188,7 @@ class Viz:
         )
 
         if show_control_data is True:
-            control_density_dict = self.project_data.construct_retina[
+            control_density_dict = self.project_data.retina_constructor[
                 f"{unit_type}_control_n_vs_ecc"
             ]
             ax.plot(
@@ -2223,7 +2225,7 @@ class Viz:
         if savefigname:
             self._figsave(figurename=savefigname)
 
-    # SimulateRetina visualization
+    # RetinaSimulator visualization
     def show_stimulus_with_gcs(
         self,
         example_gc=5,
@@ -2233,7 +2235,7 @@ class Viz:
         savefigname: str | None = None,
     ):
         """
-        Plots the 1SD ellipses of the RGC mosaic. This method is a SimulateRetina call.
+        Plots the 1SD ellipses of the RGC mosaic. This method is a RetinaSimulator call.
 
         Parameters
         ----------
@@ -2248,7 +2250,7 @@ class Viz:
         show_rf_id : bool, optional
             If True, the index of each ganglion cell will be printed at the center of its ellipse. Default is False..
         """
-        stim_to_show = self.project_data.simulate_retina["stim_to_show"]
+        stim_to_show = self.project_data.retina_simulator["stim_to_show"]
 
         stimulus_video = stim_to_show["stimulus_video"]
         df_stimpix = stim_to_show["df_stimpix"]
@@ -2347,7 +2349,7 @@ class Viz:
             Matplotlib Axes object to plot on. If not provided, uses the current axis.
         """
 
-        stim_to_show = self.project_data.simulate_retina["stim_to_show"]
+        stim_to_show = self.project_data.retina_simulator["stim_to_show"]
         stimulus_video = stim_to_show["stimulus_video"]
         df_stimpix = stim_to_show["df_stimpix"]
         qmin_all, qmax_all, rmin_all, rmax_all = stim_to_show["qr_min_max"]
@@ -2405,7 +2407,7 @@ class Viz:
 
         self._check_for_fixed_model()
 
-        spat_temp_filter_to_show = self.project_data.simulate_retina[
+        spat_temp_filter_to_show = self.project_data.retina_simulator[
             "spat_temp_filter_to_show"
         ]
         temporal_filters = spat_temp_filter_to_show["temporal_filters"]
@@ -2600,7 +2602,7 @@ class Viz:
 
     def show_all_gc_responses(self, sweep_idx=0, savefigname: str | None = None):
         """
-        Visualize ganglion cell (gc) responses based on the data in the SimulateRetina object.
+        Visualize ganglion cell (gc) responses based on the data in the RetinaSimulator object.
 
         Parameters
         ----------
@@ -2611,11 +2613,13 @@ class Viz:
 
         Attributes Accessed
         --------------------
-        project_data.simulate_retina : dict
+        project_data.retina_simulator : dict
             Dictionary attached to ProjectData class instance containing the gc responses
             and other information to show.
         """
-        gc_responses_to_show = self.project_data.simulate_retina["gc_responses_to_show"]
+        gc_responses_to_show = self.project_data.retina_simulator[
+            "gc_responses_to_show"
+        ]
         n_sweeps = gc_responses_to_show["n_sweeps"]
         assert (
             sweep_idx < n_sweeps
@@ -2629,14 +2633,14 @@ class Viz:
         video_dt = gc_responses_to_show["video_dt"]
         # tvec_new = gc_responses_to_show["tvec_new"]
 
-        cone_responses_to_show = self.project_data.simulate_retina[
+        cone_responses_to_show = self.project_data.retina_simulator[
             "cone_responses_to_show"
         ]
         if "cone_signal" in cone_responses_to_show.keys():
             cone_signal = cone_responses_to_show["cone_signal"]
             photodiode_cone_idx = cone_responses_to_show["photodiode_cone_idx"]
 
-        photodiode_to_show = self.project_data.simulate_retina["photodiode_to_show"]
+        photodiode_to_show = self.project_data.retina_simulator["photodiode_to_show"]
         photodiode_response = photodiode_to_show["photodiode_response"]
 
         # Prepare data for manual visualization
@@ -2720,27 +2724,29 @@ class Viz:
 
     def show_all_generator_potentials(self, savefigname: str | None = None):
         """
-        Visualize ganglion cell (gc) generator potentials based on the data in the SimulateRetina object.
+        Visualize ganglion cell (gc) generator potentials based on the data in the RetinaSimulator object.
 
         Parameters
         ----------
         savefigname : str, optional
             The name of the file where the figure will be saved. If None, the figure is not saved.
         """
-        gc_responses_to_show = self.project_data.simulate_retina["gc_responses_to_show"]
+        gc_responses_to_show = self.project_data.retina_simulator[
+            "gc_responses_to_show"
+        ]
 
         duration = gc_responses_to_show["duration"]
         # requested firing_rates before spike generation.
         generator_potentials = gc_responses_to_show["generator_potentials"]
         video_dt = gc_responses_to_show["video_dt"]
 
-        cone_responses_to_show = self.project_data.simulate_retina[
+        cone_responses_to_show = self.project_data.retina_simulator[
             "cone_responses_to_show"
         ]
         if "cone_signal" in cone_responses_to_show.keys():
             cone_signal = cone_responses_to_show["cone_signal"]
             photodiode_cone_idx = cone_responses_to_show["photodiode_cone_idx"]
-        photodiode_to_show = self.project_data.simulate_retina["photodiode_to_show"]
+        photodiode_to_show = self.project_data.retina_simulator["photodiode_to_show"]
         photodiode_response = photodiode_to_show["photodiode_response"]
 
         # Prepare data for visualization
@@ -2801,7 +2807,9 @@ class Viz:
         histogram.
         """
 
-        gc_responses_to_show = self.project_data.simulate_retina["gc_responses_to_show"]
+        gc_responses_to_show = self.project_data.retina_simulator[
+            "gc_responses_to_show"
+        ]
         generator_potentials = gc_responses_to_show["generator_potentials"]
         video_dt = gc_responses_to_show["video_dt"]
         firing_rates = gc_responses_to_show["firing_rates"]
@@ -2814,7 +2822,7 @@ class Viz:
         firing_rate_mean = np.nanmean(firing_rates, axis=0)
         baseline_start_tp = int(baseline_start_seconds * fps)
 
-        photodiode_to_show = self.project_data.simulate_retina["photodiode_to_show"]
+        photodiode_to_show = self.project_data.retina_simulator["photodiode_to_show"]
         photodiode_response = photodiode_to_show["photodiode_response"]
 
         temporal_model_type = self.config.retina_parameters["temporal_model_type"]
@@ -2881,10 +2889,10 @@ class Viz:
         self, time_range: tuple | None = None, savefigname: str | None = None
     ):
         # Load data
-        simulate_retina = self.project_data.simulate_retina
-        gc_responses = simulate_retina["gc_responses_to_show"]
-        photodiode = simulate_retina["photodiode_to_show"]
-        cone_responses = simulate_retina["cone_responses_to_show"]
+        retina_simulator = self.project_data.retina_simulator
+        gc_responses = retina_simulator["gc_responses_to_show"]
+        photodiode = retina_simulator["photodiode_to_show"]
+        cone_responses = retina_simulator["cone_responses_to_show"]
 
         if "cone_signal" not in cone_responses.keys():
             raise ValueError(
@@ -2977,11 +2985,13 @@ class Viz:
 
         Attributes Accessed
         --------------------
-        project_data.simulate_retina : dict
+        project_data.retina_simulator : dict
             Dictionary attached to ProjectData class instance containing the gc responses
             and other information to analyze.
         """
-        gc_responses_to_show = self.project_data.simulate_retina["gc_responses_to_show"]
+        gc_responses_to_show = self.project_data.retina_simulator[
+            "gc_responses_to_show"
+        ]
         gc_synaptic_noise = gc_responses_to_show["gc_synaptic_noise_raw"]
         n_sweeps = gc_responses_to_show["n_sweeps"]
         n_gcs = gc_responses_to_show["n_units"]
@@ -3021,11 +3031,11 @@ class Viz:
 
         Attributes Accessed
         --------------------
-        project_data.simulate_retina : dict
+        project_data.retina_simulator : dict
             Dictionary attached to ProjectData class instance containing the gc responses
             and other information to analyze.
         """
-        gc_responses = self.project_data.simulate_retina["gc_responses_to_show"]
+        gc_responses = self.project_data.retina_simulator["gc_responses_to_show"]
         spiketrains = gc_responses["all_spiketrains"][sweep_idx]
 
         # Optional time limiting
@@ -3071,7 +3081,7 @@ class Viz:
         Display the spatiotemporal filter for a given unit in the retina.
 
         This method retrieves the specified unit's spatial and temporal filters
-        from the 'simulate_retina' attribute of the 'project_data' object.
+        from the 'retina_simulator' attribute of the 'project_data' object.
 
         Parameters
         ----------
@@ -3083,7 +3093,7 @@ class Viz:
 
         self._check_for_fixed_model()
 
-        spat_temp_filter_to_show = self.project_data.simulate_retina[
+        spat_temp_filter_to_show = self.project_data.retina_simulator[
             "spat_temp_filter_to_show"
         ]
         spatial_filters = spat_temp_filter_to_show["spatial_filters"]
@@ -3150,7 +3160,7 @@ class Viz:
         """
         self._check_for_fixed_model()
 
-        spat_temp_filter_to_show = self.project_data.simulate_retina[
+        spat_temp_filter_to_show = self.project_data.retina_simulator[
             "spat_temp_filter_to_show"
         ]
         spatial_filters = spat_temp_filter_to_show["spatial_filters"]
@@ -3176,7 +3186,7 @@ class Viz:
             self._figsave(figurename=savefigname)
 
     def show_impulse_response(self, savefigname: str | None = None):
-        viz_dict = self.project_data.simulate_retina["impulse_to_show"]
+        viz_dict = self.project_data.retina_simulator["impulse_to_show"]
 
         tvec = viz_dict["tvec"]  # in seconds
         svec = viz_dict["svec"]
@@ -3240,7 +3250,7 @@ class Viz:
             The filename for saving the figure. If None, the figure is not saved.
         """
 
-        uniformify_data = self.project_data.simulate_retina["uniformify_data"]
+        uniformify_data = self.project_data.retina_simulator["uniformify_data"]
         uniformify_index = uniformify_data["uniformify_index"]
         total_region = uniformify_data["total_region"]
         unity_region = uniformify_data["unity_region"]
@@ -3294,7 +3304,7 @@ class Viz:
         Show the image of whole retina with all the receptive fields summed up.
         """
 
-        gen_ret = self.project_data.construct_retina["ret"]
+        gen_ret = self.project_data.retina_constructor["ret"]
 
         img_ret = gen_ret["img_ret"]
         img_ret_masked = gen_ret["img_ret_masked"]
@@ -3332,7 +3342,7 @@ class Viz:
         gc_vae_img_final: (n_units, n_pix, n_pix)
         """
 
-        gen_rfs = self.project_data.construct_retina["gen_rfs"]
+        gen_rfs = self.project_data.retina_constructor["gen_rfs"]
 
         gc_vae_img = gen_rfs["gc_vae_img"]
         gc_vae_img_mask = gen_rfs["gc_vae_img_mask"]
@@ -3381,7 +3391,7 @@ class Viz:
         gc_vae_img_final: (n_units, n_pix, n_pix)
         """
 
-        gen_rfs = self.project_data.construct_retina["gen_rfs"]
+        gen_rfs = self.project_data.retina_constructor["gen_rfs"]
 
         gc_vae_img = gen_rfs["gc_vae_img"]
         gc_vae_img_final = gen_rfs["gc_vae_img_final"]

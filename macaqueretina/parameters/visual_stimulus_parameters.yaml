@@ -22,7 +22,7 @@ visual_stimulus_parameters:
   background: "mean"  # "mean", "intensity_min", "intensity_max" or value.
   ND_filter: 0.0  # 0.0, log10 neutral density filter factor, can be negative
 
-# For external video and image input. See visual_stimulus_module.VideoBaseClass for more options.
+# For external video and image input. See stimulus_factory_module.VideoClass for more options.
 external_stimulus_parameters:
   ext_stimulus_file: "imk00003.jpg"  
   ext_pix_per_deg: 30  # Video test 30  # VanHateren_1998_ProcRSocLondB 2 arcmin per pixel

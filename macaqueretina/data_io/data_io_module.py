@@ -683,7 +683,7 @@ class DataIO:
         Load stimulus data from an hdf5 video file.
 
         This method retrieves the full path of the specified video file and
-        loads its contents into a dictionary. A dummy VideoBaseClass object is
+        loads its contents into a dictionary. A dummy VideoClass object is
         then created to represent the stimulus, with its attributes populated
         from the dictionary. If any of the `options` attribute values of the
         stimulus are numpy arrays, they are converted to tuples.
@@ -696,7 +696,7 @@ class DataIO:
         Returns
         -------
         stimulus : DummyVideoClass instance
-            An instance of the dummy VideoBaseClass that represents the loaded
+            An instance of the dummy VideoClass that represents the loaded
             stimulus. Its attributes are populated from the hdf5 file contents.
         """
 

@@ -53,8 +53,8 @@ experiment = _ExperimentWrapper()
 _cached_visual_stimulus_instance = None
 
 
-class _VisualStimulusWrapper:
-    """Wrapper class that routes attribute access to the VisualStimulus instance."""
+class _StimulusGeneratorWrapper:
+    """Wrapper class that routes attribute access to the StimulusFactory instance."""
 
     def __getattr__(self, name):
         global _cached_visual_stimulus_instance
@@ -62,7 +62,7 @@ class _VisualStimulusWrapper:
 
         if current_config is None:
             raise AttributeError(
-                "Configuration not found. Run mr.load_parameters() before accessing mr.visual_stimulus."
+                "Configuration not found. Run mr.load_parameters() before accessing mr.stimulus_factory."
             )
 
         current_hash = current_config.hash()
@@ -81,7 +81,7 @@ class _VisualStimulusWrapper:
 
         if current_config is None:
             raise AttributeError(
-                "Configuration not found. Run mr.load_parameters() before accessing mr.visual_stimulus."
+                "Configuration not found. Run mr.load_parameters() before accessing mr.stimulus_factory."
             )
 
         current_hash = current_config.hash()
@@ -95,4 +95,4 @@ class _VisualStimulusWrapper:
         return dir(_cached_visual_stimulus_instance[1])
 
 
-visual_stimulus = _VisualStimulusWrapper()
+stimulus_factory = _StimulusGeneratorWrapper()

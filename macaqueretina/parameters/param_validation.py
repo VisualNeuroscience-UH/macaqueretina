@@ -109,7 +109,7 @@ class RetinaParameters(BaseConfigModel):
 
 
 ## From visual_stimulus_parameters.yaml
-class VisualStimulusParameters(BaseConfigModel):
+class StimulusGeneratorParameters(BaseConfigModel):
     pattern: str = Field(
         default="temporal_square_pattern",
         description="Options: 'sine_grating', 'square_grating', 'colored_temporal_noise', 'white_gaussian_noise', 'natural_images', 'natural_video', 'temporal_sine_pattern', 'temporal_square_pattern', 'temporal_chirp_pattern', 'contrast_chirp_pattern', 'spatially_uniform_binary_noise'",
@@ -570,7 +570,7 @@ class ConfigParams(BaseConfigModel):
     retina_parameters_extend: RetinaParametersExtend
 
     # Visual stimulus parameters
-    visual_stimulus_parameters: VisualStimulusParameters
+    visual_stimulus_parameters: StimulusGeneratorParameters
     external_stimulus_parameters: StimulusMetadataParameters
 
     # Simulation parameters

@@ -44,7 +44,7 @@ This file contains the data for the following dictionaries:
 
 ### visual_stimulus_parameters
 This comprises a complete definition of artificial stimuli and also affects external image and video stimuli. 
-Valid parameters include (overriding visual_stimulus_module.VideoBaseClass):
+Valid parameters include (overriding stimulus_factory_module.VideoClass):
 
 - ***image_height***: **int** | in pixels  
 - ***image_width***: **int** | in pixels  

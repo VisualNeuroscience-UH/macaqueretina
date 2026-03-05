@@ -19,10 +19,10 @@ if TYPE_CHECKING:
     from macaqueretina.analysis.analysis_module import Analysis
     from macaqueretina.data_io.config_io import Configuration
     from macaqueretina.data_io.data_io_module import DataIO
-    from macaqueretina.retina.construct_retina_module import ConstructRetina
+    from macaqueretina.retina.retina_constructor_module import RetinaConstructor
     from macaqueretina.retina.retina_math_module import RetinaMath
     from macaqueretina.retina.vae_module import RetinaVAE
-    from macaqueretina.stimuli.visual_stimulus_module import VisualStimulus
+    from macaqueretina.stimuli.stimulus_factory_module import StimulusFactory
     from macaqueretina.viz.viz_module import Viz, VizResponse
 
 
@@ -148,9 +148,9 @@ def create_retina_vae_instance(config: Configuration) -> RetinaVAE:
     return RetinaVAE(config)
 
 
-def create_construct_retina_instance(config: Configuration) -> ConstructRetina:
-    from macaqueretina.retina.construct_retina_module import ConstructRetina
+def create_retina_constructor_instance(config: Configuration) -> RetinaConstructor:
     from macaqueretina.retina.fit_module import Fit
+    from macaqueretina.retina.retina_constructor_module import RetinaConstructor
 
     data_io = create_data_io_instance(config)
     project_data = ProjectData()
@@ -160,7 +160,7 @@ def create_construct_retina_instance(config: Configuration) -> ConstructRetina:
     retina_math = create_retina_math_instance()
     get_xy_from_npz = _create_get_xy_from_npz()
 
-    return ConstructRetina(
+    return RetinaConstructor(
         config,
         data_io,
         viz,
@@ -173,7 +173,7 @@ def create_construct_retina_instance(config: Configuration) -> ConstructRetina:
 
 
 def create_viz_response_instance(config: Configuration) -> VizResponse:
-    from macaqueretina.retina.simulate_retina_module import VisualSignal
+    from macaqueretina.retina.retina_simulator_module import VisualSignal
     from macaqueretina.viz.viz_module import VizResponse
 
     data_io = create_data_io_instance(config)
@@ -199,21 +199,21 @@ def create_data_sampler_instance(
 def create_visual_stimulus_instance(
     config: Configuration, data_io: DataIO | None = None
 ):
-    from macaqueretina.stimuli.visual_stimulus_module import VisualStimulus
+    from macaqueretina.stimuli.stimulus_factory_module import StimulusFactory
 
     if data_io is None:
         data_io = create_data_io_instance(config)
     get_xy_from_npz = _create_get_xy_from_npz()
 
-    return VisualStimulus(config, data_io, get_xy_from_npz)
+    return StimulusFactory(config, data_io, get_xy_from_npz)
 
 
-def create_simulate_retina_instance(
+def create_retina_simulator_instance(
     config: Configuration,
     data_io: DataIO | None = None,
-    visual_stimulus_instance: VisualStimulus | None = None,
+    visual_stimulus_instance: StimulusFactory | None = None,
 ):
-    from macaqueretina.retina.simulate_retina_module import SimulateRetina
+    from macaqueretina.retina.retina_simulator_module import RetinaSimulator
 
     if data_io is None:
         data_io = create_data_io_instance(config)
@@ -222,7 +222,7 @@ def create_simulate_retina_instance(
     if visual_stimulus_instance is None:
         visual_stimulus_instance = create_visual_stimulus_instance(config, data_io)
 
-    return SimulateRetina(
+    return RetinaSimulator(
         config,
         data_io,
         project_data,
@@ -236,11 +236,11 @@ def create_experiment_instance(config):
 
     data_io = create_data_io_instance(config)
     visual_stimulus_instance = create_visual_stimulus_instance(config, data_io)
-    simulate_retina_instance = create_simulate_retina_instance(
+    retina_simulator_instance = create_retina_simulator_instance(
         config, data_io, visual_stimulus_instance
     )
     return Experiment(
-        config, data_io, visual_stimulus_instance, simulate_retina_instance
+        config, data_io, visual_stimulus_instance, retina_simulator_instance
     )
 
 
@@ -295,7 +295,7 @@ class ProjectData:
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
-            cls._instance.construct_retina = {}
-            cls._instance.simulate_retina = {}
+            cls._instance.retina_constructor = {}
+            cls._instance.retina_simulator = {}
             cls._instance.fit = {}
         return cls._instance

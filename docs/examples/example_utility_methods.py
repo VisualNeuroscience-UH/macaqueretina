@@ -77,9 +77,9 @@ mr.project_utilities.countlines(Path("macaqueretina"))
 # ###  For the rest, you need to run these once to create data files  ###
 # #######################################################################
 
-# mr.construct_retina.build_retina_client()
-# mr.visual_stimulus.make_stimulus_video()
-# mr.simulate_retina.client()
+# mr.retina_constructor.construct()
+# mr.stimulus_factory.generate()
+# mr.retina_simulator.simulate()
 
 # #########################################
 # ##  Load arbitrary data to workspace  ###
@@ -118,10 +118,10 @@ mr.project_utilities.countlines(Path("macaqueretina"))
 # mr.config.retina_parameters.temporal_model_type = (
 #     "fixed"  # "fixed", "dynamic", "subunit"
 # )
-# mr.construct_retina.build_retina_client()
+# mr.retina_constructor.construct()
 
 # mr.config.simulation_parameters["contrasts_for_impulse"] = (1.0,)
-# mr.simulate_retina.client(impulse=True)
+# mr.retina_simulator.simulate(impulse=True)
 # mr.viz.show_impulse_response(savefigname=None)
 
 # ######################################
@@ -129,9 +129,9 @@ mr.project_utilities.countlines(Path("macaqueretina"))
 # ######################################
 # mr.config.retina_parameters.ecc_limits_deg = [3.5, 6.5]  # eccentricity in degrees
 # mr.config.retina_parameters.pol_limits_deg = [-15, 15]  # polar angle in degrees
-# mr.construct_retina.build_retina_client()
+# mr.retina_constructor.construct()
 
-# mr.simulate_retina.client(unity=True)
+# mr.retina_simulator.simulate(unity=True)
 # mr.viz.show_unity(savefigname=None)
 
 

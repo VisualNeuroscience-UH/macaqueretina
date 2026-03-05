@@ -49,7 +49,7 @@ mr.load_parameters()
 stimulus_folder = f"stim_{mr.config.experiment}"
 mr.config.output_folder = f"{mr.config.experiment}_{mr.config.gc_type}_{mr.config.response_type}_{mr.config.spatial_model_type}_{mr.config.temporal_model_type}"
 
-mr.construct_retina.build_retina_client()
+mr.retina_constructor.construct()
 
 ###############################
 ## Build and run experiment ###
@@ -64,7 +64,7 @@ stimulus_folder = mr.config.path.joinpath(f"stimuli_{sf}cpd")
 mr.config.stimulus_folder = stimulus_folder
 stimulus_folder.mkdir(parents=True, exist_ok=True)
 
-mr.construct_retina.build_retina_client()
+mr.retina_constructor.construct()
 
 # These are the variables to be changed in the experiment
 # See visual_stimulus_parameters, safe up to two variables

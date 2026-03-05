@@ -8,7 +8,7 @@ import macaqueretina as mr
 
 You need to build retina first
 ```python
-mr.construct_retina()
+mr.retina_constructor()
 ```
 
 ### Short contrast response function experiment

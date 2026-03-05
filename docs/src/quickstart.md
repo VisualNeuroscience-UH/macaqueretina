@@ -57,9 +57,9 @@ Run the following for a quick example:
 import macaqueretina as mr
 import matplotlib.pyplot as plt
 
-mr.construct_retina()
-mr.visual_stimulus.make_stimulus_video()
-mr.simulate_retina.client(filename=filename)
+mr.retina_constructor()
+mr.stimulus_factory.generate()
+mr.retina_simulator.simulate(filename=filename)
 mr.viz.show_all_gc_responses(savefigname=None)
 plt.show()
 ```

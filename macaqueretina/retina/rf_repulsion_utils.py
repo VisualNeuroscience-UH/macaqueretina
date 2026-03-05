@@ -14,7 +14,7 @@ They are not very readable though, because of the semi-infinite function signatu
 """
 
 if TYPE_CHECKING:
-    from macaqueretina.retina.construct_retina_module import GanglionCell, Retina
+    from macaqueretina.retina.retina_constructor_module import GanglionCell, Retina
     from macaqueretina.viz.viz_module import Viz
 
 

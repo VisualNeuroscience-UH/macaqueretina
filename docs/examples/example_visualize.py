@@ -5,9 +5,9 @@ import matplotlib.pyplot as plt
 import macaqueretina as mr
 
 mr.load_parameters()
-mr.construct_retina.build_retina_client()
-mr.visual_stimulus.make_stimulus_video()
-mr.simulate_retina.client()
+mr.retina_constructor.construct()
+mr.stimulus_factory.generate()
+mr.retina_simulator.simulate()
 
 ###############################################
 ##   Show multiple units for single trial   ###

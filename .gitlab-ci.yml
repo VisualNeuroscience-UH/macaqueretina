@@ -28,7 +28,7 @@ integration_tests1:
   script:
     - ./get_vae_models.sh -y
     - echo "Running integration tests..."
-    - pytest tests/integration_tests/test_construct_retina_cpu.py
+    - pytest tests/integration_tests/test_retina_constructor_cpu.py
   tags:
     - openshift
   variables:

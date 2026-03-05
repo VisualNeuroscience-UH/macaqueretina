@@ -8,7 +8,7 @@ import macaqueretina as mr
 
 mr.load_parameters()
 
-mr.construct_retina.build_retina_client()
+mr.retina_constructor.construct()
 
 ###############################
 ## Build and run experiment ###

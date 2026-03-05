@@ -146,7 +146,7 @@ class RetinaMath:
         )
         return weighted_mean
 
-    # RetinaConstruction & SimulateRetina methods
+    # RetinaConstruction & RetinaSimulator methods
     def pol2cart_df(self, df: pd.DataFrame) -> np.ndarray:
         """
         Convert retinal positions (eccentricity, polar angle) to visual space positions in degrees (x, y).
@@ -214,7 +214,7 @@ class RetinaMath:
 
         return mask
 
-    # SimulateRetina methods
+    # RetinaSimulator methods
     def pol2cart(
         self, radius: float | np.ndarray, phi: float | np.ndarray, deg: bool = True
     ) -> tuple[float | np.ndarray, float | np.ndarray]:
@@ -815,7 +815,7 @@ class RetinaMath:
 
         return spatial_rf
 
-    # Fit & SimulateRetina method
+    # Fit & RetinaSimulator method
     def DoG2D_fixed_surround(
         self,
         xy_tuple: tuple[np.ndarray, np.ndarray],

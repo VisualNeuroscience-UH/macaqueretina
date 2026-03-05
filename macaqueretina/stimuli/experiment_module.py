@@ -7,13 +7,13 @@ import numpy as np
 import pandas as pd
 
 # Local
-from macaqueretina.stimuli.visual_stimulus_module import VideoBaseClass
+from macaqueretina.stimuli.stimulus_factory_module import VideoClass
 
 if TYPE_CHECKING:
     from macaqueretina.data_io.config_io import Configuration
     from macaqueretina.data_io.data_io_module import DataIO
-    from macaqueretina.retina.simulate_retina_module import SimulateRetina
-    from macaqueretina.stimuli.visual_stimulus_module import VisualStimulus
+    from macaqueretina.retina.retina_simulator_module import RetinaSimulator
+    from macaqueretina.stimuli.stimulus_factory_module import StimulusFactory
 
 
 class RelevantStimulusParameters:
@@ -108,7 +108,7 @@ class RelevantStimulusParameters:
         return sorted(relevant_metadata)
 
 
-class Experiment(VideoBaseClass):
+class Experiment(VideoClass):
     """
     Build your experiment here
     """
@@ -117,14 +117,14 @@ class Experiment(VideoBaseClass):
         self,
         config: Configuration,
         data_io: DataIO,
-        stimulate: VisualStimulus,
-        simulate_retina: SimulateRetina,
+        stimulate: StimulusFactory,
+        retina_simulator: RetinaSimulator,
     ):
         super().__init__()
         self._config = config
         self._data_io = data_io
         self._stimulate = stimulate
-        self._simulate_retina = simulate_retina
+        self._retina_simulator = retina_simulator
 
     @property
     def config(self) -> Configuration:
@@ -135,12 +135,12 @@ class Experiment(VideoBaseClass):
         return self._data_io
 
     @property
-    def stimulate(self) -> VisualStimulus:
+    def stimulate(self) -> StimulusFactory:
         return self._stimulate
 
     @property
-    def simulate_retina(self) -> SimulateRetina:
-        return self._simulate_retina
+    def retina_simulator(self) -> RetinaSimulator:
+        return self._retina_simulator
 
     def _replace_options(self, input_options: dict):
         # Replace with input options
@@ -344,7 +344,7 @@ class Experiment(VideoBaseClass):
                 f"Variable: {option}, values: { ", ".join(map(str, formatted_values))}"
             )
 
-        # Return cond_options -- a dict with all keywords matching visual_stimulus_module.VisualStimulus
+        # Return cond_options -- a dict with all keywords matching stimulus_factory_module.StimulusFactory
         # and values being a list of values to replace the corresponding keyword in the stimulus
         for idx, (distribution, stats) in enumerate(distributions.items()):
             match distribution:
@@ -565,7 +565,7 @@ class Experiment(VideoBaseClass):
             if not build_without_run:
                 self._replace_options(input_options)
 
-                stim = self.stimulate.make_stimulus_video(self.options)
+                stim = self.stimulate.generate(self.options)
 
                 # Build filename
                 gc_type = self.config.retina_parameters["gc_type"]
@@ -574,7 +574,7 @@ class Experiment(VideoBaseClass):
                 filename = Path(output_folder) / (filename_prefix + cond_names[idx])
 
                 # Run simulation
-                self.simulate_retina.client(
+                self.retina_simulator.simulate(
                     stimulus=stim,
                     filename=filename,
                 )

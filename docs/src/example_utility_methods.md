@@ -68,13 +68,13 @@ ds.quality_control()  # Show image with calibration and data points
 
 #### For the rest, you need to run these once to create data files
 ```python
-mr.construct_retina()
-mr.visual_stimulus.make_stimulus_video()
+mr.retina_constructor()
+mr.stimulus_factory.generate()
 ```
 
 #### Load arbitrary data to workspace
 ```python
-mr.simulate_retina.client(filename=filename)
+mr.retina_simulator.simulate(filename=filename)
 filename_parents = mr.config.output_folder
 filename_offspring = mr.config.retina_parameters.mosaic_file
 filename = Path(filename_parents).joinpath(filename_offspring)
@@ -86,7 +86,7 @@ print(data.shape)
 
 #### Show spikes from gz files
 ```python
-mr.simulate_retina.client(filename=filename)
+mr.retina_simulator.simulate(filename=filename)
 
 filename_parents = mr.config.output_folder
 
@@ -113,10 +113,10 @@ mr.config.retina_parameters.spatial_model_type = "DOG"  # "DOG", "VAE"
 mr.config.retina_parameters.temporal_model_type = (
     "fixed"  # "fixed", "dynamic", "subunit"
 )
-mr.construct_retina()
+mr.retina_constructor()
 
 mr.config.simulation_parameters["contrasts_for_impulse"] = (1.0,)
-mr.simulate_retina(impulse=True)
+mr.retina_simulator(impulse=True)
 mr.viz.show_impulse_response(savefigname=None)
 
 plt.show()
@@ -127,12 +127,12 @@ First, let's make a bigger retina.
 ```python
 mr.config.retina_parameters.ecc_limits_deg = [3.5, 6.5]
 mr.config.retina_parameters.pol_limits_deg = [-15, 15]  
-mr.construct_retina()
+mr.retina_constructor()
 ```
 Then, get and show Unity region, i.e. where exactly one unit centre overlaps with the retina region. The uniformity index is the proportion of total unity region divided by total retina region.
 
 ```python
-mr.simulate_retina(unity=True)
+mr.retina_simulator(unity=True)
 mr.viz.show_unity(savefigname=None)
 
 plt.show()
