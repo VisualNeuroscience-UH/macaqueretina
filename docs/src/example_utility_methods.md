@@ -69,12 +69,12 @@ ds.quality_control()  # Show image with calibration and data points
 #### For the rest, you need to run these once to create data files
 ```python
 mr.construct_retina()
-mr.make_stimulus()
+mr.visual_stimulus.make_stimulus_video()
 ```
 
 #### Load arbitrary data to workspace
 ```python
-mr.simulate_retina()
+mr.simulate_retina.client(filename=filename)
 filename_parents = mr.config.output_folder
 filename_offspring = mr.config.retina_parameters.mosaic_file
 filename = Path(filename_parents).joinpath(filename_offspring)
@@ -86,7 +86,7 @@ print(data.shape)
 
 #### Show spikes from gz files
 ```python
-mr.simulate_retina()
+mr.simulate_retina.client(filename=filename)
 
 filename_parents = mr.config.output_folder
 

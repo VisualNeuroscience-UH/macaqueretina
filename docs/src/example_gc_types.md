@@ -9,7 +9,7 @@ import macaqueretina as mr
 
 You need to make one simulus first
 ```python
-mr.make_stimulus()
+mr.visual_stimulus.make_stimulus_video()
 ```
 
 #### Define types
@@ -26,7 +26,7 @@ for gc_type in gc_types:
         mr.config.retina_parameters.gc_type = gc_type
         mr.config.retina_parameters.response_type = response_type
         mr.construct_retina()
-        mr.simulate_retina()
+        mr.simulate_retina.client(filename=filename)
         mr.viz.show_all_gc_responses(savefigname=None)
 
 print(f"Output folder: {mr.config.output_folder}")

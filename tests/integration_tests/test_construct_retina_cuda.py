@@ -70,7 +70,7 @@ def test_retina_construction(
 
     mr.config.output_folder = Path(tmp_path)
     mr.config.retina_parameters.model_density = 0.8
-    ret, gc = mr.build_retina(return_objects_do_not_save=True)
+    ret, gc = mr.construct_retina.build_retina_client(return_objects_do_not_save=True)
 
     assert hasattr(ret, "gc_type")
     assert ret.gc_type == gc_type

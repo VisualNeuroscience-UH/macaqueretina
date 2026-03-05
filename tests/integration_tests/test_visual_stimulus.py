@@ -91,7 +91,7 @@ def test_make_stimulus_video(
         )
 
     # Generate stimulus
-    stimulus_video = mr.make_stimulus()
+    stimulus_video = mr.visual_stimulus.make_stimulus_video()
 
     # Assertions
     assert hasattr(

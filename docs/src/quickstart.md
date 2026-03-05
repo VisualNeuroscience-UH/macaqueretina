@@ -58,8 +58,8 @@ import macaqueretina as mr
 import matplotlib.pyplot as plt
 
 mr.construct_retina()
-mr.make_stimulus()
-mr.simulate_retina()
+mr.visual_stimulus.make_stimulus_video()
+mr.simulate_retina.client(filename=filename)
 mr.viz.show_all_gc_responses(savefigname=None)
 plt.show()
 ```

@@ -62,7 +62,7 @@ def stimulus_video(simulation_config):
     """
     Fixture to generate the stimulus video once and reuse it.
     """
-    return mr.make_stimulus()
+    return mr.visual_stimulus.make_stimulus_video()
 
 
 @pytest.mark.parametrize(
@@ -94,7 +94,7 @@ def test_simulation_client(
     )
 
     # Construct retina
-    mr.build_retina()
+    mr.construct_retina.build_retina_client()
 
     # Run simulation
     gc_type = mr.config.retina_parameters["gc_type"]
@@ -102,7 +102,7 @@ def test_simulation_client(
     hashstr = mr.config.retina_parameters["retina_parameters_hash"]
     filename = f"{gc_type}_{response_type}_{hashstr}_response_testing"
 
-    mr.simulate_retina(filename=filename)
+    mr.simulate_retina.client(filename=filename)
 
     # Assertions
     output_dir = simulation_config.output_folder
