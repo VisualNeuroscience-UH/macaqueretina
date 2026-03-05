@@ -143,6 +143,8 @@ def create_viz_instance(
 
 
 def create_retina_vae_instance(config: Configuration) -> RetinaVAE:
+    from macaqueretina.retina.vae_module import RetinaVAE
+
     return RetinaVAE(config)
 
 
@@ -294,6 +296,6 @@ class ProjectData:
         if cls._instance is None:
             cls._instance = super().__new__(cls)
             cls._instance.construct_retina = {}
-            cls._instance.simulate_retina_instance = {}
+            cls._instance.simulate_retina = {}
             cls._instance.fit = {}
         return cls._instance
