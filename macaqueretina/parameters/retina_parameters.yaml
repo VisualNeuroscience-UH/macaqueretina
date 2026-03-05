@@ -1,9 +1,9 @@
 retina_parameters:
   gc_type: parasol  # "parasol" or "midget"
-  response_type: 'on'
-  spatial_model_type: DOG
-  temporal_model_type: fixed
-  dog_model_type: ellipse_fixed
+  response_type: 'on' # "on" or "off"
+  spatial_model_type: DOG # "DOG" or "VAE"
+  temporal_model_type: fixed # "fixed", "dynamic" or "subunit"
+  dog_model_type: ellipse_fixed 
   ecc_limits_deg:
   - 4.5
   - 5.5
