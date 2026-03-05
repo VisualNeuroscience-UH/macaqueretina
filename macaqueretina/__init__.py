@@ -1,8 +1,7 @@
 """
 This module runs when macaqueretina is imported. It connects the top-level
 macaqueretina namespace to the various sub-modules. The __init__.py files in
-the sub-modules contain wrapper functions that call the appropriate classes
-and methods from the project_manager_module. This design allows for a
+the sub-modules contain wrapper classes that call the appropriate classes. This design allows for a
 clean separation of concerns and makes it easier to maintain and extend the codebase in the future.
 """
 

@@ -1,11 +1,6 @@
 """
-Module on retina management. When this module is called directly, it runs
-the core_parameters.yaml defined 'run' pipeline.
-
-We use dependency injection to make the code more modular and easier to test.
-It means that during construction here at the manager level, we can inject
-an object instance to constructor of a "client", which becomes an attribute
-of the instance.
+This module contains methods for the instantiation of all the classes exposed in the
+sub-module __init__.py files. Classes are lazily imported in each method.
 """
 
 from __future__ import annotations
@@ -85,6 +80,13 @@ def _create_get_xy_from_npz() -> Callable:
 
     utilities = ProjectUtilitiesMixin()
     return utilities.get_xy_from_npz
+
+
+def data_sampler(filename, min_X, max_X, min_Y, max_Y, logX=False, logY=False):
+    """DataSampler alias."""
+    from macaqueretina.project.project_utilities_module import DataSampler
+
+    return DataSampler(filename, min_X, max_X, min_Y, max_Y, logX, logY)
 
 
 def create_analysis_instance(
@@ -245,15 +247,7 @@ def create_experiment_instance(config):
 
 
 ## Exposed
-# These methods become exposed at repo root __init__.py
-# Some of these are lazy aliases to avoid importing everything at the first import macaqueretina.
-
-
-def data_sampler(filename, min_X, max_X, min_Y, max_Y, logX=False, logY=False):
-    """DataSampler alias."""
-    from macaqueretina.project.project_utilities_module import DataSampler
-
-    return DataSampler(filename, min_X, max_X, min_Y, max_Y, logX, logY)
+# This method is exposed at repo root __init__.py
 
 
 def load_parameters() -> Configuration:
