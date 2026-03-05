@@ -49,4 +49,4 @@ mr.viz.show_stimulus_with_gcs(
 
 # ##############################################
 
-# plt.show()
+plt.show()
