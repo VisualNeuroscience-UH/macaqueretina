@@ -28,7 +28,7 @@ print(mr.config.simulation_parameters)
 ###  Count lines in codebase, relative to working directory  ###
 ################################################################
 
-mr.countlines(Path("macaqueretina"))
+mr.project_utilities.countlines(Path("macaqueretina"))
 
 
 # #####################################################
@@ -77,18 +77,18 @@ mr.countlines(Path("macaqueretina"))
 # ###  For the rest, you need to run these once to create data files  ###
 # #######################################################################
 
-# mr.build_retina()
-# mr.make_stimulus()
-# mr.simulate_retina()
+# mr.construct_retina.build_retina_client()
+# mr.visual_stimulus.make_stimulus_video()
+# mr.simulate_retina.client()
 
-##########################################
-###  Load arbitrary data to workspace  ###
-##########################################
+# #########################################
+# ##  Load arbitrary data to workspace  ###
+# #########################################
 # output_folder = mr.config.output_folder
 # # Copy the filename from output folder after running build_retina() once.
 # filename_map = output_folder.glob("*_mosaic.csv")
 # filename = list(filename_map)[0]
-# data = mr.load_data(filename)
+# data = mr.data_io.load_data(filename)
 # print(type(data))
 # print(data.shape)
 
@@ -110,7 +110,7 @@ mr.countlines(Path("macaqueretina"))
 # #########################################
 # ##       Show impulse response        ###
 # #########################################
-# unity and impulse make a dummy video which uses visual stimulus parameters.
+# # unity and impulse make a dummy video which uses visual stimulus parameters.
 
 # mr.config.retina_parameters.gc_type = "parasol"  # "parasol", "midget"
 # mr.config.retina_parameters.response_type = "on"  # "on", "off"
@@ -118,10 +118,10 @@ mr.countlines(Path("macaqueretina"))
 # mr.config.retina_parameters.temporal_model_type = (
 #     "fixed"  # "fixed", "dynamic", "subunit"
 # )
-# mr.build_retina()
+# mr.construct_retina.build_retina_client()
 
 # mr.config.simulation_parameters["contrasts_for_impulse"] = (1.0,)
-# mr.simulate_retina(impulse=True)
+# mr.simulate_retina.client(impulse=True)
 # mr.viz.show_impulse_response(savefigname=None)
 
 # ######################################
@@ -129,9 +129,9 @@ mr.countlines(Path("macaqueretina"))
 # ######################################
 # mr.config.retina_parameters.ecc_limits_deg = [3.5, 6.5]  # eccentricity in degrees
 # mr.config.retina_parameters.pol_limits_deg = [-15, 15]  # polar angle in degrees
-# mr.build_retina()
+# mr.construct_retina.build_retina_client()
 
-# mr.simulate_retina(unity=True)
+# mr.simulate_retina.client(unity=True)
 # mr.viz.show_unity(savefigname=None)
 
 

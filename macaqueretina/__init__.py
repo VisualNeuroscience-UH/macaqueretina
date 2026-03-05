@@ -6,13 +6,14 @@ and methods from the project_manager_module. This design allows for a
 clean separation of concerns and makes it easier to maintain and extend the codebase in the future.
 """
 
-# These are visible when you call mr.something in scripts
-from . import analysis, viz
+# Local
+from .analysis import analysis
 from .data_io import data_io
 from .project import data_sampler, project_utilities
 from .project.project_manager_module import load_parameters as _load_parameters
-from .retina import build_retina, retina_math, save_retina, simulate_retina
-from .stimuli import make_stimulus, run_experiment
+from .retina import construct_retina, retina_math, simulate_retina
+from .stimuli import experiment, visual_stimulus
+from .viz import viz, viz_response
 
 config = None
 
@@ -27,19 +28,18 @@ def load_parameters():
 # This enables from macaqueretina import something to work.
 __all__ = [
     "analysis",
-    "build_retina",
     "config",
+    "construct_retina",
     "data_io",
     "data_sampler",
+    "experiment",
     "load_parameters",
-    "make_stimulus",
     "project_utilities",
     "retina_math",
-    "retina_math",
-    "run_experiment",
-    "save_retina",
     "simulate_retina",
+    "visual_stimulus",
     "viz",
+    "viz_response",
 ]
 
 

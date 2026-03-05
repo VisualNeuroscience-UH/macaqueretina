@@ -1,53 +1,98 @@
 from macaqueretina.project.project_manager_module import (
-    create_visual_stimulus_instance,
     create_experiment_instance,
+    create_visual_stimulus_instance,
 )
-
-_cached_stimulus_instance = None
-
-
-def make_stimulus(options=None):
-    """Wrapper for VisualStimulus.make_stimulus_video()"""
-    global _cached_stimulus_instance
-    from macaqueretina import config as current_config
-
-    if current_config is None:
-        print(
-            "Configuration not found. Run mr.load_parameters() before accessing mr.make_stimulus_video."
-        )
-        return []
-
-    current_hash = current_config.hash()
-    if (
-        _cached_stimulus_instance is None
-        or _cached_stimulus_instance[0] != current_hash
-    ):
-        stimulus_instance = create_visual_stimulus_instance(current_config)
-        _cached_stimulus_instance = (current_hash, stimulus_instance)
-    return _cached_stimulus_instance[1].make_stimulus_video(options)
-
 
 _cached_experiment_instance = None
 
 
-def run_experiment(build_without_run=False, show_histogram=False):
-    """Wrapper for Experiment.build_and_run()"""
-    global _cached_experiment_instance
-    from macaqueretina import config as current_config
+class _ExperimentWrapper:
+    """Wrapper class that routes attribute access to the Experiment instance."""
 
-    if current_config is None:
-        print(
-            "Configuration not found. Run mr.load_parameters() before accessing mr.run_experiment."
-        )
-        return []
+    def __getattr__(self, name):
+        global _cached_experiment_instance
+        from macaqueretina import config as current_config
 
-    current_hash = current_config.hash()
-    if (
-        _cached_experiment_instance is None
-        or _cached_experiment_instance[0] != current_hash
-    ):
-        experiment_instance = create_experiment_instance(current_config)
-        _cached_experiment_instance = (current_hash, experiment_instance)
-    return _cached_experiment_instance[1].build_and_run(
-        build_without_run, show_histogram
-    )
+        if current_config is None:
+            raise AttributeError(
+                "Configuration not found. Run mr.load_parameters() before accessing mr.experiment."
+            )
+
+        current_hash = current_config.hash()
+        if (
+            _cached_experiment_instance is None
+            or _cached_experiment_instance[0] != current_hash
+        ):
+            experiment_instance = create_experiment_instance(current_config)
+            _cached_experiment_instance = (current_hash, experiment_instance)
+
+        return getattr(_cached_experiment_instance[1], name)
+
+    def __dir__(self):
+        global _cached_experiment_instance
+        from macaqueretina import config as current_config
+
+        if current_config is None:
+            raise AttributeError(
+                "Configuration not found. Run mr.load_parameters() before accessing mr.experiment."
+            )
+
+        current_hash = current_config.hash()
+        if (
+            _cached_experiment_instance is None
+            or _cached_experiment_instance[0] != current_hash
+        ):
+            experiment_instance = create_experiment_instance(current_config)
+            _cached_experiment_instance = (current_hash, experiment_instance)
+
+        return dir(_cached_experiment_instance[1])
+
+
+experiment = _ExperimentWrapper()
+
+_cached_visual_stimulus_instance = None
+
+
+class _VisualStimulusWrapper:
+    """Wrapper class that routes attribute access to the VisualStimulus instance."""
+
+    def __getattr__(self, name):
+        global _cached_visual_stimulus_instance
+        from macaqueretina import config as current_config
+
+        if current_config is None:
+            raise AttributeError(
+                "Configuration not found. Run mr.load_parameters() before accessing mr.visual_stimulus."
+            )
+
+        current_hash = current_config.hash()
+        if (
+            _cached_visual_stimulus_instance is None
+            or _cached_visual_stimulus_instance[0] != current_hash
+        ):
+            visual_stimulus_instance = create_visual_stimulus_instance(current_config)
+            _cached_visual_stimulus_instance = (current_hash, visual_stimulus_instance)
+
+        return getattr(_cached_visual_stimulus_instance[1], name)
+
+    def __dir__(self):
+        global _cached_visual_stimulus_instance
+        from macaqueretina import config as current_config
+
+        if current_config is None:
+            raise AttributeError(
+                "Configuration not found. Run mr.load_parameters() before accessing mr.visual_stimulus."
+            )
+
+        current_hash = current_config.hash()
+        if (
+            _cached_visual_stimulus_instance is None
+            or _cached_visual_stimulus_instance[0] != current_hash
+        ):
+            visual_stimulus_instance = create_visual_stimulus_instance(current_config)
+            _cached_visual_stimulus_instance = (current_hash, visual_stimulus_instance)
+
+        return dir(_cached_visual_stimulus_instance[1])
+
+
+visual_stimulus = _VisualStimulusWrapper()

@@ -20,8 +20,8 @@ class _DataIOWrapper:
             _cached_data_io_instance is None
             or _cached_data_io_instance[0] != current_hash
         ):
-            retina_instance = create_data_io_instance(current_config)
-            _cached_data_io_instance = (current_hash, retina_instance)
+            data_io_instance = create_data_io_instance(current_config)
+            _cached_data_io_instance = (current_hash, data_io_instance)
 
         return getattr(_cached_data_io_instance[1], name)
 
@@ -31,7 +31,7 @@ class _DataIOWrapper:
 
         if current_config is None:
             raise AttributeError(
-                "Configuration not found. Run mr.load_parameters() before accessing mr.data_io()."
+                "Configuration not found. Run mr.load_parameters() before accessing mr.data_io."
             )
 
         current_hash = current_config.hash()
@@ -39,8 +39,8 @@ class _DataIOWrapper:
             _cached_data_io_instance is None
             or _cached_data_io_instance[0] != current_hash
         ):
-            retina_instance = create_data_io_instance(current_config)
-            _cached_data_io_instance = (current_hash, retina_instance)
+            data_io_instance = create_data_io_instance(current_config)
+            _cached_data_io_instance = (current_hash, data_io_instance)
 
         return dir(_cached_data_io_instance[1])
 
