@@ -4,11 +4,13 @@ This example shows how to build, run, analyze, and visualize the results of an e
 ```python
 import matplotlib.pyplot as plt
 import macaqueretina as mr
+
+mr.load_parameters()
 ```
 
 You need to build retina first
 ```python
-mr.retina_constructor()
+mr.retina_constructor.construct()
 ```
 
 ### Short contrast response function experiment

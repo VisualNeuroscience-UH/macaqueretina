@@ -1513,6 +1513,7 @@ class Fit(RetinaMath):
     def get_experimental_statistics(
         self,
     ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+        breakpoint()
         self.project_data.fit["exp_spat_filt"] = self.fit_data_type.spat_filt
         self.project_data.fit["spatial_data_and_model"] = (
             self.fit_data_type.spatial_data_and_model

@@ -614,6 +614,10 @@ class Viz:
 
         Parameters
         ----------
+        statistics : str
+            The type of statistics to show. Options are "univariate" or "multivariate"
+        distribution : str, optional
+            The type of distribution to show. Options are "spatial", "temporal", or "tonic_drive". Default is "spatial".
         correlation_reference : str, optional
             The name of the distribution to use as a reference for correlation.
             If None, no correlation is shown.
@@ -5193,7 +5197,7 @@ class VizResponse:
 
         return spike_mtx
 
-    def client(
+    def show_response_with_stimulus_video(
         self,
         video_file_name: str,
         response_file_name: str,

@@ -2,7 +2,7 @@
 Most parameters are available for modification in yaml files at [your_repo_root]/macaqueretina/parameters. They will be available in a Configuration object, accessed as macaqueretina.config.your_parameter (or as dict keys: macaqueretina.config["your_parameter"]). See [Tutorials, Utility methods, Print parameters](example_utility_methods.md#print-parameters) for examples on the mr.config use.
 
 ## core_parameters.yaml
-These parameters include major path settings, seed number, cpu/cuda device selection, profiler flag. In addition, it contains a run pipeline to create retina, make stimulus, simulate, and show basic visualization. The run pipeline is executed if you run `python macaqueretina`. The profiler is available only if you run as pipeline, but not if you import macaqueretina into a script.
+These parameters include major path settings, seed number, cpu/cuda device selection, profiler flag. 
 
 Project paths:
 ```text
@@ -18,6 +18,7 @@ model_root_path/
 - ***experiment*** : **str** | 2nd level folder
 - ***input_folder*** : **str** | 3rd level folder for input like VAE models, images, videos, other data
 - ***output_folder*** : **str** | 3rd level folder for output like spikes, retinas, experiment metadata
+- ***stimulus_folder*** : **str**  or `null` | 3rd level folder for videos of visual stimulus
 - ***numpy_seed*** : **int** or  `null` | integer as fixed seed to replicate simulation or null for random seed.
 - ***device*** :  **str** `"cpu"` or `"cuda"` | If you have an NVIDIA GPU and CUDA installed, it is useful for speed. For large models the GPU may run out of memory. 
 
@@ -75,7 +76,7 @@ would mean ~ 905 Trolands. Td = lum * pi * (diam/2)^2, resulting in 128 cd/m2 = 
 
 - ***stimulus_video_name***: **str** with suffix | Name of the stimulus video. if null, defaults to f"{stimulus_folder}_{hash}.mp4".  The hash is constructed from the visual stimulus parameter values.
 - ***background***: **str** or **float** | options are `"mean"`, `"intensity_min"`, `"intensity_max"` or value in cd/m2. This is the frame around stimulus in time and space, incl pre- and post-stimulus baselines.  
-- ***ND_filter***: **float** | Adds log10 neutral density filter factor, can be negative. This is handy if you want large retinal illumination changes without redoing the stimuli. Applies only to `subunit` temporal_model.
+- ***ND_filter***: **float** | Adds log10 neutral density filter factor, can be negative for brighter stimuli. This is handy if you want large retinal illumination changes without redoing the stimuli. Applies only to `subunit` temporal_model.
 
 For sine_grating and square_grating, additional arguments are:  
 
@@ -108,7 +109,7 @@ For chirp stimulus, additional parameter is:
 ### external_stimulus_parameters
 - ***ext_stimulus_file***:  **str** | filename for an image or video file  
 - ***ext_pix_per_deg***: **int** | resolution for external stimuli  
-Put stimlus image and video files e.g. to the input_folder.
+Put stimulus image and video files e.g. to the input_folder.
 
 ## simulation_parameters.yaml
 These parameters guide simulation at runtime.  
@@ -123,7 +124,7 @@ These parameters guide simulation at runtime.
 - ***save_variables***: `["spikes", "cone_noise"]` as default, you can add `"cone_bipo_gen_fir"` to save the middle steps for subunit model and generator potentials for all temporal model types.
 
 ## gain_calibration.yaml
-Here you find the gain calibration values for various model combinations for visual signals and for background noise.
+Here you find the gain calibration values for various model combinations for visual signals and for background noise. To run a simulation with no noise, set the noise_fr_mean parameter to 0.
 
 ## literature.yaml
 Filenames and additional metadata for redigitized literature data. The files and corresponding .jpg images are in the main repo at macaqueretina/retina/literature_data. To visualize the datafiles, see example_utility_methods.py subsection "Sample and view figure data from literature".

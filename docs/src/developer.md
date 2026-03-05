@@ -8,7 +8,7 @@ The parameter_validation adds Brian2 units to some variables to avoid errors in 
 
 You can make any class pretty printable by inheriting from PrintableMixin in project_utilities_module. It shows you attributes by type and methods.
 
-The retina buildup and simulation become memory-heavy with larger retina patches. 
+The retina construction and simulation become memory-heavy with larger retina patches. 
 
 The numpy seed is a legacy function but still used in our code. The seed will be overridden in fit_module, _fit_with_retry method, in case the fit fails.
 

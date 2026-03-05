@@ -7,6 +7,8 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import macaqueretina as mr
+
+mr.load_parameters()
 ```
 
 
@@ -24,7 +26,7 @@ print(mr.config.simulation_parameters)
 
 #### Count lines in codebase, relative to working directory 
 ```python
-mr.countlines(Path("macaqueretina"))
+mr.project_utilities.countlines(Path("macaqueretina"))
 ```
 
 #### Luminance and Photoisomerization calculator
@@ -58,17 +60,18 @@ filename_full = mr.config.git_repo_root_path.joinpath(
 
 # Plot lowest and highest tick values in the image, use these as calibration points
 min_X, max_X, min_Y, max_Y = (0.1, 10, 1, 100)  # Needs to be set for each figure
-ds = mr.DataSampler(filename_full, min_X, max_X, min_Y, max_Y, logX=True, logY=True)
+ds = mr.data_sampler(filename_full, min_X, max_X, min_Y, max_Y, logX=True, logY=True)
 
 # ds.collect_and_save_points() # Will overwrite existing data file -- change filename or move existing file first
 ds.quality_control()  # Show image with calibration and data points
 # x_data, y_data = ds.get_data_arrays() # Get data arrays for further processing
 
+plt.show()
 ```
 
 #### For the rest, you need to run these once to create data files
 ```python
-mr.retina_constructor()
+mr.retina_constructor.construct()
 mr.stimulus_factory.generate()
 ```
 
@@ -79,7 +82,7 @@ filename_parents = mr.config.output_folder
 filename_offspring = mr.config.retina_parameters.mosaic_file
 filename = Path(filename_parents).joinpath(filename_offspring)
 
-data = mr.load_data(filename)
+data = mr.data_io.load_data(filename)
 print(type(data))
 print(data.shape)
 ```
@@ -113,10 +116,10 @@ mr.config.retina_parameters.spatial_model_type = "DOG"  # "DOG", "VAE"
 mr.config.retina_parameters.temporal_model_type = (
     "fixed"  # "fixed", "dynamic", "subunit"
 )
-mr.retina_constructor()
+mr.retina_constructor.construct()
 
 mr.config.simulation_parameters["contrasts_for_impulse"] = (1.0,)
-mr.retina_simulator(impulse=True)
+mr.retina_simulator.simulate(impulse=True)
 mr.viz.show_impulse_response(savefigname=None)
 
 plt.show()
@@ -127,12 +130,12 @@ First, let's make a bigger retina.
 ```python
 mr.config.retina_parameters.ecc_limits_deg = [3.5, 6.5]
 mr.config.retina_parameters.pol_limits_deg = [-15, 15]  
-mr.retina_constructor()
+mr.retina_constructor.construct()
 ```
 Then, get and show Unity region, i.e. where exactly one unit centre overlaps with the retina region. The uniformity index is the proportion of total unity region divided by total retina region.
 
 ```python
-mr.retina_simulator(unity=True)
+mr.retina_simulator.simulate(unity=True)
 mr.viz.show_unity(savefigname=None)
 
 plt.show()

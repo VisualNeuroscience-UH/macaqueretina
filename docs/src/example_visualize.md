@@ -12,9 +12,10 @@ import macaqueretina as mr
 
 ### Build retina, make stimulus and simulate
 ```python
-mr.retina_constructor()
+mr.load_parameters()
+mr.retina_constructor.construct()
 mr.stimulus_factory.generate()
-mr.retina_simulator.simulate(filename=filename)
+mr.retina_simulator.simulate()
 ```
 
 ### Show multiple units for single trial
@@ -62,11 +63,11 @@ mr.viz.show_cone_responses(time_range=[0.0, 1.1], savefigname=None)
 ### Interactive plot of spike frequency on stimulus video 
 ```python
 video_file_name = mr.config.visual_stimulus_parameters.stimulus_video_name
-response_file_name = mr.config.simulation_parameters.gc_response_filenames[0] + ".gz"
+response_file_name = next(mr.config.output_folder.glob("*response*.gz"))
 
 window_length = 0.1  # seconds
 rate_scale = 20  # Hz, Colorscale max amplitude
-mr.viz_spikes_with_stimulus(
+mr.viz_response.show_response_with_stimulus_video(
     video_file_name, response_file_name, window_length, rate_scale
 )
 ```

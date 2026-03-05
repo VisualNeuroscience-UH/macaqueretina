@@ -1,6 +1,6 @@
 ## Setup
 
-- Python 3.11 or higher is required. 
+- Python 3.14 or higher is required. 
 - Git must be installed.
 
 For GPU acceleration, you can install CUDA on systems with an NVIDIA GPU. This is available on both [WSL2](https://docs.nvidia.com/cuda/wsl-user-guide/index.html) and [Linux](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html). While GPU use is optional, it significantly speeds up training the VAE models and other compute-intensive tasks.
@@ -29,7 +29,7 @@ Proceed with the Linux installation instructions once WSL2 is configured and run
 We suggest using [Poetry](https://python-poetry.org/docs/main/) for creating and managing the project environment.
 
 
-### Install mcaqueretina
+### Install macaqueretina
 
 Navigate to your local macaqueretina git repository root and run:
 

@@ -3,6 +3,7 @@ project: "macaqueretina"
 experiment: "test_experiment"
 input_folder: "../in"  # input VAE models, images, videos, other data
 output_folder: "test" # spikes, retinas, experiment metadata
+stimulus_folder: null  # null defaults to "stimuli" or str for stimulus folder name
 numpy_seed: 42  # null for random or int for fixed seed
-device: "cuda"  # "cpu" or "cuda"
+device: "cpu"  # "cpu" or "cuda"
 

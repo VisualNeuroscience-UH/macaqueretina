@@ -562,6 +562,7 @@ class ConfigParams(BaseConfigModel):
     )
     input_folder: str
     output_folder: str
+    stimulus_folder: str | None
     numpy_seed: int | None
     device: Literal["cpu", "cuda"]
 
@@ -593,12 +594,6 @@ class ConfigParams(BaseConfigModel):
 
         return Path(model_root_path)
 
-    @computed_field
-    @property
-    def stimulus_folder(self) -> str:
-        """Stimulus images and videos"""
-        return Path(f"stim_{self.output_folder}")
-
     @field_validator("numpy_seed", mode="after")
     @classmethod
     def return_np_seed(cls, n):
@@ -609,6 +604,10 @@ class ConfigParams(BaseConfigModel):
     @model_validator(mode="after")
     def set_derived_values(self) -> Self:
         """Set parameters that depend on another value in a different class."""
+
+        # stimulus_path
+        if self.stimulus_folder is None:
+            self.stimulus_folder = Path(f"stim_{self.output_folder}")
 
         # Stimulus video name
         if self.visual_stimulus_parameters.stimulus_video_name is None:
