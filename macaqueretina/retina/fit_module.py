@@ -874,6 +874,9 @@ class FitDataTypeTemplate(ABC, PrintableMixin):
         for index, (param, dist) in enumerate(param_distribution_dict.items()):
             experimental_data[:, index] = data_df[param]
 
+            if param == "ampl_c":  # always 1, skip fitting"
+                continue
+
             match dist:
                 case "gamma":
                     shape, loc[index], scale[index] = self._fit_with_retry(

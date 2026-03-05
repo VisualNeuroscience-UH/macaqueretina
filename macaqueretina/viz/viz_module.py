@@ -910,7 +910,7 @@ class Viz:
             if savefigname:
                 self._figsave(figurename=savefigname, suffix="_covariance")
 
-    def show_dendrite_diam_vs_ecc(
+    def show_dendrite_diam_vs_ecc_after_construct(
         self, log_x=False, log_y=False, savefigname: str | None = None
     ):
         """
@@ -1126,9 +1126,9 @@ class Viz:
 
         self.show_temporal_filter_response(n_samples=2)
         self.visualize_mosaic()
-        self.show_dendrite_diam_vs_ecc()
+        self.show_dendrite_diam_vs_ecc_after_construct()
 
-    def show_experimental_data_DoG_fit(
+    def show_experimental_data_DoG_fit_after_construct(
         self, gc_list=None, n_samples=2, savefigname: str | None = None
     ):
         """
@@ -2139,7 +2139,7 @@ class Viz:
         if savefigname:
             self._figsave(figurename=savefigname)
 
-    def show_cell_density_vs_ecc(
+    def show_cell_density_vs_ecc_after_construct(
         self,
         unit_type="gc",
         show_control_data=False,
@@ -2604,7 +2604,9 @@ class Viz:
         if savefigname is not None:
             self._figsave(figurename=savefigname)
 
-    def show_all_gc_responses(self, sweep_idx=0, savefigname: str | None = None):
+    def show_all_gc_responses_after_simulate(
+        self, sweep_idx=0, savefigname: str | None = None
+    ):
         """
         Visualize ganglion cell (gc) responses based on the data in the RetinaSimulator object.
 
@@ -2726,7 +2728,9 @@ class Viz:
         if savefigname is not None:
             self._figsave(figurename=savefigname)
 
-    def show_all_generator_potentials(self, savefigname: str | None = None):
+    def show_all_generator_potentials_after_simulate(
+        self, savefigname: str | None = None
+    ):
         """
         Visualize ganglion cell (gc) generator potentials based on the data in the RetinaSimulator object.
 
@@ -3189,7 +3193,9 @@ class Viz:
         if savefigname is not None:
             self._figsave(figurename=savefigname)
 
-    def show_impulse_response(self, savefigname: str | None = None):
+    def show_impulse_response_after_simulate(
+        self, unit_idx: int = 0, savefigname: str | None = None
+    ):
         viz_dict = self.project_data.retina_simulator["impulse_to_show"]
 
         tvec = viz_dict["tvec"]  # in seconds
@@ -3204,6 +3210,9 @@ class Viz:
         tvec = tvec - start_delay  # shift to start at 0
 
         unit_index = viz_dict["Unit idx"]
+        if unit_idx in unit_index:
+            unit_index = [unit_idx]
+
         ylims = np.array([np.min(impulse_responses), np.max(impulse_responses)])
 
         plt.figure()

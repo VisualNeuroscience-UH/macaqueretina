@@ -41,7 +41,7 @@ filename="my_response.gz"
 mr.retina_constructor.construct()
 mr.stimulus_factory.generate()
 mr.retina_simulator.simulate(filename=filename)
-mr.viz.show_all_gc_responses()
+mr.viz.show_all_gc_responses_after_simulate()
 plt.show()
 ```
 

@@ -31,7 +31,7 @@ for gc_type in gc_types:
         mr.config.retina_parameters.response_type = response_type
         mr.retina_constructor.construct()
         mr.retina_simulator.simulate(filename=filename)
-        mr.viz.show_all_gc_responses(savefigname=None)
+        mr.viz.show_all_gc_responses_after_simulate(savefigname=None)
 
 print(f"Output folder: {mr.config.output_folder}")
 

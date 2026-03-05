@@ -13,8 +13,8 @@ mr.retina_simulator.simulate()
 ##   Show multiple units for single trial   ###
 ###############################################
 
-mr.viz.show_all_gc_responses(savefigname=None)
-mr.viz.show_all_generator_potentials(savefigname=None)
+mr.viz.show_all_gc_responses_after_simulate(savefigname=None)
+mr.viz.show_all_generator_potentials_after_simulate(savefigname=None)
 
 mr.viz.show_stimulus_with_gcs(
     example_gc=None,  # [int,], None for all

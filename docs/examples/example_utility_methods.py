@@ -122,7 +122,7 @@ mr.project_utilities.countlines(Path("macaqueretina"))
 
 # mr.config.simulation_parameters["contrasts_for_impulse"] = (1.0,)
 # mr.retina_simulator.simulate(impulse=True)
-# mr.viz.show_impulse_response(savefigname=None)
+# mr.viz.show_impulse_response_after_simulate(savefigname=None)
 
 # ######################################
 # ###        Show unity data         ###
