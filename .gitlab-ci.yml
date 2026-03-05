@@ -38,8 +38,8 @@ integration_tests2:
   stage: test
   script:
     - echo "Running integration tests..."
-    - pytest tests/integration_tests/test_simulation_cpu.py
-    - pytest tests/integration_tests/test_visual_stimulus.py
+    - pytest tests/integration_tests/test_retina_simulator_cpu.py
+    - pytest tests/integration_tests/test_stimulus_factory.py
   tags:
     - openshift
   variables:
