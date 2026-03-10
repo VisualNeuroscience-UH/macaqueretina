@@ -41,7 +41,7 @@
     "dateModified": "2025-11-26",
     "datePublished": "2025-11-26",
     "description": "This is a Python software to build a model of the primate retina and convert various visual stimuli to ganglion cell action potentials. \nThe simulator is primarily for research, with the intention of providing biologically plausible spike trains for downstream visual cortex simulations.",
-    "downloadUrl": "https://github.com/VisualNeuroscience-UH/macaqueretina",
+    "downloadUrl": "https://github.com/VisualNeuroscience-UH/macaqueretina/archive/refs/tags/v1.1.0.tar.gz",
     "funder": {
         "type": "Organization",
         "name": "Research Council of Finland"
