@@ -28,14 +28,17 @@ poetry shell
 Import into your Python environment:
 ```python
 import macaqueretina as mr
+mr.load_parameters()
 ```
+The `mr.load_parameters()` is necessary after every import.
+
 
 Run the following for a quick example: 
 ```python
 import macaqueretina as mr
 import matplotlib.pyplot as plt
-
 mr.load_parameters()
+
 filename="my_response.gz"
 
 mr.retina_constructor.construct()
@@ -49,5 +52,12 @@ Variables saved to disk can be accessed with:
 ```python
  import macaqueretina as mr 
  
+ mr.load_parameters()
+
  my_data = mr.data_io.load_data(filename)
 ```
+
+### Troubleshooting
+
+- ***unclear exception***: First, empty your output and stimulus directories and retry. Old constructs, stimuli and cone noise will be reused if present and hash matches. Second, check your environment against pyproject.toml file dependencies. Third, raise an issue in github.
+

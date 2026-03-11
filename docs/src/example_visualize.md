@@ -8,11 +8,11 @@ Note that the `plt.show()` is necessary to render the figure after all viz comma
 ```python
 import matplotlib.pyplot as plt
 import macaqueretina as mr
+mr.load_parameters()
 ```
 
 ### Build retina, make stimulus and simulate
 ```python
-mr.load_parameters()
 mr.retina_constructor.construct()
 mr.stimulus_factory.generate()
 mr.retina_simulator.simulate()

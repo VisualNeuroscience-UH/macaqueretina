@@ -77,6 +77,7 @@ mr.stimulus_factory.generate()
 
 #### Load arbitrary data to workspace
 ```python
+filename = "my_responses.gz"
 mr.retina_simulator.simulate(filename=filename)
 filename_parents = mr.config.output_folder
 filename_offspring = mr.config.retina_parameters.mosaic_file
