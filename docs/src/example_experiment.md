@@ -14,6 +14,14 @@ mr.retina_constructor.construct()
 ```
 
 ### Short contrast response function experiment
+First, let's set the stimulus type, frequency and duration
+```python
+mr.config.visual_stimulus_parameters.pattern = "temporal_sine_pattern"
+mr.config.visual_stimulus_parameters.temporal_frequency = 5.0 
+mr.config.visual_stimulus_parameters.duration_seconds = 1.0
+```
+
+
 The `exp_variables` are the variables to be changed in the experiment. 
 See visual_stimulus_parameters.yaml, safe up to two variables
 ```python

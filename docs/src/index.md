@@ -6,4 +6,4 @@ The simulator should be imported as a package and is typically run from Python s
 
 When imported, all parameters are first read from the yaml files, but you have the option of changing the parameters at runtime.
 
-Please cite this software as: Vanni S, Vedele F, Hokkanen H: Macaque retina simulator (in preparation).
+Please cite this software as: Vanni S, Vedele F, Hokkanen H: Macaque retina simulator (under review). The submitted manuscript is available in bioRxiv.

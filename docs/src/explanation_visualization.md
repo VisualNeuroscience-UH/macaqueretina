@@ -4,4 +4,4 @@ During runtime, some variables are temporarily passed into a dictionary `project
 
 See docs/examples/example_visualize.py.
 
-Try dir(mr.viz) or see macaqueretina/viz/viz_module.py for other implementations.
+Try dir(mr.viz) or see macaqueretina/viz/viz_module.py for other figure options.

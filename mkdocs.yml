@@ -24,9 +24,9 @@ nav:
       - Utility methods: example_utility_methods.md
   - Explanation:
       - Overview: explanation_overview.md
-      - Building: explanation_building.md
-      - Stimuli: explanation_stimuli.md
-      - Simulations: explanation_simulations.md
+      - Construction: explanation_construct_retina.md
+      - Stimuli: explanation_generate_stimuli.md
+      - Simulation: explanation_simulate_retina.md
       - Visualization: explanation_visualization.md    
       - References: references.md
 

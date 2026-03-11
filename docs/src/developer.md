@@ -12,6 +12,10 @@ The retina construction and simulation become memory-heavy with larger retina pa
 
 The numpy seed is a legacy function but still used in our code. The seed will be overridden in fit_module, _fit_with_retry method, in case the fit fails.
 
+### Component diagram
+In docs we have the software component diagram which helps navigating the dependency structure. When calling `import macaqueretina`, code at macaqueretina/__init__.py is executed. Because it imports the other key submodules, the submodule specific __init__.py files become executed. These modules call project_manager_module for lazy imports which keeps the software reactive. During the lazy import of a submodule, project manager actually imports the classes and inject dependencies across classes when necessary. Thus, all dependencies crossing subfolder boundaries are handled inside the project_manager_module which supports maintenance of the code.    
+
+
 ### Abbreviations in the code
 ana : analysis  
 cen : center  

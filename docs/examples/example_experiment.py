@@ -13,6 +13,9 @@ mr.retina_constructor.construct()
 ###############################
 ## Build and run experiment ###
 ###############################
+mr.config.visual_stimulus_parameters.pattern = "temporal_sine_pattern"
+mr.config.visual_stimulus_parameters.temporal_frequency = 5.0  # Hz
+mr.config.visual_stimulus_parameters.duration_seconds = 1.0  # plus baselines
 
 # These are the variables to be changed in the experiment
 # See visual_stimulus_parameters, safe up to two variables
