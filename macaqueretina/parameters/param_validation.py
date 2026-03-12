@@ -153,7 +153,7 @@ class StimulusGeneratorParameters(BaseConfigModel):
 
 
 class StimulusMetadataParameters(BaseConfigModel):
-    ext_stimulus_file: Path
+    ext_stimulus_file: str
     ext_pix_per_deg: int = Field(
         default=30, description="VanHateren_1998_ProcRSocLondB 2 arcmin per pixel"
     )
