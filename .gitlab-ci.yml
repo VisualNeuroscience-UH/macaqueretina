@@ -1,5 +1,5 @@
 default:
-  image: python:3.14-bookworm # includes wget and python 3.14
+  image: python:3.14-bookworm
   before_script:
     - export PATH=/tmp/.local/bin:$PATH
     - pip install poetry
@@ -8,43 +8,24 @@ default:
     - source "$VENV_PATH/bin/activate"
     - pip install pyyaml
 
-stages: # stages contain jobs
+stages:
   - test
   - deploy
 
-# Share tests to distinct jobs
-unit_tests:
+tests:
   stage: test
   script:
     - echo "Running unit tests..."
     - pytest tests/unit_tests
-  tags:
-    - openshift
-  variables:
-    HOME: /tmp
-
-integration_tests1:
-  stage: test
-  script:
     - ./get_vae_models.sh -y
     - echo "Running integration tests..."
     - pytest tests/integration_tests/test_retina_constructor_cpu.py
-  tags:
-    - openshift
-  variables:
-    HOME: /tmp
-
-integration_tests2:
-  stage: test
-  script:
-    - echo "Running integration tests..."
     - pytest tests/integration_tests/test_retina_simulator_cpu.py
     - pytest tests/integration_tests/test_stimulus_factory.py
   tags:
     - openshift
   variables:
     HOME: /tmp
-
 
 deploy-prod:
   stage: deploy
@@ -55,7 +36,7 @@ deploy-prod:
     - git push github "+$CI_COMMIT_SHA:main"
   variables:
     HOME: /tmp
-    GIT_DEPTH: "0"  # Disable shallow clone
+    GIT_DEPTH: "0"
   rules:
     - if: $CI_COMMIT_REF_NAME == "main"
   tags:
