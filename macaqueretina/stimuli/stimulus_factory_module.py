@@ -744,6 +744,7 @@ class StimulusPattern:
 
         After this integration, the method updates the raw intensity values based on the new data.
         """
+        # TODO: scale images to ext_pix_per_deg as with videos
         image_file_name = self.config.external_stimulus_parameters["ext_stimulus_file"]
         self.image = self.data_io.load_data(image_file_name)
 
