@@ -967,7 +967,9 @@ class StimulusFactory(VideoClass):
                 )
 
         # Load stimulus if it exists, identified by hash of parameters. Otherwise, make new stimulus and save.
+        visual_stimulus_parameters.video_hash = None
         video_hash = self.config.visual_stimulus_parameters.hash()
+
         video_name_stem = Path(visual_stimulus_parameters.stimulus_video_name).stem
         video_file_name = video_name_stem + "_" + video_hash + ".hdf5"
         video_file_full = self.data_io.parse_path("", substring=video_file_name)
@@ -977,6 +979,7 @@ class StimulusFactory(VideoClass):
                 video_file_full,
             )
             stimulus_video = self.data_io.load_stimulus_from_videofile(video_file_full)
+
             # The following two are references to self.config.visual_stimulus_parameters
             visual_stimulus_parameters.stimulus_video_name = video_file_name
             visual_stimulus_parameters.video_hash = video_hash
@@ -986,8 +989,8 @@ class StimulusFactory(VideoClass):
                 "Did not find existing stimulus video hash, making a stimulus with the following properties:"
             )
             visual_stimulus_parameters.stimulus_video_name = video_file_name
+            visual_stimulus_parameters.video_hash = video_hash
 
-        visual_stimulus_parameters["video_hash"] = video_hash
         for this_option in visual_stimulus_parameters:
             print(this_option, ":", visual_stimulus_parameters[this_option])
             if this_option not in self.options.keys():
