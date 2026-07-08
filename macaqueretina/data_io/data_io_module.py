@@ -233,7 +233,7 @@ class DataIO:
             raise FileNotFoundError(f"I could not find file {filename}, aborting...")
 
         # Open file by extension type
-        filename_extension = data_fullpath_filename.suffix
+        filename_extension = data_fullpath_filename.suffix.lower()
 
         if filename_extension in [".gz", ".pkl"]:
             try:
@@ -252,7 +252,7 @@ class DataIO:
                 # data = data.drop(["Unnamed: 0"], axis=1)
                 data.set_index("Unnamed: 0", inplace=True)
                 data.index.name = None
-        elif filename_extension in [".jpg", ".png"]:
+        elif filename_extension in [".jpg", ".jpeg", ".png"]:
             # The 0-flag calls for grayscale. Comes in as uint8 type
             image = cv2.imread(str(data_fullpath_filename), 0)
 
@@ -365,6 +365,13 @@ class DataIO:
                 np.savez(filename, **data)
             case ".h5" | ".hdf5":
                 self._save_hdf5(filename, data)
+            case ".jpg" | ".png":
+                if isinstance(data, np.ndarray):
+                    cv2.imwrite(str(filename), data)
+                else:
+                    raise ValueError(
+                        "Data must be a numpy array to save as an image file."
+                    )
             case _:
                 raise TypeError("Unknown file type for saving data")
 
