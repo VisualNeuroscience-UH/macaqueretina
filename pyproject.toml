@@ -54,6 +54,7 @@ mkdocs = "^1.6.1"
 mkdocs-material = "^9.6.21"
 mkdocstrings-python = "^1.18.2"
 ruff = "^0.6.0"
+imagesize = "*"
 
 [tool.poetry.scripts]
 run_macaqueretina = "project.project_manager_module:main"
