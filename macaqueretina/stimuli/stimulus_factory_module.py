@@ -740,18 +740,23 @@ class StimulusPattern:
         This method handles natural images loading an image file based on the provided
         stimulus metadata. The selected image is then resized to match the frame dimensions.
         The resized image is integrated with the frames by multiplying it, enabling the
-        creation of astimulus pattern.
+        creation of a stimulus video.
 
         After this integration, the method updates the raw intensity values based on the new data.
         """
-        # TODO: scale images to ext_pix_per_deg as with videos
+
         image_file_name = self.config.external_stimulus_parameters["ext_stimulus_file"]
-        self.image = self.data_io.load_data(image_file_name)
+        image = self.data_io.load_data(image_file_name)
 
-        # resize image by specifying custom width and height
-        resized_image = resize(self.image, self.frames.shape[1:])
+        image_pix_per_deg = self.config.external_stimulus_parameters["ext_pix_per_deg"]
 
-        # add new axis to b to use numpy broadcasting
+        if image_pix_per_deg != self.options["pix_per_deg"]:
+            scale_factor = image_pix_per_deg / self.options["pix_per_deg"]
+            new_height = int(image.shape[0] * scale_factor)
+            new_width = int(image.shape[1] * scale_factor)
+            scaled_image = resize(image, (new_width, new_height))
+
+        resized_image = resize(scaled_image, self.frames.shape[1:])
         resized_image = resized_image[np.newaxis, :, :]
 
         self.frames = self.frames * resized_image
