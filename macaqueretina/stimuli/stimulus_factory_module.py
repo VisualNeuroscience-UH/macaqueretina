@@ -749,18 +749,40 @@ class StimulusPattern:
         image = self.data_io.load_data(image_file_name)
 
         image_pix_per_deg = self.config.external_stimulus_parameters["ext_pix_per_deg"]
+        image_scale_factor = self.options["pix_per_deg"] / image_pix_per_deg
+        resized_image = resize(
+            image, None, fx=image_scale_factor, fy=image_scale_factor
+        )
 
-        if image_pix_per_deg != self.options["pix_per_deg"]:
-            scale_factor = image_pix_per_deg / self.options["pix_per_deg"]
-            new_height = int(image.shape[0] * scale_factor)
-            new_width = int(image.shape[1] * scale_factor)
-            scaled_image = resize(image, (new_width, new_height))
+        if (
+            resized_image.shape[0] < self.frames.shape[1]
+            or resized_image.shape[1] < self.frames.shape[2]
+        ):
+            # Pad the scaled image to ensure it is large enough for cropping
+            pad_height = max(0, self.frames.shape[1] - resized_image.shape[0])
+            pad_width = max(0, self.frames.shape[2] - resized_image.shape[1])
+            background = self.options["background"] / 255.0
+            frame_image = np.pad(
+                resized_image,
+                (
+                    (pad_height // 2, pad_height - pad_height // 2),
+                    (pad_width // 2, pad_width - pad_width // 2),
+                ),
+                mode="constant",
+                constant_values=background,
+            )
+        else:
+            # Crop the scaled image to match the frame dimensions
+            start_y = (resized_image.shape[0] - self.frames.shape[1]) // 2
+            start_x = (resized_image.shape[1] - self.frames.shape[2]) // 2
+            frame_image = resized_image[
+                start_y : start_y + self.frames.shape[1],
+                start_x : start_x + self.frames.shape[2],
+            ]
 
-        resized_image = resize(scaled_image, self.frames.shape[1:])
-        resized_image = resized_image[np.newaxis, :, :]
+        frame_image = frame_image[np.newaxis, :, :]
 
-        self.frames = self.frames * resized_image
-
+        self.frames = self.frames * frame_image
         self._raw_intensity_from_data()
 
     def natural_video(self):
