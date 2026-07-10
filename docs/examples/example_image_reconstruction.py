@@ -11,16 +11,18 @@ from torchvision.transforms import v2
 
 # Local
 import macaqueretina as mr
+from macaqueretina.analysis.image_reconstruction_module import ImageReconstruction
 
 mr.load_parameters()
 
 
 start_time = time.time()
 
-rootpath = Path("/opt3/images/vanHateren/imc_images")
+rootpath = Path("/opt3/images/vanHateren/imc_images_train")
 # rootpath = Path("/opt3/images/ImageNet")
-H = W = 256
-n_images = 1000
+H = W = 120
+n_images = 3334
+# n_images = 835 # test
 # torch.manual_seed(42)
 
 transform = v2.Compose(
@@ -37,6 +39,7 @@ class TransformWrapper(Dataset):
     def __init__(self, dataset, transform=None):
         self.dataset = dataset
         self.transform = transform
+        self.get_original_image = getattr(dataset.dataset, "get_original_image", None)
 
     def __getitem__(self, idx):
         image, label = self.dataset[idx]
@@ -68,12 +71,7 @@ class VanHaterenDataset(Dataset):
         return len(self.image_paths)
 
     def __getitem__(self, idx):
-        with open(self.image_paths[idx], "rb") as handle:
-            s = handle.read()
-
-        img = np.frombuffer(s, dtype="uint16").byteswap()
-
-        img = img.reshape(1024, 1536).astype(np.float32)
+        img = self.get_original_image(idx)
 
         # Image trasforms follow Simo's van_hateren_script2
         # Z normalize
@@ -91,6 +89,16 @@ class VanHaterenDataset(Dataset):
 
         # Return a dummy label (0) since Van Hateren images don't have labels
         return img, 0
+
+    def get_original_image(self, idx):
+        """Return the original image as a numpy array."""
+        with open(self.image_paths[idx], "rb") as handle:
+            s = handle.read()
+
+        img = np.frombuffer(s, dtype="uint16").byteswap()
+        img = img.reshape(1024, 1536).astype(np.float32)
+
+        return img
 
 
 def create_filtered_imagenet(root, H, W, batch_size=1024, split="train"):
@@ -223,59 +231,6 @@ def get_filenames_from_dataloader(data_loader):
     return [imagenet.samples[filtered_indices[i]][0] for i in subset_indices]
 
 
-def show_original_vs_transformed(data_loader, filenames, wait_time=0.5):
-    """
-    Quality control.
-    Display original and transformed images side-by-side, one pair at a time.
-    """
-    import matplotlib.image as mpimg
-
-    dataset = data_loader.dataset
-
-    if len(filenames) != len(dataset):
-        raise ValueError(
-            f"Length of filenames ({len(filenames)}) does not match dataset length ({len(dataset)})"
-        )
-
-    plt.ion()
-    fig, axes = plt.subplots(1, 2, figsize=(10, 5))
-    fig.suptitle("Original vs Transformed")
-
-    for idx in range(len(dataset)):
-        # Get transformed image
-        img_transformed, _ = dataset[idx]
-        img_transformed = img_transformed.numpy()
-
-        # Handle channel dimension
-        if img_transformed.ndim == 3 and img_transformed.shape[0] == 1:
-            img_transformed = img_transformed.squeeze(0)
-
-        # Get original image
-        img_original = mpimg.imread(filenames[idx])
-        if img_original.ndim == 3 and img_original.shape[2] == 3:
-            img_original = np.mean(img_original, axis=2)
-        if img_original.max() > 1:
-            img_original = img_original / 255.0
-
-        # Display
-        axes[0].imshow(img_original, cmap="gray", vmin=0, vmax=1)
-        axes[0].imshow(img_original, cmap="gray", vmin=0, vmax=1)
-        axes[0].set_title("Original")
-        axes[0].axis("off")
-
-        axes[1].imshow(img_transformed, cmap="gray", vmin=0, vmax=1)
-        axes[1].set_title("Transformed")
-        axes[1].axis("off")
-
-        plt.draw()
-        plt.pause(wait_time)
-
-        axes[0].clear()
-        axes[1].clear()
-
-    plt.ioff()
-
-
 def save_transformed_images(output_dir, data_loader, filenames):
     """
     Save transformed images to disk for later use.
@@ -316,17 +271,10 @@ def get_filenames(this_name):
     return simulation_results_filename, stimulus_video_name
 
 
-data_loader = get_vanhateren_dataloader(batch_size=4, shuffle=True, num_workers=0)
+data_loader = get_vanhateren_dataloader(batch_size=32, shuffle=True, num_workers=4)
 # data_loader = get_imagenet_dataloader(batch_size=4, shuffle=True, num_workers=0)
 filenames = data_loader.filenames
 
-
-# Quality control
-# show_original_vs_transformed(data_loader, filenames, wait_time=0.5)
-
-# Save transformed ImageNet images to disk for later use
-output_dir = Path(f"{rootpath}_transformed")
-transformed_filenames = save_transformed_images(output_dir, data_loader, filenames)
 
 # # Get one batch from the DataLoader
 # images, labels = next(iter(data_loader))
@@ -344,37 +292,45 @@ mr.config.visual_stimulus_parameters.baseline_start_seconds = 0.1
 mr.config.visual_stimulus_parameters.baseline_end_seconds = 0.3
 mr.config.visual_stimulus_parameters.pattern = "natural_image"
 
-# plt.ion()
-
 # Main loop
 gc_types = ["parasol", "midget"]
 response_types = ["on", "off"]
-for gc_type in gc_types:
-    for response_type in response_types:
-        mr.config.retina_parameters.gc_type = gc_type
-        mr.config.retina_parameters.response_type = response_type
 
-        mr.retina_constructor.construct()  # Reuses existing matching retina
 
-        for this_name in transformed_filenames:
-            mr.config.external_stimulus_parameters.ext_stimulus_file = str(this_name)
+def simulate_retina():
+    # Save transformed images to disk for simulation
+    output_dir = Path(f"{rootpath}_transformed")
+    transformed_filenames = save_transformed_images(output_dir, data_loader, filenames)
 
-            simulation_results_filename, stimulus_video_name = get_filenames(this_name)
+    for gc_type in gc_types:
+        for response_type in response_types:
+            mr.config.retina_parameters.gc_type = gc_type
+            mr.config.retina_parameters.response_type = response_type
 
-            mr.config.visual_stimulus_parameters.stimulus_video_name = (
-                stimulus_video_name
-            )
+            mr.retina_constructor.construct()  # Reuses existing matching retina
 
-            mr.stimulus_factory.generate()  # Reuses existing matching stimulus
+            for this_name in transformed_filenames:
+                mr.config.external_stimulus_parameters.ext_stimulus_file = str(
+                    this_name
+                )
 
-            mr.retina_simulator.simulate(filename=simulation_results_filename)
+                simulation_results_filename, stimulus_video_name = get_filenames(
+                    this_name
+                )
 
-            # mr.viz.show_all_gc_responses_after_simulate(savefigname=None)
-            # mr.viz.show_stimulus_with_gcs(frame_number=31, savefigname=None)
-            # plt.show()
-            # plt.draw()
+                mr.config.visual_stimulus_parameters.stimulus_video_name = (
+                    stimulus_video_name
+                )
 
-# plt.ioff()
+                mr.stimulus_factory.generate()  # Reuses existing matching stimulus
+
+                mr.retina_simulator.simulate(filename=simulation_results_filename)
+
+
+simulate_retina()
+
+reco = ImageReconstruction(mr.config, mr.data_io)
+reco.create_model(n_images=n_images, gc_types=gc_types, response_types=response_types)
 
 print(f"Output folder: {mr.config.output_folder}")
 
