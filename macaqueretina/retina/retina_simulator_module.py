@@ -2912,7 +2912,7 @@ class ConeProduct(NeuralUnits):
 
         cone_pos_mm = self.ret_npz["cone_optimized_pos_mm"]
         cone_pos_deg = cone_pos_mm * vs.deg_per_mm
-        q, r = vs._vspace_to_pixspace(cone_pos_deg[:, 0], cone_pos_deg[:, 1])
+        q, r = vs.vspace_to_pixspace(cone_pos_deg[:, 0], cone_pos_deg[:, 1])
         q_idx = np.floor(q).astype(int)
         r_idx = np.floor(r).astype(int)
 
@@ -3396,7 +3396,7 @@ class GanglionCellProduct(NeuralUnits):
         df = self.df
         # Endow RGCs with pixel coordinates.
         pixspace_pos = np.array(
-            [vs._vspace_to_pixspace(gc.x_deg, gc.y_deg) for index, gc in df.iterrows()]
+            [vs.vspace_to_pixspace(gc.x_deg, gc.y_deg) for index, gc in df.iterrows()]
         )
         # Assert that the pixel coordinates are within the stimulus space
 
@@ -3440,7 +3440,7 @@ class GanglionCellProduct(NeuralUnits):
             y_deg_s = y_diff_deg * df.gc_scaling_factors + df.y_deg
             # 7) Transform the degrees coordinates to pixel coordinates in stimulus space
             pixspace_pos_s = np.array(
-                [vs._vspace_to_pixspace(x, y) for x, y in zip(x_deg_s, y_deg_s)]
+                [vs.vspace_to_pixspace(x, y) for x, y in zip(x_deg_s, y_deg_s)]
             )
 
             pixspace_coords = pd.DataFrame(
@@ -3622,7 +3622,7 @@ class VisualSignal(PrintableMixin):
         self.baseline_len_tp = self.stimulus_video.baseline_len_tp
         self.mean_luminance = self.options_from_videofile["mean"]
 
-    def _vspace_to_pixspace(self, x: float, y: float) -> tuple[float, float]:
+    def vspace_to_pixspace(self, x: float, y: float) -> tuple[float, float]:
         """
         Converts visual space coordinates to pixel space coordinates.
 
@@ -3893,6 +3893,59 @@ class RetinaSimulator:
 
         return vs
 
+    def _get_retina_patch_pixel_mask(self, vs: VisualSignal) -> VisualSignal:
+        """
+        Attach retina patch pixel mask to visual signal.
+
+        Parameters
+        ----------
+        vs : VisualSignal
+            Visual signal object.
+
+        Returns
+        -------
+        VisualSignal
+            Updated visual signal object with retina patch pixel mask.
+        """
+
+        # Get corner points of the retina patch in visual space
+        # breakpoint()
+        ecc = self.config.retina_parameters["ecc_limits_deg"]
+        pol = self.config.retina_parameters["pol_limits_deg"]
+        corner_points_deg = np.array(
+            [
+                [ecc[0], pol[0]],
+                [ecc[0], pol[1]],
+                [ecc[1], pol[1]],
+                [ecc[1], pol[0]],
+            ]
+        )
+        xcorner_points_cart, ycorner_points_cart = self.retina_math.pol2cart(
+            corner_points_deg[:, 0], corner_points_deg[:, 1]
+        )
+        xcorner_points_pix, ycorner_points_pix = vs.vspace_to_pixspace(
+            xcorner_points_cart, ycorner_points_cart
+        )
+
+        from matplotlib.path import Path as MplPath
+
+        path = MplPath(np.column_stack((xcorner_points_pix, ycorner_points_pix)))
+
+        min_x = 0
+        max_x = self.config.visual_stimulus_parameters.image_width
+        min_y = 0
+        max_y = self.config.visual_stimulus_parameters.image_height
+
+        x_coords = np.arange(min_x, max_x)
+        y_coords = np.arange(min_y, max_y)
+        xx, yy = np.meshgrid(x_coords, y_coords)
+        points = np.column_stack((xx.ravel(), yy.ravel()))
+
+        mask = path.contains_points(points)
+        vs.retina_patch_pixel_mask = mask.reshape((len(y_coords), len(x_coords)))
+
+        return vs
+
     def _get_products(
         self, stimulus: StimulusFactory | None
     ) -> tuple[VisualSignal, GanglionCellProduct, ConeProduct, BipolarProduct]:
@@ -3959,6 +4012,9 @@ class RetinaSimulator:
 
         # Link ganglion cell receptive fields to visual signal. Eg applies rotation
         gcs.link_gcs_to_vs(vs)
+
+        # Attach retina patch pixel mask to vs
+        vs = self._get_retina_patch_pixel_mask(vs)
 
         return vs, gcs, cones, bipolars
 
