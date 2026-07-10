@@ -206,6 +206,7 @@ class DataIO:
         exclude_substring=None,
         return_filename=False,
         full_path=None,
+        hush=False,
     ):
         """
         Open requested file and get data.
@@ -274,7 +275,8 @@ class DataIO:
         else:
             raise TypeError("U r trying to input unknown filetype, aborting...")
 
-        print(f"Loaded file {data_fullpath_filename}")
+        if not hush:
+            print(f"Loaded file {data_fullpath_filename}")
 
         if return_filename is True:
             return data, data_fullpath_filename
