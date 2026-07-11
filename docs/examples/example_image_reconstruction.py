@@ -18,12 +18,32 @@ mr.load_parameters()
 
 start_time = time.time()
 
-rootpath = Path("/opt3/images/vanHateren/imc_images_train")
-# rootpath = Path("/opt3/images/ImageNet")
-H = W = 120
-n_images = 3334
-# n_images = 835 # test
+"""
+Quantitative evaluation of Macaque Retina Simulator
+
+Simulate responses to natural images, build linear reconstruction models from spike data,
+and evaluate model performance by comparing reconstructed images to originals.
+
+Sequence of operations:
+1) dataset = "train", 3333 images available
+2) operation = "simulate" # Creates the retina spike data for model construction
+3) operation = "construct_model" # Creates the model from train data
+
+4) dataset = "test", 834 images available
+5) operation = "simulate" # Creates the retina spike data for testing the model
+6) operation = "reconstruct" # Reconstructs the images from the test spike data
+"""
+
+
+dataset = "train"
+n_images = 3333
+operation = "simulate"
 # torch.manual_seed(42)
+
+image_rootpath = Path(f"/opt3/images/vanHateren/imc_images_{dataset}")
+H = W = 120
+
+model_filename = f"W_{H}x{W}.npz"
 
 transform = v2.Compose(
     [
@@ -153,12 +173,12 @@ def get_imagenet_dataloader(batch_size=32, shuffle=True, num_workers=0):
     """
     # 1. Load the full dataset (metadata only, no actual image loading yet)
     full_dataset = datasets.ImageNet(
-        root=rootpath,
+        root=image_rootpath,
         transform=None,
     )
 
     # 2. Load precalculated indices for images with resolution >= (H, W)
-    full_path = rootpath / f"imagenet_train_{H}_{W}_indices.pt"
+    full_path = image_rootpath / f"imagenet_train_{H}_{W}_indices.pt"
     if full_path.exists():
         indices = torch.load(full_path)
         print(f"Loaded {len(indices)} valid indices from {full_path}")
@@ -166,7 +186,7 @@ def get_imagenet_dataloader(batch_size=32, shuffle=True, num_workers=0):
         print(
             f"Indices file {full_path} not found. Getting and saving ImageNet indices..."
         )
-        create_filtered_imagenet(rootpath, H, W)
+        create_filtered_imagenet(image_rootpath, H, W)
         indices = torch.load(full_path)
 
     filtered_dataset = Subset(full_dataset, indices)
@@ -195,7 +215,7 @@ def get_imagenet_dataloader(batch_size=32, shuffle=True, num_workers=0):
 
 def get_vanhateren_dataloader(batch_size=32, shuffle=True, num_workers=4):
     # 1. Load dataset (metadata only, no transforms)
-    full_dataset = VanHaterenDataset(root_dir=rootpath)
+    full_dataset = VanHaterenDataset(root_dir=image_rootpath)
 
     # 2. Select a random subset of n_images
     subset_indices = torch.randperm(len(full_dataset))[:n_images]
@@ -231,11 +251,12 @@ def get_filenames_from_dataloader(data_loader):
     return [imagenet.samples[filtered_indices[i]][0] for i in subset_indices]
 
 
-def save_transformed_images(output_dir, data_loader, filenames):
+def save_transformed_images(output_dir, data_loader):
     """
     Save transformed images to disk for later use.
     """
     dataset = data_loader.dataset
+    filenames = data_loader.filenames
 
     if len(filenames) != len(dataset):
         raise ValueError(
@@ -250,6 +271,7 @@ def save_transformed_images(output_dir, data_loader, filenames):
         img_transformed, _ = dataset[idx]
         img_transformed = img_transformed.numpy().squeeze(0) * 255.0
         img_transformed = img_transformed.astype(np.uint8)  # Convert to uint8
+
         output_name = output_dir / f"{Path(filenames[idx]).stem}_{H}x{W}.jpg"
         output_names.append(output_name)
         mr.data_io.save_data(output_name, img_transformed)
@@ -273,17 +295,12 @@ def get_filenames(this_name):
 
 data_loader = get_vanhateren_dataloader(batch_size=32, shuffle=True, num_workers=4)
 # data_loader = get_imagenet_dataloader(batch_size=4, shuffle=True, num_workers=0)
-filenames = data_loader.filenames
-
-
-# # Get one batch from the DataLoader
-# images, labels = next(iter(data_loader))
 
 # Spatial parameters. H = external stimulus height (pix), W = external stimulus width (pix)
 mr.config.external_stimulus_parameters.ext_pix_per_deg = 30
 
-mr.config.visual_stimulus_parameters.image_height = 120
-mr.config.visual_stimulus_parameters.image_width = 120
+mr.config.visual_stimulus_parameters.image_height = H
+mr.config.visual_stimulus_parameters.image_width = W
 mr.config.visual_stimulus_parameters.stimulus_size = 0.8
 mr.config.visual_stimulus_parameters.pix_per_deg = 60
 
@@ -299,8 +316,8 @@ response_types = ["on", "off"]
 
 def simulate_retina():
     # Save transformed images to disk for simulation
-    output_dir = Path(f"{rootpath}_transformed")
-    transformed_filenames = save_transformed_images(output_dir, data_loader, filenames)
+    output_dir = Path(f"{image_rootpath}_transformed")
+    transformed_filenames = save_transformed_images(output_dir, data_loader)
 
     for gc_type in gc_types:
         for response_type in response_types:
@@ -327,12 +344,50 @@ def simulate_retina():
                 mr.retina_simulator.simulate(filename=simulation_results_filename)
 
 
-simulate_retina()
+match operation:
+    case "simulate":
+        simulate_retina()
 
-reco = ImageReconstruction(mr.config, mr.data_io)
-reco.create_model(n_images=n_images, gc_types=gc_types, response_types=response_types)
+    case "construct_model":
+        reco = ImageReconstruction(mr.config, mr.data_io)
 
-print(f"Output folder: {mr.config.output_folder}")
+        R, S, _ = reco.get_spikes_and_images(
+            n_images=n_images, gc_types=gc_types, response_types=response_types
+        )
+        W, S_mean = reco.create_model(R, S, ridge_lambda=0.0)
+
+        # Pack W and S_mean into npz
+        model_data = {"W": W, "S_mean": S_mean}
+
+        mr.data_io.save_data(
+            filename=model_filename, data=model_data, path=mr.config.path
+        )
+
+    case "reconstruct":
+        reco = ImageReconstruction(mr.config, mr.data_io)
+
+        if Path(mr.config.path / model_filename).is_file():
+            model_data = mr.data_io.load_data(filename=model_filename)
+            W = model_data["W"]
+            S_mean = model_data["S_mean"]
+        else:
+            raise FileNotFoundError(
+                f"Model file {model_filename} not found. Please run 'construct_model' first."
+            )
+
+        R_test, S_test, retina_mask = reco.get_spikes_and_images(
+            n_images=n_images, gc_types=gc_types, response_types=response_types
+        )
+
+        S_test_img = reco.reconstruct_images(S_test, retina_mask)
+
+        S_estimated = reco.estimate_model(W, R_test, S_mean)
+        S_estimated_img = reco.reconstruct_images(S_estimated, retina_mask)
+
+        print(
+            f"Correlation: {np.corrcoef(S_estimated.flatten(), S_test.flatten())[0, 1]}"
+        )
+
 
 end_time = time.time()
 print(f"Time taken: {end_time - start_time:.2f} seconds")
