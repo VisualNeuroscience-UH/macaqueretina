@@ -1,3 +1,4 @@
+import shutil
 import time
 from pathlib import Path
 
@@ -15,7 +16,6 @@ from macaqueretina.analysis.image_reconstruction_module import ImageReconstructi
 
 mr.load_parameters()
 
-
 start_time = time.time()
 
 """
@@ -25,25 +25,25 @@ Simulate responses to natural images, build linear reconstruction models from sp
 and evaluate model performance by comparing reconstructed images to originals.
 
 Sequence of operations:
-1) dataset = "train", 3333 images available
-2) operation = "simulate" # Creates the retina spike data for model construction
-3) operation = "construct_model" # Creates the model from train data
+dataset = "train", 3330 images available
+1) operation = "simulate" # Creates the retina spike data for model construction
+2) operation = "construct_model" # Creates the model from train data
 
-4) dataset = "test", 834 images available
-5) operation = "simulate" # Creates the retina spike data for testing the model
-6) operation = "reconstruct" # Reconstructs the images from the test spike data
+dataset = "test", 834 images available
+3) operation = "simulate" # Creates the retina spike data for testing the model
+4) operation = "reconstruct" # Reconstructs the images from the test spike data
 """
 
 
-dataset = "train"
-n_images = 3333
-operation = "simulate"
-# torch.manual_seed(42)
+dataset = "train"  # "train" or "test"
+n_images = 3330
+operation = "simulate"  # "simulate", "construct_model", or "reconstruct"
 
 image_rootpath = Path(f"/opt3/images/vanHateren/imc_images_{dataset}")
 H = W = 120
+# torch.manual_seed(42)
 
-model_filename = f"W_{H}x{W}.npz"
+model_filename = f"W_{H}x{W}_subunit.npz"
 
 transform = v2.Compose(
     [
@@ -167,7 +167,7 @@ def create_filtered_imagenet(root, H, W, batch_size=1024, split="train"):
     print(f"Filtered dataset: {len(subset)} images")
 
 
-def get_imagenet_dataloader(batch_size=32, shuffle=True, num_workers=0):
+def get_imagenet_dataloader(batch_size=32, shuffle=True, num_workers=4):
     """
     Get a DataLoader for the filtered ImageNet dataset with images of resolution >= (H, W).
     """
@@ -253,7 +253,7 @@ def get_filenames_from_dataloader(data_loader):
 
 def save_transformed_images(output_dir, data_loader):
     """
-    Save transformed images to disk for later use.
+    Save transformed images to disk for retina simulator.
     """
     dataset = data_loader.dataset
     filenames = data_loader.filenames
@@ -272,7 +272,8 @@ def save_transformed_images(output_dir, data_loader):
         img_transformed = img_transformed.numpy().squeeze(0) * 255.0
         img_transformed = img_transformed.astype(np.uint8)  # Convert to uint8
 
-        output_name = output_dir / f"{Path(filenames[idx]).stem}_{H}x{W}.jpg"
+        # output_name = output_dir / f"{Path(filenames[idx]).stem}_{H}x{W}.jpg"
+        output_name = output_dir / f"{Path(filenames[idx]).stem}_{H}x{W}.png"
         output_names.append(output_name)
         mr.data_io.save_data(output_name, img_transformed)
 
@@ -293,8 +294,45 @@ def get_filenames(this_name):
     return simulation_results_filename, stimulus_video_name
 
 
+def update_folders(dataset):
+    # Remove existing output and stimulus folders which do not yet define the train/test division.
+    shutil.rmtree(mr.config.output_folder, ignore_errors=True)
+    shutil.rmtree(mr.config.stimulus_folder, ignore_errors=True)
+
+    # Create appropriate output and stimulus folders for the current dataset.
+    mr.config.output_folder = Path(str(mr.config.output_folder) + f"_{dataset}")
+    mr.config.output_folder.mkdir(parents=True, exist_ok=True)
+    mr.config.stimulus_folder = Path(str(mr.config.stimulus_folder) + f"_{dataset}")
+    mr.config.stimulus_folder.mkdir(parents=True, exist_ok=True)
+
+
+def transfer_file_to_test():
+    """
+    Transfer a file from the train dataset to the test dataset for consistency.
+    """
+    files_to_transfer_to_test = [
+        "*_metadata.yaml",
+        "*_mosaic.csv",
+        "*_ret.npz",
+        "*_spatial_rfs.npz",
+    ]
+    train_folder_path = Path(str(mr.config.output_folder)[:-5] + "_train")
+    if not train_folder_path.exists():
+        raise FileNotFoundError(
+            f"Train folder {train_folder_path} does not exist. Please run the 'train' dataset first."
+        )
+
+    for pattern in files_to_transfer_to_test:
+        for file in train_folder_path.glob(pattern):
+            shutil.copy(file, mr.config.output_folder)
+
+
 data_loader = get_vanhateren_dataloader(batch_size=32, shuffle=True, num_workers=4)
-# data_loader = get_imagenet_dataloader(batch_size=4, shuffle=True, num_workers=0)
+
+update_folders(dataset)
+
+if dataset == "test" and operation == "simulate":
+    transfer_file_to_test()
 
 # Spatial parameters. H = external stimulus height (pix), W = external stimulus width (pix)
 mr.config.external_stimulus_parameters.ext_pix_per_deg = 30
@@ -343,6 +381,10 @@ def simulate_retina():
 
                 mr.retina_simulator.simulate(filename=simulation_results_filename)
 
+    # Remove the transformed images after simulation
+
+    shutil.rmtree(output_dir, ignore_errors=True)
+
 
 match operation:
     case "simulate":
@@ -355,6 +397,10 @@ match operation:
             n_images=n_images, gc_types=gc_types, response_types=response_types
         )
         W, S_mean = reco.create_model(R, S, ridge_lambda=0.0)
+
+        # If any value in W or S_mean is NaN, raise an error
+        if np.isnan(W).any() or np.isnan(S_mean).any():
+            raise ValueError("Model contains NaN values.")
 
         # Pack W and S_mean into npz
         model_data = {"W": W, "S_mean": S_mean}
@@ -387,7 +433,41 @@ match operation:
         print(
             f"Correlation: {np.corrcoef(S_estimated.flatten(), S_test.flatten())[0, 1]}"
         )
+        # # breakpoint()
+        # fig, ax = plt.subplots(1, 2, figsize=(10, 5))
+        # plt.ion()
 
+        # # Create initial images and colorbars once
+        # img0 = ax[0].imshow(S_test_img[0], cmap="gray")
+        # cbar0 = fig.colorbar(img0, ax=ax[0])
+        # cbar0.set_label("Pixel Intensity")
+        # ax[0].set_title("Original Image")
+        # ax[0].axis("off")
+
+        # img1 = ax[1].imshow(S_estimated_img[0], cmap="gray")
+        # cbar1 = fig.colorbar(img1, ax=ax[1])
+        # cbar1.set_label("Pixel Intensity")
+        # ax[1].set_title("Reconstructed Image")
+        # ax[1].axis("off")
+
+        # plt.tight_layout()
+        # plt.draw()
+
+        # # Update existing figure in each iteration
+        # for this_img in range(10, min(15, n_images)):
+        #     img0.set_data(S_test_img[this_img])
+        #     img1.set_data(S_estimated_img[this_img])
+
+        #     # Update colorbar ranges
+        #     img0.set_clim(S_test_img[this_img].min(), S_test_img[this_img].max())
+        #     img1.set_clim(
+        #         S_estimated_img[this_img].min(), S_estimated_img[this_img].max()
+        #     )
+
+        #     plt.draw()
+        #     plt.pause(5.0)
+
+        # plt.ioff()
 
 end_time = time.time()
 print(f"Time taken: {end_time - start_time:.2f} seconds")
