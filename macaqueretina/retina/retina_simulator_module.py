@@ -3909,7 +3909,6 @@ class RetinaSimulator:
         """
 
         # Get corner points of the retina patch in visual space
-        # breakpoint()
         ecc = self.config.retina_parameters["ecc_limits_deg"]
         pol = self.config.retina_parameters["pol_limits_deg"]
         corner_points_deg = np.array(
