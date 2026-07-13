@@ -352,6 +352,15 @@ class ImageReconstruction:
 
         S, S_hash = self._get_stimulus_matrix(image_data_dicts, n_images, retina_mask)
 
+        # Some images may be corrupted. These are removed.
+        nan_rows = np.where(np.isnan(S).any(axis=1))[0]
+
+        if len(nan_rows) > 0:
+            S = np.delete(S, nan_rows, axis=0)
+            S_hash = np.delete(S_hash, nan_rows, axis=0)
+            R = np.delete(R, nan_rows, axis=0)
+            R_hash = np.delete(R_hash, nan_rows, axis=0)
+
         # Check for video hash order between stimulus videos and responses.
         if not (R_hash == S_hash[:, np.newaxis]).all():
             raise ValueError(
@@ -415,7 +424,7 @@ class ImageReconstruction:
 
         if R.shape[0] < 2:
             raise ValueError(
-                "At least two images and responses are required to create a model."
+                "At least two images and responses are required to estimate a model."
             )
 
         R -= R.mean(axis=0, keepdims=True)
