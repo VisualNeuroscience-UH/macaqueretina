@@ -2,13 +2,9 @@
 from pathlib import Path
 
 # Third-party
-import brian2.units as b2u
 import matplotlib.pyplot as plt  # noqa: F401
 import numpy as np
-import pandas as pd
 import torch
-from scipy.signal import correlate, welch, windows
-from scipy.stats import pearsonr
 
 
 class ImageReconstruction:
