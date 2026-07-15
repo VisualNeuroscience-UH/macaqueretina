@@ -19,7 +19,7 @@ mr.load_parameters()
 start_time = time.time()
 
 """
-Quantitative evaluation of Macaque Retina Simulator
+Quantitative evaluation of macaque retina simulator
 
 Simulate responses to natural images, build linear reconstruction models from spike data,
 and evaluate model performance by comparing reconstructed images to originals.
@@ -34,16 +34,38 @@ dataset = "test", 834 images available
 4) operation = "reconstruct" # Reconstructs the images from the test spike data
 """
 
-
+# Fluid parameters.
 dataset = "train"  # "train" or "test"
-n_images = 3330
+n_images = 10
 operation = "simulate"  # "simulate", "construct_model", or "reconstruct"
+spatial_model_type = "DOG"  # "DOG" or "VAE"
+temporal_model_type = "fixed"  # "fixed", "dynamic" or "subunit"
+mr.config.experiment = "image_reconstruction_hpc"
 
 image_rootpath = Path(f"/opt3/images/vanHateren/imc_images_{dataset}")
 H = W = 120
 # torch.manual_seed(42)
 
-model_filename = f"W_{H}x{W}_subunit.npz"
+if dataset == "test" and operation == "construct_model":
+    raise ValueError("Do not construct model with test dataset!")
+
+# Remove empty experiment folder.
+shutil.rmtree(mr.config.path, ignore_errors=True)
+
+# Update session data.
+mr.config.path = Path(mr.config.model_root_path).joinpath(
+    Path(mr.config.project), mr.config.experiment
+)
+
+mr.config.retina_parameters.spatial_model_type = spatial_model_type
+mr.config.retina_parameters.temporal_model_type = temporal_model_type
+
+session_suffix = f"{H}x{W}_{spatial_model_type}_{temporal_model_type}"
+
+mr.config.output_folder = mr.config.path / f"resolution_{session_suffix}"
+mr.config.stimulus_folder = mr.config.path / f"stim_resolution_{session_suffix}"
+mr.config.input_folder = None
+model_filename = f"W_{session_suffix}.npz"
 
 transform = v2.Compose(
     [
@@ -272,7 +294,6 @@ def save_transformed_images(output_dir, data_loader):
         img_transformed = img_transformed.numpy().squeeze(0) * 255.0
         img_transformed = img_transformed.astype(np.uint8)  # Convert to uint8
 
-        # output_name = output_dir / f"{Path(filenames[idx]).stem}_{H}x{W}.jpg"
         output_name = output_dir / f"{Path(filenames[idx]).stem}_{H}x{W}.png"
         output_names.append(output_name)
         mr.data_io.save_data(output_name, img_transformed)
@@ -306,9 +327,9 @@ def update_folders(dataset):
     mr.config.stimulus_folder.mkdir(parents=True, exist_ok=True)
 
 
-def transfer_file_to_test():
+def transfer_retina_to_test_folder():
     """
-    Transfer a file from the train dataset to the test dataset for consistency.
+    Transfer a file from the train to the test output folder.
     """
     files_to_transfer_to_test = [
         "*_metadata.yaml",
@@ -332,7 +353,7 @@ data_loader = get_vanhateren_dataloader(batch_size=32, shuffle=True, num_workers
 update_folders(dataset)
 
 if dataset == "test" and operation == "simulate":
-    transfer_file_to_test()
+    transfer_retina_to_test_folder()
 
 # Spatial parameters. H = external stimulus height (pix), W = external stimulus width (pix)
 mr.config.external_stimulus_parameters.ext_pix_per_deg = 30
@@ -354,7 +375,7 @@ response_types = ["on", "off"]
 
 def simulate_retina():
     # Save transformed images to disk for simulation
-    output_dir = Path(f"{image_rootpath}_transformed")
+    output_dir = mr.config.path / f"_transformed_{session_suffix}"
     transformed_filenames = save_transformed_images(output_dir, data_loader)
 
     for gc_type in gc_types:
@@ -382,7 +403,6 @@ def simulate_retina():
                 mr.retina_simulator.simulate(filename=simulation_results_filename)
 
     # Remove the transformed images after simulation
-
     shutil.rmtree(output_dir, ignore_errors=True)
 
 
@@ -430,9 +450,20 @@ match operation:
         S_estimated = reco.estimate_model(W, R_test, S_mean)
         S_estimated_img = reco.reconstruct_images(S_estimated, retina_mask)
 
-        print(
-            f"Correlation: {np.corrcoef(S_estimated.flatten(), S_test.flatten())[0, 1]}"
+        rho = np.corrcoef(S_estimated.flatten(), S_test.flatten())[0, 1]
+        print(f"Correlation: {rho:.4f} between reconstructed and original images")
+
+        mr.data_io.save_data(
+            filename=f"reconstruction_results_{session_suffix}.npz",
+            data={
+                "S_test": S_test,
+                "S_estimated": S_estimated,
+                "retina_mask": retina_mask,
+                "rho": rho,
+            },
+            path=mr.config.path,
         )
+
         # # breakpoint()
         # fig, ax = plt.subplots(1, 2, figsize=(10, 5))
         # plt.ion()
