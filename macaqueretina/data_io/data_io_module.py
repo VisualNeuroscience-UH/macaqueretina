@@ -9,7 +9,6 @@ from pathlib import Path
 from typing import Any
 
 # Third-party
-import brian2.units as b2u
 import cv2
 import h5py
 import numpy as np
