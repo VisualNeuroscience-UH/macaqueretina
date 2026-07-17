@@ -788,7 +788,7 @@ class SpatialModelBase(ABC):
         """
         Create the spatial component of the spatiotemporal filter.
 
-        This method generates a spatial filter for a given unit based on
+        This method generates stimulus video spatial filter for a given unit based on
         pre-computed spatial receptive fields.
 
         Parameters
@@ -796,18 +796,20 @@ class SpatialModelBase(ABC):
         gcs : object
             Ganglion cell object containing spatial filter information and
             pre-computed spatial receptive fields.
+            The spat_rf field contains the precalculated RF images
         unit_index : int
             Index of the unit in the dataframe.
 
         Returns
         -------
         np.ndarray
-            2D array representing the spatial filter for the given unit.
+            2D array representing the spatial filter for the given unit in stimulus video space.
         """
         s = gcs.spatial_filter_sidelen
         spatial_kernel = resize(
             gcs.spat_rf[unit_index, :, :], (s, s), anti_aliasing=True
         )
+
         return spatial_kernel
 
 
@@ -2204,7 +2206,6 @@ class ConcreteSimulationBuilder(SimulationBuildInterface):
         stimulus_cropped_batch = video_copy_tensor[
             0, r_batch, q_batch, time_points_indices_tensor
         ]
-        stimulus_cropped_batch = stimulus_cropped_batch  # / 128 - 1.0
 
         # Determine the shape of the final array
         final_shape = (len(r_matrix_tensor),) + stimulus_cropped_batch.shape[1:]
@@ -2228,7 +2229,6 @@ class ConcreteSimulationBuilder(SimulationBuildInterface):
             stimulus_cropped_batch = video_copy_tensor[
                 0, r_batch, q_batch, time_points_indices_tensor
             ]
-            stimulus_cropped_batch = stimulus_cropped_batch  # / 127.5 - 1.0
 
             # Store the result in the preallocated array
             stimulus_cropped[start_idx:end_idx] = stimulus_cropped_batch.cpu().numpy()
@@ -3357,7 +3357,9 @@ class GanglionCellProduct(NeuralUnits):
 
         self.df = df
 
+        # Load precalculated RF images
         self.spat_rf = rfs_npz["gc_img"]
+
         self.um_per_pix = rfs_npz["um_per_pix"]
         self.sidelen_pix = rfs_npz["pix_per_side"]
 
