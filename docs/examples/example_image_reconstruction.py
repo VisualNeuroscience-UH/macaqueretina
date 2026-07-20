@@ -6,6 +6,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
+from scipy.stats import kruskal, mannwhitneyu
 from torch.utils.data import DataLoader, Dataset, Subset
 from torchvision import datasets
 from torchvision.transforms import v2
@@ -37,7 +38,7 @@ dataset = "test", 834 images available
 # Fluid parameters.
 dataset = "train"  # "train" or "test"
 n_images = 10
-operation = "simulate"  # "simulate", "construct_model", or "reconstruct"
+operation = "display"  # "simulate", "construct_model", "reconstruct", "display"
 spatial_model_type = "DOG"  # "DOG" or "VAE"
 temporal_model_type = "fixed"  # "fixed", "dynamic" or "subunit"
 mr.config.experiment = "image_reconstruction_hpc"
@@ -348,6 +349,14 @@ def transfer_retina_to_test_folder():
             shutil.copy(file, mr.config.output_folder)
 
 
+def bootstrap_ci(data, n_bootstraps=10000, stat_func=np.mean, alpha=0.05):
+    n = data.shape[0]
+    idx = np.random.randint(0, n, size=(n_bootstraps, n))
+    stats = stat_func(data[idx], axis=1)
+    cis = np.percentile(stats, [100 * alpha / 2, 100 * (1 - alpha / 2)], axis=0)
+    return cis, data[idx]
+
+
 data_loader = get_vanhateren_dataloader(batch_size=32, shuffle=True, num_workers=4)
 
 update_folders(dataset)
@@ -464,41 +473,91 @@ match operation:
             path=mr.config.path,
         )
 
-        # # breakpoint()
-        # fig, ax = plt.subplots(1, 2, figsize=(10, 5))
-        # plt.ion()
+    case "display":
+        spatial_models = ["DOG", "VAE"]
+        temporal_models = ["fixed", "dynamic", "subunit"]
 
-        # # Create initial images and colorbars once
-        # img0 = ax[0].imshow(S_test_img[0], cmap="gray")
-        # cbar0 = fig.colorbar(img0, ax=ax[0])
-        # cbar0.set_label("Pixel Intensity")
-        # ax[0].set_title("Original Image")
-        # ax[0].axis("off")
+        # Create all possible session suffixes based on the model combinations
+        model_combinations = [
+            f"{spatial_model}_{temporal_model}"
+            # f"{H}x{W}_{spatial_model}_{temporal_model}"
+            for spatial_model in spatial_models
+            for temporal_model in temporal_models
+        ]
 
-        # img1 = ax[1].imshow(S_estimated_img[0], cmap="gray")
-        # cbar1 = fig.colorbar(img1, ax=ax[1])
-        # cbar1.set_label("Pixel Intensity")
-        # ax[1].set_title("Reconstructed Image")
-        # ax[1].axis("off")
+        # Get all reconstruction result files matching the session suffix
+        reconstruction_files = {}
+        for session_suffix in model_combinations:
+            session_files = list(
+                mr.config.path.glob(f"reconstruction_results*{session_suffix}*")
+            )
 
-        # plt.tight_layout()
-        # plt.draw()
+            reconstruction_files[session_suffix] = session_files
 
-        # # Update existing figure in each iteration
-        # for this_img in range(10, min(15, n_images)):
-        #     img0.set_data(S_test_img[this_img])
-        #     img1.set_data(S_estimated_img[this_img])
+        rho_values = np.zeros(
+            (
+                len(reconstruction_files[model_combinations[0]]),
+                len(reconstruction_files.keys()),
+            )
+        )
+        # Get the correlation values for each reconstruction file
+        for i, session_suffix in enumerate(model_combinations):
+            for j, file in enumerate(reconstruction_files[session_suffix]):
+                data = mr.data_io.load_data(filename=file, hush=True)
+                rho_values[j, i] = data["rho"]
 
-        #     # Update colorbar ranges
-        #     img0.set_clim(S_test_img[this_img].min(), S_test_img[this_img].max())
-        #     img1.set_clim(
-        #         S_estimated_img[this_img].min(), S_estimated_img[this_img].max()
-        #     )
+        # returns array of shape (2, 6): [lower, upper] for each column
+        cis, bootstrap_samples = bootstrap_ci(rho_values)
 
-        #     plt.draw()
-        #     plt.pause(5.0)
+        # Spatial test: DOG (columns 0-2) vs VAE (columns 3-5)
+        dog = rho_values[:, :3].flatten()
+        vae = rho_values[:, 3:].flatten()
+        spatial_stat, spatial_p = mannwhitneyu(dog, vae, alternative="two-sided")
 
-        # plt.ioff()
+        # Temporal test: fixed (cols 0,3), dynamic (cols 1,4), subunit (cols 2,5)
+        fixed = rho_values[:, [0, 3]].flatten()
+        dynamic = rho_values[:, [1, 4]].flatten()
+        subunit = rho_values[:, [2, 5]].flatten()
+        temporal_stat, temporal_p = kruskal(fixed, dynamic, subunit)
+
+        # Make a bar graph of the mean of the correlation values for each model combination. Add SEM error bars to the bar graph.
+        fig, ax = plt.subplots(2, 1, figsize=(10, 5))
+        mean_rho_values = rho_values.mean(axis=0)
+        ax[0].bar(
+            model_combinations,
+            mean_rho_values,
+            yerr=[mean_rho_values - cis[0, :], cis[1, :] - mean_rho_values],
+            capsize=20,
+            linewidth=1,
+        )
+        ax[0].set_ylim(0.6, 1)
+        ax[0].set_xlabel("Model Combination")
+        ax[0].set_ylabel("Mean Correlation (rho)")
+        ax[0].set_title("Mean Correlation between Reconstructed and Original Images")
+
+        # Annotate the figure with the p-values and statistics from the statistical tests
+        ax[0].text(
+            0.5,
+            0.95,
+            f"Spatial: U = {spatial_stat:.4f}, p = {spatial_p:.4f}, test: Mann-Whitney U",
+            transform=ax[0].transAxes,
+        )
+        ax[0].text(
+            0.5,
+            0.90,
+            f"Temporal: H = {temporal_stat:.4f}, p = {temporal_p:.4f}, test: Kruskal-Wallis",
+            transform=ax[0].transAxes,
+        )
+
+        # TÄHÄN JÄIT: DEMOA REKONSTRUKTIOt
+
+        plt.tight_layout()
+
+        mr.viz._figsave(
+            figurename=mr.config.path.joinpath(
+                f"fig_reconstruction_results_{session_suffix}_summary.eps"
+            ),
+        )
 
 end_time = time.time()
 print(f"Time taken: {end_time - start_time:.2f} seconds")
