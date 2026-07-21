@@ -134,7 +134,7 @@ retina_parameters_extend:
     diffusion_speed: 0.005  # f only, adjusted with ecc
     border_repulsion_stength: 5  # f only
     border_distance_threshold: 0.0001  # f only
-    show_placing_progress: True  # True False
+    show_placing_progress: False  # True False
     show_skip_steps: 5
 
   # For VAE, this is enough to have good distribution between units.
