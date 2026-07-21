@@ -50,12 +50,12 @@ dataset = "test", 834 images available
 
 # Fluid parameters.
 dataset = "train"  # "train" or "test"
-n_images = 10
-operation = "simulate"  # "transform_images", "simulate", "construct_model", "reconstruct", "display"
+n_images = 2
+operation = "construct_model"  # "transform_images", "simulate", "construct_model", "reconstruct", "display"
 spatial_model_type = "DOG"  # "DOG" or "VAE"
 temporal_model_type = "fixed"  # "fixed", "dynamic" or "subunit"
 array_idx_str = "00"
-H = W = 120
+H = W = 240
 
 mr.config.experiment = "image_reconstruction_hpc_240_tmp"
 image_rootpath = Path(f"/opt3/images/vanHateren/imc_images_{dataset}")
@@ -84,6 +84,8 @@ mr.config.path = Path(mr.config.model_root_path).joinpath(
 
 mr.config.retina_parameters.spatial_model_type = spatial_model_type
 mr.config.retina_parameters.temporal_model_type = temporal_model_type
+mr.config.retina_parameters.ecc_limits_deg = (3.5, 6.5)
+mr.config.retina_parameters.pol_limits_deg = (-10, 10)
 
 session_suffix = f"{H}x{W}_{spatial_model_type}_{temporal_model_type}_{array_idx_str}"
 
@@ -393,8 +395,9 @@ mr.config.external_stimulus_parameters.ext_pix_per_deg = 30
 
 mr.config.visual_stimulus_parameters.image_height = H
 mr.config.visual_stimulus_parameters.image_width = W
-mr.config.visual_stimulus_parameters.stimulus_size = 0.8
+mr.config.visual_stimulus_parameters.stimulus_size = 1.6
 mr.config.visual_stimulus_parameters.pix_per_deg = 60
+mr.config.visual_stimulus_parameters.stimulus_form = "rectangular"
 
 mr.config.visual_stimulus_parameters.duration_seconds = 0.1
 mr.config.visual_stimulus_parameters.baseline_start_seconds = 0.1
@@ -405,7 +408,7 @@ mr.config.visual_stimulus_parameters.pattern = "natural_image"
 gc_types = ["parasol", "midget"]
 response_types = ["on", "off"]
 
-output_dir = mr.config.path / f"transformed_{dataset}_images"
+output_dir = mr.config.path / f"transformed_{H}x{W}_{dataset}_images"
 
 
 def simulate_retina():
@@ -441,8 +444,7 @@ def simulate_retina():
 
                 mr.retina_simulator.simulate(filename=simulation_results_filename)
 
-    # Remove the transformed images after simulation
-    # shutil.rmtree(output_dir, ignore_errors=True)
+            # mr.viz.show_stimulus_with_gcs(frame_number=31)
 
 
 reco = ImageReconstruction(mr.config, mr.data_io)
@@ -557,9 +559,6 @@ match operation:
         ###########################################################
         # Init S_test and S_estimated arrays with the correct shape
         ###########################################################
-
-        # TÄHÄN JÄIT:
-        # 0) VÄHENNÄ RETINAN GC PAIKKOJEN KOHINAA ad 0
 
         # Read one file to get the shape of S_test and S_estimated
         sample_file = reconstruction_files[model_combinations[0]][0]
