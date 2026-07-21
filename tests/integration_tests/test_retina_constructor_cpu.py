@@ -39,7 +39,6 @@ TEMPORAL_MODEL_TYPES = ["fixed", "dynamic", "subunit"]
 DOG_MODEL_TYPES = ["ellipse_fixed", "circular"]
 
 
-# TÄHÄN JÄIT OPTIMZEWARNING EI FILLTTERÖIDY
 @pytest.mark.parametrize(
     "gc_type,response_type,spatial_model_type,temporal_model_type,dog_model_type",
     [
