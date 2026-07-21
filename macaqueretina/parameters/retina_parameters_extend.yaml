@@ -102,11 +102,11 @@ retina_parameters_extend:
   # Good for testing, speed and memory.
   gc_placement_parameters:
     algorithm: "force"  # "voronoi" or "force" or null
-    n_iterations: 30  # v 20, f 5000
+    n_iterations: 10 # v 20, f 5000
     change_rate: 0.0005  # f 0.001, v 0.5
     unit_repulsion_stregth: 10  # 10 f only
     unit_distance_threshold: 0.2  # f only, adjusted with ecc
-    diffusion_speed: 0.001  # f only, adjusted with ecc
+    diffusion_speed: 0.002  # f only, adjusted with ecc
     border_repulsion_stength: 0.2  # f only
     border_distance_threshold: 0.001  # f only
     show_placing_progress: False  # True False
@@ -114,7 +114,7 @@ retina_parameters_extend:
 
   cone_placement_parameters:
     algorithm: "force"  # "voronoi" or "force" or null
-    n_iterations: 15  # v 20, f 300
+    n_iterations: 10  # v 20, f 300
     change_rate: 0.0005  # f 0.0005, v 0.5
     unit_repulsion_stregth: 2  # 10 f only
     unit_distance_threshold: 0.25  # f only, adjusted with ecc
@@ -127,14 +127,14 @@ retina_parameters_extend:
 
   bipolar_placement_parameters:
     algorithm: "force"  # "voronoi" or "force" or null
-    n_iterations: 15  # v 20, f 300
+    n_iterations: 10  # v 20, f 300
     change_rate: 0.0005  # f 0.0005, v 0.5
     unit_repulsion_stregth: 2  # 10 f only
     unit_distance_threshold: 0.2  # f only, adjusted with ecc
     diffusion_speed: 0.005  # f only, adjusted with ecc
     border_repulsion_stength: 5  # f only
     border_distance_threshold: 0.0001  # f only
-    show_placing_progress: False  # True False
+    show_placing_progress: True  # True False
     show_skip_steps: 5
 
   # For VAE, this is enough to have good distribution between units.
