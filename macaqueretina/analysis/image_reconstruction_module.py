@@ -411,6 +411,8 @@ class ImageReconstruction:
             Weight matrix of shape (N_cells, N_pixels)
         R : np.ndarray
             Response matrix of shape (N_images, N_cells)
+        S_mean : np.ndarray
+            Mean stimulus values of shape (1, N_pixels)
 
         Returns
         -------
@@ -426,7 +428,7 @@ class ImageReconstruction:
         R -= R.mean(axis=0, keepdims=True)
 
         S_estimate = R @ W
-        S_estimate += S_mean
+        S_estimate += S_mean  # Return the mean values to the estimated stimulus matrix
 
         return S_estimate
 
@@ -446,6 +448,7 @@ class ImageReconstruction:
         S_img : np.ndarray
             Estimated images of shape (N_images, original_image_size)
         """
+        S = np.expand_dims(S, 0) if S.ndim == 1 else S
         S_img = np.zeros((S.shape[0], retina_mask.size))
         S_img[:, retina_mask.flatten()] = S
 
