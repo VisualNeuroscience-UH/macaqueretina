@@ -825,7 +825,6 @@ class DataIO:
         cone_noise_hash=None,
         video_hash=None,
         dt=None,
-        retina_patch_pixel_mask=None,
     ):
         print(" -  Saving spikes, rgc coordinates and analog signal (if not None)...")
 
@@ -849,9 +848,6 @@ class DataIO:
 
         if dt is not None:
             data_to_save["dt"] = dt
-
-        if retina_patch_pixel_mask is not None:
-            data_to_save["retina_patch_pixel_mask"] = retina_patch_pixel_mask
 
         if filename is None:
             save_path = self.config.output_folder.joinpath("most_recent_spikes")
@@ -988,7 +984,14 @@ class DataIO:
                             "video_hash", None
                         ),
                         dt=vs.simulation_dt,
-                        retina_patch_pixel_mask=vs.retina_patch_pixel_mask,
+                    )
+
+                case "retina_patch_pixel_mask":
+                    self._save_additional_variables(
+                        vs,
+                        filename,
+                        ["retina_patch_pixel_mask"],
+                        overwrite=False,
                     )
 
                 case "cone_noise":
