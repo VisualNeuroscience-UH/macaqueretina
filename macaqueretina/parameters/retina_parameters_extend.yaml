@@ -8,7 +8,7 @@ retina_parameters_extend:
 
   # Proportion from all ganglion cells.
   proportion_of_parasol_gc_type: 0.08
-  proportion_of_midget_gc_type: 0.64
+  proportion_of_midget_gc_type: 0.85
 
   # Proportion of ON and OFF response type units, assuming ON rf diameter = 1.2 x OFF rf diameter, and
   # coverage factor =1; Chichilnisky_2002_JNeurosci
