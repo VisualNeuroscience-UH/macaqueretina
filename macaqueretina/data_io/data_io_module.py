@@ -985,13 +985,12 @@ class DataIO:
                         ),
                         dt=vs.simulation_dt,
                     )
-
                 case "retina_patch_pixel_mask":
-                    self._save_additional_variables(
-                        vs,
-                        filename,
-                        ["retina_patch_pixel_mask"],
-                        overwrite=False,
+                    mask_file_name = "retina_mask.npy"
+                    self.save_data(
+                        mask_file_name,
+                        vs.retina_patch_pixel_mask,
+                        path=self.config.output_folder,
                     )
 
                 case "cone_noise":
