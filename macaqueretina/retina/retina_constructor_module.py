@@ -5347,7 +5347,59 @@ class RetinaConstructor(PrintableMixin):
         cone_noise_dict.update(stim_duration)
         self.config.retina_parameters["cone_noise_hash"] = cone_noise_dict.hash()
 
-    def construct(self, return_objects_do_not_save=False) -> None:
+    def _convert_to_dicts(self, ret, gc):
+        """
+        Convert the attributes of the retina and ganglion cell instances to dictionaries for saving or returning.
+
+        Parameters
+        ----------
+        ret : Retina
+            The retina instance.
+        gc : GanglionCell
+            The ganglion cell instance.
+
+        Returns
+        -------
+        tuple[dict, dict]
+            A tuple containing two dictionaries: one for the retina attributes and one for the ganglion cell attributes.
+        """
+        spatial_rfs_attrs = [
+            "img",
+            "img_mask",
+            "X_grid_cen_mm",
+            "Y_grid_cen_mm",
+            "um_per_pix",
+            "pix_per_side",
+            "df",
+        ]
+        spatial_rfs_dict = {k: getattr(gc, k) for k in spatial_rfs_attrs}
+
+        # Save retinal attributes
+        ret_attributes = [
+            "cone_optimized_pos_mm",
+            "cone_optimized_pos_pol",
+            "cone_noise_hash",
+            "cones_to_gcs_weights",
+            "cone_noise_parameters",
+            "noise_frequency_data",
+            "noise_power_data",
+            "cone_frequency_data",
+            "cone_power_data",
+            "cone_noise_power_fit",
+            "cones_to_bipolars_center_weights",
+            "cones_to_bipolars_surround_weights",
+            "bipolar_to_gcs_cen_weights",
+            "bipolar_to_gcs_sur_weights",
+            "bipolar_optimized_pos_mm",
+            "bipolar_nonlinearity_parameters",
+            "bipolar_nonlinearity_fit",
+            "g_sur_scaled",
+            "target_RI_values",
+        ]
+        ret_dict = {k: getattr(ret, k) for k in ret_attributes if hasattr(ret, k)}
+        return ret_dict, spatial_rfs_dict
+
+    def construct(self, return_objects=False) -> None:
         """
         Construct the retina using the builder pattern.
 
@@ -5365,7 +5417,18 @@ class RetinaConstructor(PrintableMixin):
         retina_parameters = self.config.retina_parameters
 
         if self._build_exists(retina_parameters):
-            return
+            if return_objects:
+                # running with existing retina, but want to return the objects
+                ret_npz_file = self.config.retina_parameters["ret_file"]
+                retina = dict(self.data_io.load_data(filename=ret_npz_file))
+                rfs_npz_file = self.config.retina_parameters["spatial_rfs_file"]
+                ganglion_cell = dict(self.data_io.load_data(filename=rfs_npz_file))
+                mosaic_file = self.config.retina_parameters["mosaic_file"]
+                gc_dataframe = self.data_io.load_data(filename=mosaic_file)
+                ganglion_cell["df"] = gc_dataframe
+                return retina, ganglion_cell
+            else:
+                return
 
         experimental_archive = self._get_literature_data()
         experimental_archive = self._append_dog_metadata_parameters(
@@ -5390,8 +5453,16 @@ class RetinaConstructor(PrintableMixin):
         director.retina_constructor()
         retina, ganglion_cell = director.get_retina()
 
-        if return_objects_do_not_save:
-            return retina, ganglion_cell
+        if return_objects:
+            # Save only once
+            if not self.data_io.parse_path(
+                self.spatial_rfs_file_filename
+            ) or not self.data_io.parse_path(self.ret_filename):
+                self.save_retina(retina, ganglion_cell)
+            retina_dict, ganglion_cell_dict = self._convert_to_dicts(
+                retina, ganglion_cell
+            )
+            return retina_dict, ganglion_cell_dict
         else:
             self.save_retina(retina, ganglion_cell)
             self.project_data.retina_constructor.update(builder.project_data)
@@ -5411,43 +5482,12 @@ class RetinaConstructor(PrintableMixin):
         output_path = self.config.output_folder
 
         # Save the generated receptive field pixel images, masks, and locations
-        spatial_rfs_dict = {
-            "gc_img": gc.img,
-            "gc_img_mask": gc.img_mask,
-            "X_grid_cen_mm": gc.X_grid_cen_mm,
-            "Y_grid_cen_mm": gc.Y_grid_cen_mm,
-            "um_per_pix": gc.um_per_pix,
-            "pix_per_side": gc.pix_per_side,
-        }
+
+        ret_dict, spatial_rfs_dict = self._convert_to_dicts(ret, gc)
 
         self.data_io.save_np_dict_to_npz(
             spatial_rfs_dict, output_path, filename_stem=self.spatial_rfs_file_filename
         )
-
-        # Save retinal attributes
-        ret_attributes = [
-            "cone_optimized_pos_mm",
-            "cone_optimized_pos_pol",
-            "cone_noise_hash",
-            "cones_to_gcs_weights",
-            "cone_noise_parameters",
-            "noise_frequency_data",
-            "noise_power_data",
-            "cone_frequency_data",
-            "cone_power_data",
-            "cone_noise_power_fit",
-            "cones_to_bipolars_center_weights",
-            "cones_to_bipolars_surround_weights",
-            "bipolar_to_gcs_cen_weights",
-            "bipolar_to_gcs_sur_weights",
-            "bipolar_optimized_pos_mm",
-            "bipolar_nonlinearity_parameters",
-            "bipolar_nonlinearity_fit",
-            "g_sur_scaled",
-            "target_RI_values",
-        ]
-
-        ret_dict = {k: getattr(ret, k) for k in ret_attributes if hasattr(ret, k)}
 
         self.data_io.save_np_dict_to_npz(
             ret_dict, output_path, filename_stem=self.ret_filename
