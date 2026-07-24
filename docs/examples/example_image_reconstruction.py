@@ -18,7 +18,7 @@ import macaqueretina as mr
 from macaqueretina.analysis.image_reconstruction_module import ImageReconstruction
 
 mr.load_parameters()
-
+mr.config.device = "cuda"
 start_time = time.time()
 
 """
@@ -50,14 +50,14 @@ dataset = "test", 834 images available
 
 # Fluid parameters.
 dataset = "train"  # "train" or "test"
-n_images = 2
-operation = "construct_model"  # "transform_images", "simulate", "construct_model", "reconstruct", "display"
+n_images = 3
+operation = "simulate"  # "transform_images", "simulate", "construct_model", "reconstruct", "display"
 spatial_model_type = "DOG"  # "DOG" or "VAE"
 temporal_model_type = "fixed"  # "fixed", "dynamic" or "subunit"
 array_idx_str = "00"
 H = W = 240
 
-mr.config.experiment = "image_reconstruction_hpc_240_tmp"
+mr.config.experiment = "tmp_260724"
 image_rootpath = Path(f"/opt3/images/vanHateren/imc_images_{dataset}")
 # torch.manual_seed(42)
 
@@ -84,8 +84,11 @@ mr.config.path = Path(mr.config.model_root_path).joinpath(
 
 mr.config.retina_parameters.spatial_model_type = spatial_model_type
 mr.config.retina_parameters.temporal_model_type = temporal_model_type
-mr.config.retina_parameters.ecc_limits_deg = (3.5, 6.5)
-mr.config.retina_parameters.pol_limits_deg = (-10, 10)
+mr.config.retina_parameters.ecc_limits_deg = (4.5, 5.5)
+mr.config.retina_parameters.pol_limits_deg = (-1.5, 1.5)
+
+# mr.config.retina_parameters.ecc_limits_deg = (3.5, 6.5)
+# mr.config.retina_parameters.pol_limits_deg = (-10, 10)
 
 session_suffix = f"{H}x{W}_{spatial_model_type}_{temporal_model_type}_{array_idx_str}"
 
@@ -342,6 +345,18 @@ def get_filenames(this_name):
     return simulation_results_filename, stimulus_video_name
 
 
+def get_transformed_filenames(output_dir):
+    """
+    Get a list of transformed image filenames in the output directory.
+    """
+    transformed_filenames = list(output_dir.glob("*.png"))
+    if not transformed_filenames:
+        raise FileNotFoundError(
+            f"No transformed images found in {output_dir}. Please run 'transform_images' first."
+        )
+    return transformed_filenames
+
+
 def update_folders(dataset):
     # Remove existing output and stimulus folders which do not yet define the train/test division.
     shutil.rmtree(mr.config.output_folder, ignore_errors=True)
@@ -413,19 +428,16 @@ output_dir = mr.config.path / f"transformed_{H}x{W}_{dataset}_images"
 
 def simulate_retina():
     # Save transformed images to disk for simulation
+    cone_noise = None
 
     for gc_type in gc_types:
         for response_type in response_types:
             mr.config.retina_parameters.gc_type = gc_type
             mr.config.retina_parameters.response_type = response_type
 
-            mr.retina_constructor.construct()  # Reuses existing matching retina
-            transformed_filenames = output_dir.glob("*.png")
-            # If empty, raise an error
-            if not any(transformed_filenames):
-                raise FileNotFoundError(
-                    f"No transformed images found in {output_dir}. Please run 'transform_images' first."
-                )
+            retina, ganglion_cell = mr.retina_constructor.construct(return_objects=True)
+
+            transformed_filenames = get_transformed_filenames(output_dir)
 
             for this_name in transformed_filenames:
                 mr.config.external_stimulus_parameters.ext_stimulus_file = str(
@@ -440,9 +452,19 @@ def simulate_retina():
                     stimulus_video_name
                 )
 
-                mr.stimulus_factory.generate()  # Reuses existing matching stimulus
+                this_video = mr.stimulus_factory.generate()
 
-                mr.retina_simulator.simulate(filename=simulation_results_filename)
+                mr.retina_simulator.simulate(
+                    retina=retina,
+                    ganglion_cell=ganglion_cell,
+                    stimulus=this_video,
+                    filename=simulation_results_filename,
+                    cone_noise=cone_noise,
+                )
+
+                # Get cone noise from the first simulation and use it for all subsequent simulations
+                if cone_noise is None:
+                    cone_noise = mr.retina_simulator.get_cone_noise()
 
             # mr.viz.show_stimulus_with_gcs(frame_number=31)
 
@@ -519,7 +541,7 @@ match operation:
     case "display":
         spatial_models = ["DOG", "VAE"]
         temporal_models = ["fixed", "dynamic", "subunit"]
-        stimulus_sample = range(2)
+        stimulus_sample = [5, 107]  # 5, 11, 20, 107
 
         # Create all possible session suffixes based on the model combinations
         model_combinations = [
@@ -572,9 +594,11 @@ match operation:
         retina_mask = sample_data["retina_mask"]
         # for i in range(2):
 
-        for this_sample_idx in stimulus_sample:
-            S_test_img[this_sample_idx, ...] = reco.reconstruct_images(
-                sample_data["S_test"][stimulus_sample[this_sample_idx]], retina_mask
+        stimulus_sample_idx = range(len(stimulus_sample))
+
+        for idx in stimulus_sample_idx:
+            S_test_img[idx, ...] = reco.reconstruct_images(
+                sample_data["S_test"][stimulus_sample[idx]], retina_mask
             )
         for i in range(n_cond):
             session_suffix = model_combinations[i]
@@ -582,7 +606,6 @@ match operation:
                 file = reconstruction_files[session_suffix][0]
                 data = mr.data_io.load_data(filename=file, hush=True)
 
-                # breakpoint()
                 S_estimated_img[:, i, ...] = reco.reconstruct_images(
                     data["S_estimated"][stimulus_sample], retina_mask
                 )
@@ -627,10 +650,10 @@ match operation:
         test_inner = gridspec.GridSpecFromSubplotSpec(2, 1, subplot_spec=outer[1, 0])
         reco_inner = gridspec.GridSpecFromSubplotSpec(2, 6, subplot_spec=outer[1, 1])
         # axes = [[i, j] for i in range(6) for j in range(2)]
-        test_axes = [fig.add_subplot(test_inner[i]) for i in stimulus_sample]
+        test_axes = [fig.add_subplot(test_inner[i]) for i in stimulus_sample_idx]
         reco_axes = [
             fig.add_subplot(reco_inner[i, j])
-            for i in stimulus_sample
+            for i in stimulus_sample_idx
             for j in range(n_cond)
         ]
 
@@ -664,7 +687,7 @@ match operation:
 
         # Show test images.
 
-        for i in stimulus_sample:
+        for i in stimulus_sample_idx:
             test_axes[i].imshow(
                 S_test_img[i, ...],
                 cmap="gray",
@@ -673,7 +696,7 @@ match operation:
             )
 
         # Show sample images.
-        for i in range(len(stimulus_sample)):
+        for i in range(len(stimulus_sample_idx)):
             for j in range(n_cond):
                 session_suffix = model_combinations[j]
                 ax = reco_axes[i * n_cond + j]
