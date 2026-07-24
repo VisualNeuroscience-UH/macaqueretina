@@ -996,10 +996,7 @@ class StimulusFactory(VideoClass):
         video_file_name = video_name_stem + "_" + video_hash + ".hdf5"
         video_file_full = self.data_io.parse_path("", substring=video_file_name)
         if video_file_full:
-            print(
-                "Video stimulus hash exists, loading stimulus from file:",
-                video_file_full,
-            )
+            print("Video stimulus hash exists, loading stimulus from file")
             stimulus_video = self.data_io.load_stimulus_from_videofile(video_file_full)
 
             # The following two are references to self.config.visual_stimulus_parameters
