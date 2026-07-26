@@ -342,7 +342,7 @@ class ImageReconstruction:
             spike_data_dicts, gc_types, response_types, n_images
         )
 
-        retina_mask = spike_data_dicts["parasol"]["on"][0]["retina_patch_pixel_mask"]
+        retina_mask = self.data_io.load_data("retina_mask.npy")
 
         image_data_dicts = self._load_images(n_images)
 
