@@ -18,7 +18,7 @@ import macaqueretina as mr
 from macaqueretina.analysis.image_reconstruction_module import ImageReconstruction
 
 mr.load_parameters()
-mr.config.device = "cuda"
+mr.config.device = "cuda" if torch.cuda.is_available() else "cpu"
 start_time = time.time()
 
 """
@@ -29,14 +29,17 @@ and evaluate model performance by comparing reconstructed images to originals.
 
 Sequence of operations:
 dataset = "train", 3330 images available
-1) operation = "simulate" # Creates the retina spike data for model construction
-2) operation = "construct_model" # Creates the model from train data
+1) operation = "transform_images" # Creates the retina spike data for model construction
+2) operation = "simulate" # Creates the retina spike data for model construction
+3) operation = "construct_model" # Creates the model from train data
 
 dataset = "test", 834 images available
-3) operation = "simulate" # Creates the retina spike data for testing the model
-4) operation = "reconstruct" # Reconstructs the images from the test spike data
+4) operation = "transform_images" # Creates the retina spike data for testing the model
+5) operation = "simulate" # Creates the retina spike data for testing the model
+6) operation = "reconstruct" # Reconstructs the images from the test spike data
+7) operation = "display" # Displays the reconstructed images from the test spike data
 """
-# # Fluid parameters.
+# # Fluid parameters from HPC compute node environment, defined in SLURM job file.
 # dataset = os.environ["DATASET"]  # "train" or "test"
 # n_images = int(os.environ["N_IMAGES"])
 # operation = os.environ["OPERATION"]  # "transform_images", "simulate", "construct_model", or "reconstruct"
@@ -48,16 +51,16 @@ dataset = "test", 834 images available
 # array_idx_str = f"{array_idx:02d}"
 # H = W = int(os.environ["HEIGHT_AND_WIDTH"])
 
-# Fluid parameters.
+# Fluid parameters for workstation run.
 dataset = "train"  # "train" or "test"
-n_images = 3
-operation = "simulate"  # "transform_images", "simulate", "construct_model", "reconstruct", "display"
+n_images = 5
+operation = "transform_images"  # "transform_images", "simulate", "construct_model", "reconstruct", "display"
 spatial_model_type = "DOG"  # "DOG" or "VAE"
 temporal_model_type = "fixed"  # "fixed", "dynamic" or "subunit"
-array_idx_str = "00"
+array_idx_str = "01"
 H = W = 240
 
-mr.config.experiment = "tmp_260724"
+mr.config.experiment = "tmp_today"
 image_rootpath = Path(f"/opt3/images/vanHateren/imc_images_{dataset}")
 # torch.manual_seed(42)
 
@@ -541,7 +544,10 @@ match operation:
     case "display":
         spatial_models = ["DOG", "VAE"]
         temporal_models = ["fixed", "dynamic", "subunit"]
-        stimulus_sample = [5, 107]  # 5, 11, 20, 107
+        # image_reconstruction_hpc_240: 5, 11, 20, 107
+        # 6, 35, 83
+        stimulus_sample = [0, 1]  # image_reconstruction_hpc_240: 5, 11, 20, 107
+        # stimulus_sample = [115, 83]  # image_reconstruction_hpc_240: 5, 11, 20, 107
 
         # Create all possible session suffixes based on the model combinations
         model_combinations = [
@@ -565,13 +571,14 @@ match operation:
 
             reconstruction_files[session_suffix] = session_files
 
+        n_files = [len(reconstruction_files[x]) for x in model_combinations]
+        n_iterations = max(n_files)
         rho_values = np.zeros(
             (
-                len(reconstruction_files[model_combinations[0]]),
+                n_iterations,
                 len(reconstruction_files.keys()),
             )
         )
-
         # Get the correlation values for each reconstruction file
         for i, session_suffix in enumerate(model_combinations):
             for j, file in enumerate(reconstruction_files[session_suffix]):
@@ -583,7 +590,9 @@ match operation:
         ###########################################################
 
         # Read one file to get the shape of S_test and S_estimated
-        sample_file = reconstruction_files[model_combinations[0]][0]
+        sample_file = reconstruction_files[
+            model_combinations[np.where(np.array(n_files) > 0)[0][0]]
+        ][0]
         sample_data = mr.data_io.load_data(filename=sample_file, hush=True)
 
         S_test = sample_data["S_test"][stimulus_sample]
