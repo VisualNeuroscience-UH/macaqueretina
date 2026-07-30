@@ -1,26 +1,3 @@
-import os
-import shutil
-import time
-from pathlib import Path
-
-# Third-party
-import matplotlib.gridspec as gridspec
-import matplotlib.pyplot as plt
-import numpy as np
-import torch
-from scipy.stats import kruskal, mannwhitneyu
-from torch.utils.data import DataLoader, Dataset, Subset
-from torchvision import datasets
-from torchvision.transforms import v2
-
-# Local
-import macaqueretina as mr
-from macaqueretina.analysis.image_reconstruction_module import ImageReconstruction
-
-mr.load_parameters()
-mr.config.device = "cuda" if torch.cuda.is_available() else "cpu"
-start_time = time.time()
-
 """
 Quantitative evaluation of macaque retina simulator
 
@@ -38,7 +15,36 @@ dataset = "test", 834 images available
 5) operation = "simulate" # Creates the retina spike data for testing the model
 6) operation = "reconstruct" # Reconstructs the images from the test spike data
 7) operation = "display" # Displays the reconstructed images from the test spike data
+8) operation = "fourier_transform" # Computes and compares the Fourier transform of the reconstructed images
 """
+
+import os
+import shutil
+import time
+from pathlib import Path
+
+# Third-party
+import matplotlib.gridspec as gridspec
+import matplotlib.pyplot as plt
+import numpy as np
+import torch
+from scipy.stats import kruskal, mannwhitneyu
+from torchvision.transforms import v2
+
+# Local
+import macaqueretina as mr
+from macaqueretina.analysis.image_reconstruction_module import (
+    ImageReconstruction,
+)
+
+start_time = time.time()
+
+mr.load_parameters()
+
+shutil.rmtree(mr.config.path, ignore_errors=True)  # will be created later
+
+mr.config.device = "cuda" if torch.cuda.is_available() else "cpu"
+
 # # Fluid parameters from HPC compute node environment, defined in SLURM job file.
 # dataset = os.environ["DATASET"]  # "train" or "test"
 # n_images = int(os.environ["N_IMAGES"])
@@ -53,14 +59,15 @@ dataset = "test", 834 images available
 
 # Fluid parameters for workstation run.
 dataset = "train"  # "train" or "test"
-n_images = 5
-operation = "transform_images"  # "transform_images", "simulate", "construct_model", "reconstruct", "display"
+n_images = 3
+operation = "construct_model"  # "transform_images", "simulate", "construct_model", "reconstruct", "display", "fourier_transform"
 spatial_model_type = "DOG"  # "DOG" or "VAE"
-temporal_model_type = "fixed"  # "fixed", "dynamic" or "subunit"
+temporal_model_type = "subunit"  # "fixed", "dynamic" or "subunit"
 array_idx_str = "01"
-H = W = 240
+H = W = 120
 
-mr.config.experiment = "tmp_today"
+mr.config.experiment = "tmp_260730d"
+# mr.config.experiment = "im_reco_vanhateren_240_260730"
 image_rootpath = Path(f"/opt3/images/vanHateren/imc_images_{dataset}")
 # torch.manual_seed(42)
 
@@ -74,17 +81,6 @@ print(f"{temporal_model_type=}")
 print(f"{array_idx_str=}")
 print(f"{H=}, {W=}")
 
-if dataset == "test" and operation == "construct_model":
-    raise ValueError("Do not construct model with test dataset!")
-
-# Remove empty experiment folder.
-shutil.rmtree(mr.config.path, ignore_errors=True)
-
-# Update session data.
-mr.config.path = Path(mr.config.model_root_path).joinpath(
-    Path(mr.config.project), mr.config.experiment
-)
-
 mr.config.retina_parameters.spatial_model_type = spatial_model_type
 mr.config.retina_parameters.temporal_model_type = temporal_model_type
 mr.config.retina_parameters.ecc_limits_deg = (4.5, 5.5)
@@ -93,12 +89,36 @@ mr.config.retina_parameters.pol_limits_deg = (-1.5, 1.5)
 # mr.config.retina_parameters.ecc_limits_deg = (3.5, 6.5)
 # mr.config.retina_parameters.pol_limits_deg = (-10, 10)
 
+mr.config.external_stimulus_parameters.ext_pix_per_deg = 30
+mr.config.visual_stimulus_parameters.image_height = H
+mr.config.visual_stimulus_parameters.image_width = W
+mr.config.visual_stimulus_parameters.stimulus_size = 1.6
+mr.config.visual_stimulus_parameters.pix_per_deg = 60
+mr.config.visual_stimulus_parameters.stimulus_form = "rectangular"
+
+mr.config.visual_stimulus_parameters.duration_seconds = 0.1
+mr.config.visual_stimulus_parameters.baseline_start_seconds = 0.1
+mr.config.visual_stimulus_parameters.baseline_end_seconds = 0.3
+mr.config.visual_stimulus_parameters.pattern = "natural_image"
+
+
+gc_types = ["parasol", "midget"]
+response_types = ["on", "off"]
+
+
+# Update session data.
+mr.config.path = Path(mr.config.model_root_path).joinpath(
+    Path(mr.config.project), mr.config.experiment
+)
+
 session_suffix = f"{H}x{W}_{spatial_model_type}_{temporal_model_type}_{array_idx_str}"
 
-mr.config.output_folder = mr.config.path / f"resolution_{session_suffix}"
-mr.config.stimulus_folder = mr.config.path / f"stim_resolution_{H}_{W}_{array_idx_str}"
-mr.config.input_folder = None
 model_filename = f"W_{session_suffix}.npz"
+
+transformed_dir = (
+    mr.config.path / f"transformed_{H}x{W}_{dataset}_images_{array_idx_str}"
+)
+
 
 transform = v2.Compose(
     [
@@ -110,203 +130,7 @@ transform = v2.Compose(
 )
 
 
-class TransformWrapper(Dataset):
-    def __init__(self, dataset, transform=None):
-        self.dataset = dataset
-        self.transform = transform
-        self.get_original_image = getattr(dataset.dataset, "get_original_image", None)
-
-    def __getitem__(self, idx):
-        image, label = self.dataset[idx]
-        if self.transform:
-            image = self.transform(image)
-        return image, label
-
-    def __len__(self):
-        return len(self.dataset)
-
-
-class VanHaterenDataset(Dataset):
-    """
-    Custom Dataset class for the Van Hateren image dataset.
-
-    Note that Van Hateren image names start from 1, so indexes will be one off
-    """
-
-    def __init__(self, root_dir):
-        self.image_paths = sorted(
-            [
-                path
-                for path in root_dir.iterdir()
-                if path.suffix.lower() in (".imc", ".iml")
-            ]
-        )
-
-    def __len__(self):
-        return len(self.image_paths)
-
-    def __getitem__(self, idx):
-        img = self.get_original_image(idx)
-
-        # Image trasforms follow Simo's van_hateren_script2
-        # Z normalize
-        img = (img - img.mean()) / img.std()
-
-        # tanh normalize
-        img = np.tanh(img)
-
-        # Scale to 0-1
-        img = (img - img.min()) / (img.max() - img.min())
-
-        # Add dummy color channel
-        img = np.expand_dims(img, axis=0)
-        img = torch.tensor(img)
-
-        # Return a dummy label (0) since Van Hateren images don't have labels
-        return img, 0
-
-    def get_original_image(self, idx):
-        """Return the original image as a numpy array."""
-        with open(self.image_paths[idx], "rb") as handle:
-            s = handle.read()
-
-        img = np.frombuffer(s, dtype="uint16").byteswap()
-        img = img.reshape(1024, 1536).astype(np.float32)
-
-        return img
-
-
-def create_filtered_imagenet(root, H, W, batch_size=1024, split="train"):
-    """
-    Create a filtered ImageNet dataset containing only images with resolution >= (H, W).
-    Saves the indices of valid images to a .pt file for future use.
-
-    Note: The ImageNet dataset is large, and this function does not load the actual images into memory, only their metadata.
-    This functionality needs the imagesize library to check image dimensions without loading the images.
-    Nevertheless, this is slow, but needs to be done only once. The indices are saved to a .pt file for future use.
-    """
-    import imagesize
-
-    root = Path(root)
-    full_dataset = datasets.ImageNet(
-        root=root,
-        split=split,
-        transform=None,
-    )
-
-    total = len(full_dataset)
-    valid_mask = np.zeros(total, dtype=bool)  # Pre-allocate boolean mask
-
-    print(f"Filtering ImageNet-{split} for resolution >= ({H}, {W})...")
-
-    for start in range(0, total, batch_size):
-        end = min(start + batch_size, total)
-
-        for idx in range(start, end):
-            path, _ = full_dataset.samples[idx]
-            w, h = imagesize.get(path)
-            if w >= W and h >= H:
-                valid_mask[idx] = True  # O(1) assignment, no resizing
-
-        print(f"Processed {end}/{total} images, found {valid_mask.sum()} valid")
-
-    # Extract valid indices in one vectorized operation
-    valid_indices = np.where(valid_mask)[0].tolist()
-
-    # Save and return
-    indices_path = root / f"imagenet_{split}_{H}_{W}_indices.pt"
-    torch.save(valid_indices, indices_path)
-    print(f"Saved indices to {indices_path}")
-
-    subset = Subset(full_dataset, valid_indices)
-    print(f"Filtered dataset: {len(subset)} images")
-
-
-def get_imagenet_dataloader(batch_size=32, shuffle=True, num_workers=4):
-    """
-    Get a DataLoader for the filtered ImageNet dataset with images of resolution >= (H, W).
-    """
-    # 1. Load the full dataset (metadata only, no actual image loading yet)
-    full_dataset = datasets.ImageNet(
-        root=image_rootpath,
-        transform=None,
-    )
-
-    # 2. Load precalculated indices for images with resolution >= (H, W)
-    full_path = image_rootpath / f"imagenet_train_{H}_{W}_indices.pt"
-    if full_path.exists():
-        indices = torch.load(full_path)
-        print(f"Loaded {len(indices)} valid indices from {full_path}")
-    else:
-        print(
-            f"Indices file {full_path} not found. Getting and saving ImageNet indices..."
-        )
-        create_filtered_imagenet(image_rootpath, H, W)
-        indices = torch.load(full_path)
-
-    filtered_dataset = Subset(full_dataset, indices)
-
-    # 3. Randomly select a subset of n_images from the filtered dataset
-    # subset_indices = range(2, 3)
-    subset_indices = torch.randperm(len(filtered_dataset))[:n_images]
-    subset = Subset(filtered_dataset, subset_indices)
-
-    # 4. Apply transformations to the subset
-    subset = TransformWrapper(subset, transform=transform)
-
-    # 5. Create a DataLoader for the subset
-    data_loader = DataLoader(
-        subset,
-        batch_size=batch_size,
-        shuffle=shuffle,
-        num_workers=num_workers,
-        # pin_memory=True,
-    )
-
-    data_loader.filenames = get_filenames_from_dataloader(data_loader)
-
-    return data_loader
-
-
-def get_vanhateren_dataloader(batch_size=32, shuffle=True, num_workers=4):
-    # 1. Load dataset (metadata only, no transforms)
-    full_dataset = VanHaterenDataset(root_dir=image_rootpath)
-
-    # 2. Select a random subset of n_images
-    subset_indices = torch.randperm(len(full_dataset))[:n_images]
-    subset = Subset(full_dataset, subset_indices)
-
-    # 3. Apply transformations via TransformWrapper
-    subset = TransformWrapper(subset, transform=transform)
-
-    # 4. Create DataLoader
-    dataloader = DataLoader(
-        subset,
-        batch_size=batch_size,
-        shuffle=shuffle,
-        num_workers=num_workers,
-        # pin_memory=True,
-    )
-
-    dataloader.filenames = [str(full_dataset.image_paths[i]) for i in subset_indices]
-
-    return dataloader
-
-
-def get_filenames_from_dataloader(data_loader):
-    """Extract original filenames from the ImageNet data_loader."""
-    wrapper = data_loader.dataset
-    subset1 = wrapper.dataset
-    subset2 = subset1.dataset
-    imagenet = subset2.dataset
-
-    subset_indices = subset1.indices
-    filtered_indices = subset2.indices
-
-    return [imagenet.samples[filtered_indices[i]][0] for i in subset_indices]
-
-
-def save_transformed_images(output_dir, data_loader):
+def save_transformed_images(transformed_dir, data_loader):
     """
     Save transformed images to disk for retina simulator.
     """
@@ -318,7 +142,7 @@ def save_transformed_images(output_dir, data_loader):
             f"Length of filenames ({len(filenames)}) does not match dataset length ({len(dataset)})"
         )
 
-    output_dir.mkdir(parents=True, exist_ok=True)
+    transformed_dir.mkdir(parents=True, exist_ok=True)
 
     output_names = []
 
@@ -327,43 +151,35 @@ def save_transformed_images(output_dir, data_loader):
         img_transformed = img_transformed.numpy().squeeze(0) * 255.0
         img_transformed = img_transformed.astype(np.uint8)  # Convert to uint8
 
-        output_name = output_dir / f"{Path(filenames[idx]).stem}_{H}x{W}.png"
+        output_name = transformed_dir / f"{Path(filenames[idx]).stem}_{H}x{W}.png"
         output_names.append(output_name)
         mr.data_io.save_data(output_name, img_transformed)
 
     return output_names
 
 
-def get_filenames(this_name):
-    filename_stem = Path(this_name).stem
-    gc_type = mr.config.retina_parameters["gc_type"]
-    response_type = mr.config.retina_parameters["response_type"]
-    hashstr = mr.config.retina_parameters["retina_parameters_hash"]
-    simulation_results_filename = (
-        f"{gc_type}_{response_type}_{hashstr}_{filename_stem}_results.gz"
-    )
-
-    stimulus_video_name = f"stim_{filename_stem}.mp4"
-
-    return simulation_results_filename, stimulus_video_name
-
-
-def get_transformed_filenames(output_dir):
+def get_transformed_filenames(transformed_dir):
     """
     Get a list of transformed image filenames in the output directory.
     """
-    transformed_filenames = list(output_dir.glob("*.png"))
+    transformed_filenames = list(transformed_dir.glob("*.png"))
     if not transformed_filenames:
         raise FileNotFoundError(
-            f"No transformed images found in {output_dir}. Please run 'transform_images' first."
+            f"No transformed images found in {transformed_dir}. Please run 'transform_images' first."
         )
     return transformed_filenames
 
 
-def update_folders(dataset):
+def update_folders():
     # Remove existing output and stimulus folders which do not yet define the train/test division.
     shutil.rmtree(mr.config.output_folder, ignore_errors=True)
     shutil.rmtree(mr.config.stimulus_folder, ignore_errors=True)
+
+    mr.config.output_folder = mr.config.path / f"resolution_{session_suffix}"
+    mr.config.stimulus_folder = (
+        mr.config.path / f"stim_resolution_{H}_{W}_{array_idx_str}"
+    )
+    mr.config.input_folder = None
 
     # Create appropriate output and stimulus folders for the current dataset.
     mr.config.output_folder = Path(str(mr.config.output_folder) + f"_{dataset}")
@@ -393,42 +209,6 @@ def transfer_retina_to_test_folder():
             shutil.copy(file, mr.config.output_folder)
 
 
-def bootstrap_ci(data, n_bootstraps=10000, stat_func=np.mean, alpha=0.05):
-    n = data.shape[0]
-    idx = np.random.randint(0, n, size=(n_bootstraps, n))
-    stats = stat_func(data[idx], axis=1)
-    cis = np.percentile(stats, [100 * alpha / 2, 100 * (1 - alpha / 2)], axis=0)
-    return cis, data[idx]
-
-
-data_loader = get_vanhateren_dataloader(batch_size=32, shuffle=True, num_workers=4)
-
-update_folders(dataset)
-
-if dataset == "test" and operation == "simulate":
-    transfer_retina_to_test_folder()
-
-# Spatial parameters. H = external stimulus height (pix), W = external stimulus width (pix)
-mr.config.external_stimulus_parameters.ext_pix_per_deg = 30
-
-mr.config.visual_stimulus_parameters.image_height = H
-mr.config.visual_stimulus_parameters.image_width = W
-mr.config.visual_stimulus_parameters.stimulus_size = 1.6
-mr.config.visual_stimulus_parameters.pix_per_deg = 60
-mr.config.visual_stimulus_parameters.stimulus_form = "rectangular"
-
-mr.config.visual_stimulus_parameters.duration_seconds = 0.1
-mr.config.visual_stimulus_parameters.baseline_start_seconds = 0.1
-mr.config.visual_stimulus_parameters.baseline_end_seconds = 0.3
-mr.config.visual_stimulus_parameters.pattern = "natural_image"
-
-# Main loop
-gc_types = ["parasol", "midget"]
-response_types = ["on", "off"]
-
-output_dir = mr.config.path / f"transformed_{H}x{W}_{dataset}_images"
-
-
 def simulate_retina():
     # Save transformed images to disk for simulation
     cone_noise = None
@@ -439,29 +219,27 @@ def simulate_retina():
             mr.config.retina_parameters.response_type = response_type
 
             retina, ganglion_cell = mr.retina_constructor.construct(return_objects=True)
+            hashstr = mr.config.retina_parameters["retina_parameters_hash"]
 
-            transformed_filenames = get_transformed_filenames(output_dir)
+            transformed_filenames = get_transformed_filenames(transformed_dir)
 
             for this_name in transformed_filenames:
                 mr.config.external_stimulus_parameters.ext_stimulus_file = str(
                     this_name
                 )
 
-                simulation_results_filename, stimulus_video_name = get_filenames(
-                    this_name
-                )
+                filename_stem = Path(this_name).stem
 
                 mr.config.visual_stimulus_parameters.stimulus_video_name = (
-                    stimulus_video_name
+                    f"stim_{filename_stem}.mp4"
                 )
-
                 this_video = mr.stimulus_factory.generate()
 
                 mr.retina_simulator.simulate(
                     retina=retina,
                     ganglion_cell=ganglion_cell,
                     stimulus=this_video,
-                    filename=simulation_results_filename,
+                    filename=f"{gc_type}_{response_type}_{hashstr}_{filename_stem}_results.gz",
                     cone_noise=cone_noise,
                 )
 
@@ -472,30 +250,45 @@ def simulate_retina():
             # mr.viz.show_stimulus_with_gcs(frame_number=31)
 
 
-reco = ImageReconstruction(mr.config, mr.data_io)
+reco = ImageReconstruction(
+    mr.config,
+    mr.data_io,
+    n_images=n_images,
+    image_rootpath=image_rootpath,
+    H=H,
+    W=W,
+    transform=transform,
+)
+
+data_loader = reco.get_vanhateren_dataloader(batch_size=32, shuffle=True, num_workers=4)
+
+update_folders()
+
+# Checks
+if dataset == "test" and operation == "construct_model":
+    raise ValueError("Do not construct model with test dataset!")
+
+if dataset == "test" and operation == "simulate":
+    transfer_retina_to_test_folder()
 
 
 match operation:
     case "transform_images":
-        if output_dir.is_dir():
+        if transformed_dir.is_dir():
             raise FileExistsError(
                 f"""
-                Output directory {output_dir} already exists.
+                Output directory {transformed_dir} already exists.
                 Currently, we want the same images with different model combinations, 
                 separately for train and test datasets."""
             )
-        data_loader = get_vanhateren_dataloader(
-            batch_size=32, shuffle=True, num_workers=4
-        )
-        transformed_filenames = save_transformed_images(output_dir, data_loader)
+        transformed_filenames = save_transformed_images(transformed_dir, data_loader)
+
     case "simulate":
         simulate_retina()
 
     case "construct_model":
-        reco = ImageReconstruction(mr.config, mr.data_io)
-
-        R, S, _ = reco.get_spikes_and_images(
-            n_images=n_images, gc_types=gc_types, response_types=response_types
+        R, S, retina_mask = reco.get_spikes_and_images(
+            gc_types=gc_types, response_types=response_types
         )
         W, S_mean = reco.create_model(R, S, ridge_lambda=0.0)
 
@@ -521,7 +314,7 @@ match operation:
             )
 
         R_test, S_test, retina_mask = reco.get_spikes_and_images(
-            n_images=n_images, gc_types=gc_types, response_types=response_types
+            gc_types=gc_types, response_types=response_types
         )
 
         S_estimated = reco.estimate_model(W, R_test, S_mean)
@@ -544,10 +337,10 @@ match operation:
     case "display":
         spatial_models = ["DOG", "VAE"]
         temporal_models = ["fixed", "dynamic", "subunit"]
-        # image_reconstruction_hpc_240: 5, 11, 20, 107
+        # image_reconstruction_hpc_240: 115, 83, 5, 11, 20, 107
         # 6, 35, 83
-        stimulus_sample = [0, 1]  # image_reconstruction_hpc_240: 5, 11, 20, 107
-        # stimulus_sample = [115, 83]  # image_reconstruction_hpc_240: 5, 11, 20, 107
+        stimulus_sample = [0, 1]
+        # stimulus_sample = [115, 83]
 
         # Create all possible session suffixes based on the model combinations
         model_combinations = [
@@ -628,8 +421,8 @@ match operation:
         # Analyze and group the correlation values
         ##########################################
 
-        # returns array of shape (2, 6): [lower, upper] for each column
-        cis, bootstrap_samples = bootstrap_ci(rho_values)
+        # returns array of shape (2, n_cond): [lower, upper] for each column
+        cis = mr.retina_math.bootstrap_ci(rho_values)
 
         # Spatial test: DOG (columns 0-2) vs VAE (columns 3-5)
         dog = rho_values[:, :3].flatten()
@@ -658,7 +451,7 @@ match operation:
         # Nested 2x6 subgrid in [1]
         test_inner = gridspec.GridSpecFromSubplotSpec(2, 1, subplot_spec=outer[1, 0])
         reco_inner = gridspec.GridSpecFromSubplotSpec(2, 6, subplot_spec=outer[1, 1])
-        # axes = [[i, j] for i in range(6) for j in range(2)]
+
         test_axes = [fig.add_subplot(test_inner[i]) for i in stimulus_sample_idx]
         reco_axes = [
             fig.add_subplot(reco_inner[i, j])
@@ -680,6 +473,19 @@ match operation:
         ax01.set_ylabel("Mean Correlation (rho)")
         ax01.set_title("Mean Correlation between Reconstructed and Original Images")
 
+        # Print the rho values +- 95% ci on top of the bars
+        for i, (mean, lower, upper) in enumerate(
+            zip(mean_rho_values, cis[0, :], cis[1, :])
+        ):
+            ax01.text(
+                i,
+                mean + 0.02,
+                f"{mean:.3f}\n({lower:.3f}, {upper:.3f})",
+                ha="center",
+                va="bottom",
+                fontsize=8,
+            )
+
         # Annotate the figure with the p-values and statistics from the statistical tests
         ax01.text(
             0.5,
@@ -695,7 +501,6 @@ match operation:
         )
 
         # Show test images.
-
         for i in stimulus_sample_idx:
             test_axes[i].imshow(
                 S_test_img[i, ...],
@@ -704,7 +509,7 @@ match operation:
                 vmax=255,
             )
 
-        # Show sample images.
+        # Show estimated images.
         for i in range(len(stimulus_sample_idx)):
             for j in range(n_cond):
                 session_suffix = model_combinations[j]
@@ -719,7 +524,6 @@ match operation:
                 ax.set_title(session_suffix)
                 ax.axis("off")
 
-        # ax01.axis("off")
         ax10.axis("off")
         ax11.axis("off")
 
@@ -730,6 +534,115 @@ match operation:
                 f"fig_reconstruction_results_{session_suffix}_summary.eps"
             ),
         )
+
+    case "fourier_transform":
+        # 115, 83,  11, 20, 107
+        stimulus_sample = [0]
+
+        # Load the reconstruction results
+        session_suffix = (
+            f"{H}x{W}_{spatial_model_type}_{temporal_model_type}_{array_idx_str}"
+        )
+        reconstruction_file = (
+            mr.config.path / f"reconstruction_results_{session_suffix}.npz"
+        )
+        if not reconstruction_file.exists():
+            raise FileNotFoundError(
+                f"Reconstruction results file {reconstruction_file} not found. Please run 'reconstruct' first."
+            )
+
+        data = mr.data_io.load_data(filename=reconstruction_file)
+        S_test_img = reco.reconstruct_images(data["S_test"], data["retina_mask"])
+        S_estimated_img = reco.reconstruct_images(
+            data["S_estimated"], data["retina_mask"]
+        )
+        retina_mask = data["retina_mask"]
+
+        # # Get a rectangle inside the retina mask. Without this the retina border dominates the mean fourier transform.
+        # min_row, min_col = 81, 40
+        # max_row, max_col = 158, 204
+
+        # Get a rectangle inside the retina mask. Without this the retina border dominates the mean fourier transform.
+        min_row, min_col = (
+            np.where(retina_mask)[0].min(),
+            np.where(retina_mask)[1].min(),
+        )
+        max_row, max_col = (
+            np.where(retina_mask)[0].max(),
+            np.where(retina_mask)[1].max(),
+        )
+
+        fig, axes = plt.subplots(1, 2, figsize=(12, 6))
+        axes[0].imshow(
+            S_test_img[stimulus_sample[0], ...], cmap="gray", vmin=0, vmax=255
+        )
+        axes[0].add_patch(
+            plt.Rectangle(
+                (min_col, min_row),
+                max_col - min_col,
+                max_row - min_row,
+                edgecolor="red",
+                facecolor="none",
+                linewidth=2,
+            )
+        )
+        axes[0].set_title("Original Image with Retina Mask")
+        axes[1].imshow(
+            S_estimated_img[stimulus_sample[0], ...], cmap="gray", vmin=0, vmax=255
+        )
+        axes[1].add_patch(
+            plt.Rectangle(
+                (min_col, min_row),
+                max_col - min_col,
+                max_row - min_row,
+                edgecolor="red",
+                facecolor="none",
+                linewidth=2,
+            )
+        )
+        axes[1].set_title("Reconstructed Image with Retina Mask")
+        plt.tight_layout()
+
+        fig2, axes2 = plt.subplots(1, 1, figsize=(12, 6))
+        # Compute the 2D Fourier transform inside the rectangle of the original and reconstructed images
+        S_test_fft = np.fft.fft2(S_test_img[:, min_row:max_row, min_col:max_col])
+        S_estimated_fft = np.fft.fft2(
+            S_estimated_img[:, min_row:max_row, min_col:max_col]
+        )
+
+        # Compute the magnitude of the Fourier transform
+        S_test_magnitude = np.abs(np.fft.fftshift(S_test_fft))
+        S_estimated_magnitude = np.abs(np.fft.fftshift(S_estimated_fft))
+        # We have 30 pixels per degree. Please calculate and plot the absolute magnitude as a function of spatial frequency.
+        pixels_per_degree = 30
+        freqs = np.fft.fftshift(
+            np.fft.fftfreq(max_col - min_col, d=1 / pixels_per_degree)
+        )
+        freq_mask = freqs > 0
+        test_magnitude_mean = S_test_magnitude.mean(axis=0)[
+            S_test_magnitude.shape[1] // 2, :
+        ][freq_mask]
+        estimated_magnitude_mean = S_estimated_magnitude.mean(axis=0)[
+            S_estimated_magnitude.shape[1] // 2, :
+        ][freq_mask]
+
+        # Plot the magnitude spectra
+        axes2.plot(
+            np.log(freqs[freq_mask]),
+            test_magnitude_mean,
+            label="Original Image",
+        )
+        axes2.set_xlabel("Spatial Frequency (log cycles/degree)")
+        axes2.set_ylabel("Magnitude")
+        axes2.legend()
+
+        axes2.plot(
+            np.log(freqs[freq_mask]),
+            estimated_magnitude_mean,
+            label="Reconstructed Image",
+        )
+
+        plt.tight_layout()
 
 end_time = time.time()
 print(f"Time taken: {end_time - start_time:.2f} seconds")

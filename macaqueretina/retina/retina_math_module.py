@@ -1140,3 +1140,30 @@ class RetinaMath:
         F = p1 - p2
 
         return F
+
+    def bootstrap_ci(self, data, n_bootstraps=10000, stat_func=np.mean, alpha=0.05):
+        """
+        Compute bootstrap confidence intervals for a statistic of the data.
+
+        Parameters:
+        -----------
+
+        data: array-like
+            The data to bootstrap
+        n_bootstraps: int, number of bootstrap samples
+            The number of bootstrap samples to generate.
+        stat_func: function, statistic to compute (e.g., np.mean, np.median)
+            The statistic function to apply to each bootstrap sample.
+        alpha: float, significance level for confidence interval (default 0.05 for 95% CI)
+            The significance level for the confidence interval.
+
+        Returns:
+        --------
+        cis: array, shape (2, n_features)
+            The lower and upper confidence intervals for each feature.
+        """
+        n = data.shape[0]
+        idx = np.random.randint(0, n, size=(n_bootstraps, n))
+        stats = stat_func(data[idx], axis=1)
+        cis = np.percentile(stats, [100 * alpha / 2, 100 * (1 - alpha / 2)], axis=0)
+        return cis

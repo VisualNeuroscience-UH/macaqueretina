@@ -5,6 +5,73 @@ from pathlib import Path
 import matplotlib.pyplot as plt  # noqa: F401
 import numpy as np
 import torch
+from torch.utils.data import DataLoader, Dataset, Subset
+from torchvision import datasets
+
+
+class TransformWrapper(Dataset):
+    def __init__(self, dataset, transform=None):
+        self.dataset = dataset
+        self.transform = transform
+        self.get_original_image = getattr(dataset.dataset, "get_original_image", None)
+
+    def __getitem__(self, idx):
+        image, label = self.dataset[idx]
+        if self.transform:
+            image = self.transform(image)
+        return image, label
+
+    def __len__(self):
+        return len(self.dataset)
+
+
+class VanHaterenDataset(Dataset):
+    """
+    Custom Dataset class for the Van Hateren image dataset.
+
+    Note that Van Hateren image names start from 1, so indexes will be one off
+    """
+
+    def __init__(self, root_dir: Path):
+        self.image_paths = sorted(
+            [
+                path
+                for path in root_dir.iterdir()
+                if path.suffix.lower() in (".imc", ".iml")
+            ]
+        )
+
+    def __len__(self):
+        return len(self.image_paths)
+
+    def __getitem__(self, idx):
+        img = self.get_original_image(idx)
+
+        # Z normalize
+        img = (img - img.mean()) / img.std()
+
+        # tanh normalize
+        img = np.tanh(img)
+
+        # Scale to 0-1
+        img = (img - img.min()) / (img.max() - img.min())
+
+        # Add dummy color channel
+        img = np.expand_dims(img, axis=0)
+        img = torch.tensor(img)
+
+        # Return a dummy label (0) since Van Hateren images don't have labels
+        return img, 0
+
+    def get_original_image(self, idx):
+        """Return the original image as a numpy array."""
+        with open(self.image_paths[idx], "rb") as handle:
+            s = handle.read()
+
+        img = np.frombuffer(s, dtype="uint16").byteswap()
+        img = img.reshape(1024, 1536).astype(np.float32)
+
+        return img
 
 
 class ImageReconstruction:
@@ -301,16 +368,147 @@ class ImageReconstruction:
 
         return S, S_hash
 
-    def get_spikes_and_images(
-        self, n_images: int, gc_types: list[str], response_types: list[str]
+    def _get_filenames_from_imagenet_dataloader(self, data_loader):
+        """Extract original filenames from the ImageNet data_loader."""
+        wrapper = data_loader.dataset
+        subset1 = wrapper.dataset
+        subset2 = subset1.dataset
+        imagenet = subset2.dataset
+
+        subset_indices = subset1.indices
+        filtered_indices = subset2.indices
+
+        return [imagenet.samples[filtered_indices[i]][0] for i in subset_indices]
+
+    def _create_filtered_imagenet(self, batch_size=1024, split="train"):
+        """
+        Create a filtered ImageNet dataset containing only images with resolution >= (H, W).
+        Saves the indices of valid images to a .pt file for future use.
+
+        Note: The ImageNet dataset is large, and this function does not load the actual images into memory, only their metadata.
+        This functionality needs the imagesize library to check image dimensions without loading the images.
+        Nevertheless, this is slow, but needs to be done only once. The indices are saved to a .pt file for future use.
+        """
+        import imagesize
+
+        root = self.image_rootpath
+        full_dataset = datasets.ImageNet(
+            root=root,
+            split=split,
+            transform=None,
+        )
+
+        total = len(full_dataset)
+        valid_mask = np.zeros(total, dtype=bool)  # Pre-allocate boolean mask
+
+        print(f"Filtering ImageNet-{split} for resolution >= ({self.H}, {self.W})...")
+
+        for start in range(0, total, batch_size):
+            end = min(start + batch_size, total)
+
+            for idx in range(start, end):
+                path, _ = full_dataset.samples[idx]
+                w, h = imagesize.get(path)
+                if w >= self.W and h >= self.H:
+                    valid_mask[idx] = True  # O(1) assignment, no resizing
+
+            print(f"Processed {end}/{total} images, found {valid_mask.sum()} valid")
+
+        # Extract valid indices in one vectorized operation
+        valid_indices = np.where(valid_mask)[0].tolist()
+
+        # Save and return
+        indices_path = root / f"imagenet_{split}_{self.H}_{self.W}_indices.pt"
+        torch.save(valid_indices, indices_path)
+        print(f"Saved indices to {indices_path}")
+
+        subset = Subset(full_dataset, valid_indices)
+        print(f"Filtered dataset: {len(subset)} images")
+
+    def get_imagenet_dataloader(
+        self, dataset, batch_size=32, shuffle=True, num_workers=4
     ):
+        """
+        Get a DataLoader for the filtered ImageNet dataset with images of resolution >= (H, W).
+        """
+        # 1. Load the full dataset (metadata only, no actual image loading yet)
+        full_dataset = datasets.ImageNet(
+            root=self.image_rootpath,
+            transform=None,
+        )
+
+        # 2. Load precalculated indices for images with resolution >= (H, W)
+        full_path = (
+            self.image_rootpath / f"imagenet_{dataset}_{self.H}_{self.W}_indices.pt"
+        )
+        if full_path.exists():
+            indices = torch.load(full_path)
+            print(f"Loaded {len(indices)} valid indices from {full_path}")
+        else:
+            print(
+                f"Indices file {full_path} not found. Getting and saving ImageNet indices..."
+            )
+            self._create_filtered_imagenet(batch_size=batch_size, split=dataset)
+            indices = torch.load(full_path)
+
+        filtered_dataset = Subset(full_dataset, indices)
+
+        # 3. Randomly select a subset of n_images from the filtered dataset
+        # subset_indices = range(2, 3)
+        subset_indices = torch.randperm(len(filtered_dataset))[: self.n_images]
+        subset = Subset(filtered_dataset, subset_indices)
+
+        # 4. Apply transformations to the subset
+        subset = TransformWrapper(subset, transform=self.transform)
+
+        # 5. Create a DataLoader for the subset
+        data_loader = DataLoader(
+            subset,
+            batch_size=batch_size,
+            shuffle=shuffle,
+            num_workers=num_workers,
+            # pin_memory=True,
+        )
+
+        data_loader.filenames = self._get_filenames_from_imagenet_dataloader(
+            data_loader
+        )
+
+        return data_loader
+
+    def get_vanhateren_dataloader(self, batch_size=32, shuffle=True, num_workers=4):
+        # 1. Load dataset (metadata only, no transforms)
+        full_dataset = VanHaterenDataset(root_dir=self.image_rootpath)
+
+        # 2. Select a random subset of n_images
+        subset_indices = torch.randperm(len(full_dataset))[: self.n_images]
+        subset = Subset(full_dataset, subset_indices)
+
+        # 3. Apply transformations via TransformWrapper
+        subset = TransformWrapper(subset, transform=self.transform)
+
+        # 4. Create DataLoader
+        dataloader = DataLoader(
+            subset,
+            batch_size=batch_size,
+            shuffle=shuffle,
+            num_workers=num_workers,
+        )
+
+        dataloader.filenames = [
+            str(full_dataset.image_paths[i]) for i in subset_indices
+        ]
+
+        return dataloader
+
+    def get_spikes_and_images(self, gc_types: list[str], response_types: list[str]):
         """
         Create a linear model for image reconstruction.
 
         Parameters
         ----------
-        n_images : int
-            Number of images.
+        # n_images : int
+        #     Number of images.
         gc_types : list
             List of RGC types.
         response_types : list
@@ -336,17 +534,20 @@ class ImageReconstruction:
 
         filenames_spikes = self._get_spike_filenames(gc_types, response_types)
 
-        spike_data_dicts = self._load_spikes(filenames_spikes, n_images)
+        spike_data_dicts = self._load_spikes(filenames_spikes, self.n_images)
 
         R, R_hash = self._get_response_matrix(
-            spike_data_dicts, gc_types, response_types, n_images
+            spike_data_dicts, gc_types, response_types, self.n_images
         )
 
-        retina_mask = self.data_io.load_data("retina_mask.npy")
+        retina_mask_filename = self.config.retina_parameters_extend.retina_mask_filename
+        retina_mask = self.data_io.load_data(retina_mask_filename, hush=True)
 
-        image_data_dicts = self._load_images(n_images)
+        image_data_dicts = self._load_images(self.n_images)
 
-        S, S_hash = self._get_stimulus_matrix(image_data_dicts, n_images, retina_mask)
+        S, S_hash = self._get_stimulus_matrix(
+            image_data_dicts, self.n_images, retina_mask
+        )
 
         # Some images may be corrupted. These are removed.
         nan_rows = np.where(np.isnan(S).any(axis=1))[0]

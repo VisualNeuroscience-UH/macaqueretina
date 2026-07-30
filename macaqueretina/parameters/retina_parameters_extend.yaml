@@ -1,5 +1,7 @@
 
 retina_parameters_extend:
+  retina_mask_filename: "retina_mask.npy"
+
   noise_type: "shared"  # "shared" or "independent" GC noise
   fixed_mask_threshold: 0.1  # 0.1,  # Applies to rf volume normalization. This value is also the only surround mask threshold.
   center_mask_threshold: 0.1  # 0.1,  Limits rf center extent to values above this proportion of the peak values after volume normalization.

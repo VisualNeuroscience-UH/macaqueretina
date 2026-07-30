@@ -1312,25 +1312,3 @@ class Analysis:
         )
         csv_save_path = data_folder / filename_out
         df.to_csv(csv_save_path)
-
-
-class ImageReconstructionAnalysis:
-    """
-    Class for performing linear reconstruction of input images from
-    responses of the four macaque RGC types.
-    """
-    def __init__(self, config, data_io, **kwargs) -> None:
-        self._config = config
-        self._data_io = data_io
-
-        for attr, value in kwargs.items():
-            setattr(self, attr, value)
-
-    @property
-    def config(self):
-        return self._config
-
-    @property
-    def data_io(self):
-        return self._data_io
-

@@ -28,8 +28,7 @@ Proceed with the Linux installation instructions once WSL2 is configured and run
 ### Setting up the environment
 We suggest using [Poetry](https://python-poetry.org/docs/main/) for creating and managing the project environment. Alternatively, you can use pip virtual environments:
 ```
-python3.14 -m venv .venv
-source .venv/bin/activate
+python3 -m venv .venv
 ```
 
 
@@ -44,6 +43,7 @@ poetry install
 Alternatively, you can install with pip at the git repository root:
 
 ```
+source .venv/bin/activate
 pip install .
 ```
 
