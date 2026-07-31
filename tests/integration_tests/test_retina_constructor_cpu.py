@@ -39,7 +39,6 @@ TEMPORAL_MODEL_TYPES = ["fixed", "dynamic", "subunit"]
 DOG_MODEL_TYPES = ["ellipse_fixed", "circular"]
 
 
-# TÄHÄN JÄIT OPTIMZEWARNING EI FILLTTERÖIDY
 @pytest.mark.parametrize(
     "gc_type,response_type,spatial_model_type,temporal_model_type,dog_model_type",
     [
@@ -75,94 +74,35 @@ def test_retina_construction(
         mr.config.retina_parameters.pol_limits_deg = (-2, 2)
 
     mr.config.output_folder = Path(tmp_path)
-    ret, gc = mr.retina_constructor.construct(return_objects_do_not_save=True)
+    ret, gc = mr.retina_constructor.construct(return_objects=True)
 
-    assert hasattr(ret, "gc_type")
-    assert ret.gc_type == gc_type
+    created_files = [f.stem for f in list(tmp_path.glob("*"))]
+    # Extract string after last underscore in each filename
+    name_parts = [f.stem.split("_")[-1] for f in list(tmp_path.glob("*"))]
+    assert set(name_parts) == set(["metadata", "mosaic", "rfs", "ret"])
+    assert len(created_files) == 4
 
-    assert hasattr(ret, "response_type")
-    assert ret.response_type == response_type
+    assert "img" in gc.keys()
+    assert "img_mask" in gc.keys()
+    assert "X_grid_cen_mm" in gc.keys()
+    assert "Y_grid_cen_mm" in gc.keys()
+    assert "um_per_pix" in gc.keys()
+    assert "pix_per_side" in gc.keys()
+    assert "df" in gc.keys()
 
-    assert hasattr(ret, "spatial_model_type")
-    assert ret.spatial_model_type == spatial_model_type
-
-    assert hasattr(ret, "temporal_model_type")
-    assert ret.temporal_model_type == temporal_model_type
-
-    assert hasattr(ret, "dog_model_type")
-    assert ret.dog_model_type == dog_model_type
+    assert "cone_optimized_pos_mm" in ret.keys()
+    assert "cone_optimized_pos_pol" in ret.keys()
+    assert "cone_noise_hash" in ret.keys()
+    assert "cones_to_gcs_weights" in ret.keys()
+    assert "cone_noise_parameters" in ret.keys()
+    assert "noise_frequency_data" in ret.keys()
+    assert "noise_power_data" in ret.keys()
+    assert "cone_frequency_data" in ret.keys()
+    assert "cone_power_data" in ret.keys()
+    assert "cone_noise_power_fit" in ret.keys()
+    assert "bipolar_optimized_pos_mm" in ret.keys()
 
     output_folder = Path(retina_config.output_folder)
     assert output_folder.exists()
-
-    # Other retina object attributes
-    ret_attribute_names = [
-        "bipolar2gc_dict",
-        "bipolar_density_params",
-        "bipolar_general_parameters",
-        "bipolar_optimized_pos_mm",
-        "bipolar_placement_parameters",
-        "cone_density_params",
-        "cone_frequency_data",
-        "cone_general_parameters",
-        "cone_noise_parameters",
-        "cone_noise_power_fit",
-        "cone_optimized_pos_mm",
-        "cone_optimized_pos_pol",
-        "cone_placement_parameters",
-        "cone_power_data",
-        "cones_to_gcs_weights",
-        "dd_regr_model",
-        "deg_per_mm",
-        "ecc_lim_mm",
-        "ecc_limit_for_dd_fit_mm",
-        "experimental_archive",
-        "fit_statistics",
-        "gc_density_params",
-        "gc_placement_parameters",
-        "gc_proportion",
-        "mask_threshold",
-        "model_density",
-        "noise_frequency_data",
-        "noise_power_data",
-        "polar_lim_deg",
-        "proportion_of_OFF_response_type",
-        "proportion_of_ON_response_type",
-        "proportion_of_midget_gc_type",
-        "proportion_of_parasol_gc_type",
-        "receptive_field_repulsion_parameters",
-        "sector_surface_areas_mm2",
-        "selected_bipolars_df",
-        "whole_ret_img",
-        "whole_ret_img_mask",
-        "whole_ret_lu_mm",
-    ]
-
-    for attr in ret_attribute_names:
-        assert hasattr(ret, attr), f"Attribute {attr} does not exist in macaqueretina"
-        assert getattr(ret, attr) is not None, f"Attribute {attr} is None"
-
-    # Ganglion cell object attributes
-    gc_attribute_names = [
-        "X_grid_cen_mm",
-        "X_grid_sur_mm",
-        "Y_grid_cen_mm",
-        "Y_grid_sur_mm",
-        "df",
-        "exp_pix_per_side",
-        "img",
-        "img_lu_pix",
-        "img_mask",
-        "img_mask_sur",
-        "n_units",
-        "pix_per_side",
-        "um_per_pix",
-        "um_per_side",
-    ]
-
-    # Test for existence and non-None
-    for attr in gc_attribute_names:
-        assert hasattr(gc, attr), f"Attribute {attr} does not exist in macaqueretina"
-        assert getattr(gc, attr) is not None, f"Attribute {attr} is None"
 
     warnings.resetwarnings()

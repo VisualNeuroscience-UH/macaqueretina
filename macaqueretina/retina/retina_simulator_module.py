@@ -5,6 +5,7 @@ import shutil
 import tempfile
 import time
 from abc import ABC, abstractmethod
+from copy import copy
 from typing import TYPE_CHECKING, Any
 
 # Third-party
@@ -788,7 +789,7 @@ class SpatialModelBase(ABC):
         """
         Create the spatial component of the spatiotemporal filter.
 
-        This method generates a spatial filter for a given unit based on
+        This method generates stimulus video spatial filter for a given unit based on
         pre-computed spatial receptive fields.
 
         Parameters
@@ -796,18 +797,20 @@ class SpatialModelBase(ABC):
         gcs : object
             Ganglion cell object containing spatial filter information and
             pre-computed spatial receptive fields.
+            The spat_rf field contains the precalculated RF images
         unit_index : int
             Index of the unit in the dataframe.
 
         Returns
         -------
         np.ndarray
-            2D array representing the spatial filter for the given unit.
+            2D array representing the spatial filter for the given unit in stimulus video space.
         """
         s = gcs.spatial_filter_sidelen
         spatial_kernel = resize(
             gcs.spat_rf[unit_index, :, :], (s, s), anti_aliasing=True
         )
+
         return spatial_kernel
 
 
@@ -2204,7 +2207,6 @@ class ConcreteSimulationBuilder(SimulationBuildInterface):
         stimulus_cropped_batch = video_copy_tensor[
             0, r_batch, q_batch, time_points_indices_tensor
         ]
-        stimulus_cropped_batch = stimulus_cropped_batch  # / 128 - 1.0
 
         # Determine the shape of the final array
         final_shape = (len(r_matrix_tensor),) + stimulus_cropped_batch.shape[1:]
@@ -2228,7 +2230,6 @@ class ConcreteSimulationBuilder(SimulationBuildInterface):
             stimulus_cropped_batch = video_copy_tensor[
                 0, r_batch, q_batch, time_points_indices_tensor
             ]
-            stimulus_cropped_batch = stimulus_cropped_batch  # / 127.5 - 1.0
 
             # Store the result in the preallocated array
             stimulus_cropped[start_idx:end_idx] = stimulus_cropped_batch.cpu().numpy()
@@ -2263,7 +2264,7 @@ class ConcreteSimulationBuilder(SimulationBuildInterface):
         ndim_cones = (self.cones.n_units, vs.stim_len_tp, self.n_sweeps)
         ndim_gc = (self.gcs.n_units, vs.stim_len_tp, self.n_sweeps)
 
-        if not hasattr(vs, "cone_noise"):
+        if not hasattr(vs, "cone_noise") or vs.cone_noise is None:
             self.vs = self.cones.create_noise(vs, self.n_sweeps)
         if not hasattr(vs, "gc_synaptic_noise_raw"):
             self.vs = self.cones.connect_cone_noise_to_gcs(vs, self.n_sweeps)
@@ -2912,7 +2913,7 @@ class ConeProduct(NeuralUnits):
 
         cone_pos_mm = self.ret_npz["cone_optimized_pos_mm"]
         cone_pos_deg = cone_pos_mm * vs.deg_per_mm
-        q, r = vs._vspace_to_pixspace(cone_pos_deg[:, 0], cone_pos_deg[:, 1])
+        q, r = vs.vspace_to_pixspace(cone_pos_deg[:, 0], cone_pos_deg[:, 1])
         q_idx = np.floor(q).astype(int)
         r_idx = np.floor(r).astype(int)
 
@@ -3181,7 +3182,7 @@ class BipolarProduct(NeuralUnits):
         cones_to_bipolars_sur_w = self.ret_npz["cones_to_bipolars_surround_weights"]
 
         # [n_cones, n_timepoints]
-        # Currently vs.cone_noise added at spike generation
+        # Currently cone_noise added at spike generation
         cone_output = vs.cone_signal
 
         # Sign inversion for cones' glutamate release => ON bipolars
@@ -3357,7 +3358,9 @@ class GanglionCellProduct(NeuralUnits):
 
         self.df = df
 
-        self.spat_rf = rfs_npz["gc_img"]
+        # Load precalculated RF images
+        self.spat_rf = rfs_npz["img"]
+
         self.um_per_pix = rfs_npz["um_per_pix"]
         self.sidelen_pix = rfs_npz["pix_per_side"]
 
@@ -3396,7 +3399,7 @@ class GanglionCellProduct(NeuralUnits):
         df = self.df
         # Endow RGCs with pixel coordinates.
         pixspace_pos = np.array(
-            [vs._vspace_to_pixspace(gc.x_deg, gc.y_deg) for index, gc in df.iterrows()]
+            [vs.vspace_to_pixspace(gc.x_deg, gc.y_deg) for index, gc in df.iterrows()]
         )
         # Assert that the pixel coordinates are within the stimulus space
 
@@ -3440,7 +3443,7 @@ class GanglionCellProduct(NeuralUnits):
             y_deg_s = y_diff_deg * df.gc_scaling_factors + df.y_deg
             # 7) Transform the degrees coordinates to pixel coordinates in stimulus space
             pixspace_pos_s = np.array(
-                [vs._vspace_to_pixspace(x, y) for x, y in zip(x_deg_s, y_deg_s)]
+                [vs.vspace_to_pixspace(x, y) for x, y in zip(x_deg_s, y_deg_s)]
             )
 
             pixspace_coords = pd.DataFrame(
@@ -3622,7 +3625,7 @@ class VisualSignal(PrintableMixin):
         self.baseline_len_tp = self.stimulus_video.baseline_len_tp
         self.mean_luminance = self.options_from_videofile["mean"]
 
-    def _vspace_to_pixspace(self, x: float, y: float) -> tuple[float, float]:
+    def vspace_to_pixspace(self, x: float, y: float) -> tuple[float, float]:
         """
         Converts visual space coordinates to pixel space coordinates.
 
@@ -3819,7 +3822,7 @@ class RetinaSimulator:
             cone_responses_to_show
         )
 
-    def _initialize_cones(self) -> ConeProduct:
+    def _initialize_cones(self, ret_npz) -> ConeProduct:
         """
         Initialize the cone photoreceptors for the simulation.
 
@@ -3828,8 +3831,6 @@ class RetinaSimulator:
         ConeProduct
             Initialized cone photoreceptor object.
         """
-        ret_npz_file = self.config.retina_parameters["ret_file"]
-        ret_npz = self.data_io.load_data(filename=ret_npz_file)
         target_gc_for_multiple_trials = None  # Option to use only one gc unit
 
         cones = ConeProduct(
@@ -3846,11 +3847,33 @@ class RetinaSimulator:
 
         return cones
 
-    def _get_cone_noise_from_file_if_exists(
-        self, vs: VisualSignal, gcs: GanglionCellProduct, ret_npz: NpzFile
-    ) -> VisualSignal:
+    def get_cone_noise(self, ret_npz: NpzFile | None = None) -> np.ndarray | None:
         """
         Load cone noise from file if it exists.
+        """
+
+        try:
+            cone_noise_hash = self.config.retina_parameters["cone_noise_hash"]
+        except KeyError:
+            # Try to recover hash from loaded retina in case where retina was not built in the same session.
+            cone_noise_hash = ret_npz["cone_noise_hash"]
+
+        filename_stem_cone_noise = f"cone_noise_{cone_noise_hash}"
+        cone_noise_filename_full = self.data_io.parse_path(
+            "", substring=filename_stem_cone_noise
+        )
+
+        if cone_noise_filename_full is not None:
+            cone_noise_npz = self.data_io.load_data(full_path=cone_noise_filename_full)
+            cone_noise = cone_noise_npz["cone_noise"]
+        else:
+            cone_noise = None
+
+        return cone_noise
+
+    def _get_retina_patch_pixel_mask(self, vs: VisualSignal) -> VisualSignal:
+        """
+        Attach retina patch pixel mask to visual signal.
 
         Parameters
         ----------
@@ -3860,41 +3883,52 @@ class RetinaSimulator:
         Returns
         -------
         VisualSignal
-            Updated visual signal object.
+            Updated visual signal object with retina patch pixel mask.
         """
 
-        try:
-            cone_noise_hash = self.config.retina_parameters["cone_noise_hash"]
-        except KeyError:
-            cone_noise_hash = ret_npz["cone_noise_hash"]
-            print("This is an informative message telling that...")
-
-        filename_stem_cone_noise = f"cone_noise_{cone_noise_hash}"
-        cone_noise_filename_full = self.data_io.parse_path(
-            "", substring=filename_stem_cone_noise
+        # Get corner points of the retina patch in visual space
+        ecc = self.config.retina_parameters["ecc_limits_deg"]
+        pol = self.config.retina_parameters["pol_limits_deg"]
+        corner_points_deg = np.array(
+            [
+                [ecc[0], pol[0]],
+                [ecc[0], pol[1]],
+                [ecc[1], pol[1]],
+                [ecc[1], pol[0]],
+            ]
+        )
+        xcorner_points_cart, ycorner_points_cart = self.retina_math.pol2cart(
+            corner_points_deg[:, 0], corner_points_deg[:, 1]
+        )
+        xcorner_points_pix, ycorner_points_pix = vs.vspace_to_pixspace(
+            xcorner_points_cart, ycorner_points_cart
         )
 
-        if cone_noise_filename_full is not None:
-            cone_noise_npz = self.data_io.load_data(full_path=cone_noise_filename_full)
-            vs.cone_noise = cone_noise_npz["cone_noise"]
+        from matplotlib.path import Path as MplPath
 
-        gc_type = self.config.retina_parameters["gc_type"]
-        response_type = self.config.retina_parameters["response_type"]
+        path = MplPath(np.column_stack((xcorner_points_pix, ycorner_points_pix)))
 
-        filename_stem_gc_noise = f"{gc_type}_{response_type}_noise_{cone_noise_hash}"
-        gc_noise_filename_full = self.data_io.parse_path(
-            "", substring=filename_stem_gc_noise
-        )
+        min_x = 0
+        max_x = self.config.visual_stimulus_parameters.image_width
+        min_y = 0
+        max_y = self.config.visual_stimulus_parameters.image_height
 
-        if gc_noise_filename_full is not None:
-            gc_noise_npz = self.data_io.load_data(full_path=gc_noise_filename_full)
+        x_coords = np.arange(min_x, max_x)
+        y_coords = np.arange(min_y, max_y)
+        xx, yy = np.meshgrid(x_coords, y_coords)
+        points = np.column_stack((xx.ravel(), yy.ravel()))
 
-            vs.gc_synaptic_noise_raw = gc_noise_npz["gc_synaptic_noise_raw"]
+        mask = path.contains_points(points)
+        vs.retina_patch_pixel_mask = mask.reshape((len(y_coords), len(x_coords)))
 
         return vs
 
     def _get_products(
-        self, stimulus: StimulusFactory | None
+        self,
+        stimulus: StimulusFactory | None,
+        ret_npz: NpzFile,
+        rfs_npz: NpzFile,
+        gc_dataframe: pd.DataFrame,
     ) -> tuple[VisualSignal, GanglionCellProduct, ConeProduct, BipolarProduct]:
         """
         Initialize and return the main components needed for the simulation.
@@ -3910,13 +3944,9 @@ class RetinaSimulator:
             Visual signal, ganglion cells, cones, and bipolar cells.
         """
         # This is needed also independently of the pipeline
-        cones = self._initialize_cones()
+        cones = self._initialize_cones(ret_npz)
 
         # Abstraction for clarity
-        rfs_npz_file = self.config.retina_parameters["spatial_rfs_file"]
-        rfs_npz = self.data_io.load_data(filename=rfs_npz_file)
-        mosaic_file = self.config.retina_parameters["mosaic_file"]
-        gc_dataframe = self.data_io.load_data(filename=mosaic_file)
         spike_generator_model = self.config.simulation_parameters[
             "spike_generator_model"
         ]
@@ -3930,9 +3960,6 @@ class RetinaSimulator:
             spike_generator_model,
             self.retina_math.pol2cart_df,
         )
-
-        ret_npz_file = self.config.retina_parameters["ret_file"]
-        ret_npz = self.data_io.load_data(filename=ret_npz_file)
 
         if gcs.temporal_model_type == "subunit":
             bipolars = BipolarProduct(
@@ -3955,10 +3982,11 @@ class RetinaSimulator:
             stimulus_video=stimulus,
         )
 
-        vs = self._get_cone_noise_from_file_if_exists(vs, gcs, ret_npz)
-
         # Link ganglion cell receptive fields to visual signal. Eg applies rotation
         gcs.link_gcs_to_vs(vs)
+
+        # Attach retina patch pixel mask to vs
+        vs = self._get_retina_patch_pixel_mask(vs)
 
         return vs, gcs, cones, bipolars
 
@@ -4007,9 +4035,27 @@ class RetinaSimulator:
             stimulus = self.stimulus_factory.generate()
         return stimulus
 
+    def _get_retina(self, retina=None, ganglion_cell=None) -> None:
+        if retina is not None and ganglion_cell is not None:
+            ret_npz = retina
+            rfs_npz = ganglion_cell
+            gc_dataframe = ganglion_cell["df"]
+        else:
+            ret_npz_file = self.config.retina_parameters["ret_file"]
+            ret_npz = self.data_io.load_data(filename=ret_npz_file)
+            rfs_npz_file = self.config.retina_parameters["spatial_rfs_file"]
+            rfs_npz = self.data_io.load_data(filename=rfs_npz_file)
+            mosaic_file = self.config.retina_parameters["mosaic_file"]
+            gc_dataframe = self.data_io.load_data(filename=mosaic_file)
+
+        return ret_npz, rfs_npz, gc_dataframe
+
     def simulate(
         self,
+        retina=None,
+        ganglion_cell=None,
         stimulus: DummyVideoClass | None = None,
+        cone_noise: np.ndarray | None = None,
         filename: str | None = None,
         impulse: bool = False,
         unity: bool = False,
@@ -4019,20 +4065,40 @@ class RetinaSimulator:
 
         Parameters
         ----------
+        retina : NpzFile or None, optional
+            Preloaded retina data. If None, loads from file.
+        ganglion_cell : NpzFile or None, optional
+            Preloaded ganglion cell data. If None, loads from file.
         stimulus : DummyVideoClass or None, optional
-            Input stimulus video instance after loading a stimulus.
-            If None, loads from default video file path.
+            Input stimulus video instance. If None, loads from file.
+        cone_noise : np.ndarray or None, optional
+            Preloaded cone noise data. If None, loads from file.
         filename : str or None, optional
             Output filename for spiking gc responses. If None, generates based on config.
         impulse : bool, optional
             If True, runs impulse response simulation.
         unity : bool, optional
             If True, runs uniformity index simulation.
+
+        Notes
+        -----
+        Optional object loading reduces IO calls with experiments with multiple runs.
         """
 
         self._get_construct_metadata_if_missing()
         stimulus = self._prepare_impulse_and_unity_if_needed(impulse, unity, stimulus)
-        vs, gcs, cones, bipolars = self._get_products(stimulus)
+
+        ret_npz, rfs_npz, gc_dataframe = self._get_retina(retina, ganglion_cell)
+
+        vs, gcs, cones, bipolars = self._get_products(
+            stimulus, ret_npz, rfs_npz, gc_dataframe
+        )
+
+        if cone_noise is not None:
+            vs.cone_noise = cone_noise
+        else:
+            vs.cone_noise = self.get_cone_noise(ret_npz=ret_npz)
+
         n_sweeps = self.config.simulation_parameters["n_sweeps"]
 
         builder = ConcreteSimulationBuilder(
@@ -4069,7 +4135,13 @@ class RetinaSimulator:
                 director.run_simulation()
                 vs, gcs = director.get_simulation_result()
                 if self.config.simulation_parameters["save_data"]:
-                    save_variables = self.config.simulation_parameters["save_variables"]
+                    # Save retina mask once.
+                    save_variables = copy(
+                        self.config.simulation_parameters["save_variables"]
+                    )
+                    if not self.data_io.parse_path("retina_mask.npy"):
+                        save_variables.append("retina_patch_pixel_mask")
+
                     self.data_io.save_retina_output(vs, gcs, filename, save_variables)
 
             self._get_project_data_for_viz(vs, gcs, n_sweeps)

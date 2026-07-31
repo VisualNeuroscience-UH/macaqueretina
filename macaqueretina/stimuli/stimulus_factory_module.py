@@ -740,22 +740,49 @@ class StimulusPattern:
         This method handles natural images loading an image file based on the provided
         stimulus metadata. The selected image is then resized to match the frame dimensions.
         The resized image is integrated with the frames by multiplying it, enabling the
-        creation of astimulus pattern.
+        creation of a stimulus video.
 
         After this integration, the method updates the raw intensity values based on the new data.
         """
-        # TODO: scale images to ext_pix_per_deg as with videos
+
         image_file_name = self.config.external_stimulus_parameters["ext_stimulus_file"]
-        self.image = self.data_io.load_data(image_file_name)
+        image = self.data_io.load_data(image_file_name)
 
-        # resize image by specifying custom width and height
-        resized_image = resize(self.image, self.frames.shape[1:])
+        image_pix_per_deg = self.config.external_stimulus_parameters["ext_pix_per_deg"]
+        image_scale_factor = self.options["pix_per_deg"] / image_pix_per_deg
+        resized_image = resize(
+            image, None, fx=image_scale_factor, fy=image_scale_factor
+        )
 
-        # add new axis to b to use numpy broadcasting
-        resized_image = resized_image[np.newaxis, :, :]
+        if (
+            resized_image.shape[0] < self.frames.shape[1]
+            or resized_image.shape[1] < self.frames.shape[2]
+        ):
+            # Pad the scaled image to ensure it is large enough for cropping
+            pad_height = max(0, self.frames.shape[1] - resized_image.shape[0])
+            pad_width = max(0, self.frames.shape[2] - resized_image.shape[1])
+            background = self.options["background"] / 255.0
+            frame_image = np.pad(
+                resized_image,
+                (
+                    (pad_height // 2, pad_height - pad_height // 2),
+                    (pad_width // 2, pad_width - pad_width // 2),
+                ),
+                mode="constant",
+                constant_values=background,
+            )
+        else:
+            # Crop the scaled image to match the frame dimensions
+            start_y = (resized_image.shape[0] - self.frames.shape[1]) // 2
+            start_x = (resized_image.shape[1] - self.frames.shape[2]) // 2
+            frame_image = resized_image[
+                start_y : start_y + self.frames.shape[1],
+                start_x : start_x + self.frames.shape[2],
+            ]
 
-        self.frames = self.frames * resized_image
+        frame_image = frame_image[np.newaxis, :, :]
 
+        self.frames = self.frames * frame_image
         self._raw_intensity_from_data()
 
     def natural_video(self):
@@ -962,16 +989,16 @@ class StimulusFactory(VideoClass):
                 )
 
         # Load stimulus if it exists, identified by hash of parameters. Otherwise, make new stimulus and save.
+        visual_stimulus_parameters.video_hash = None
         video_hash = self.config.visual_stimulus_parameters.hash()
+
         video_name_stem = Path(visual_stimulus_parameters.stimulus_video_name).stem
         video_file_name = video_name_stem + "_" + video_hash + ".hdf5"
         video_file_full = self.data_io.parse_path("", substring=video_file_name)
         if video_file_full:
-            print(
-                "Video stimulus hash exists, loading stimulus from file:",
-                video_file_full,
-            )
+            print("Video stimulus hash exists, loading stimulus from file")
             stimulus_video = self.data_io.load_stimulus_from_videofile(video_file_full)
+
             # The following two are references to self.config.visual_stimulus_parameters
             visual_stimulus_parameters.stimulus_video_name = video_file_name
             visual_stimulus_parameters.video_hash = video_hash
@@ -981,8 +1008,8 @@ class StimulusFactory(VideoClass):
                 "Did not find existing stimulus video hash, making a stimulus with the following properties:"
             )
             visual_stimulus_parameters.stimulus_video_name = video_file_name
+            visual_stimulus_parameters.video_hash = video_hash
 
-        visual_stimulus_parameters["video_hash"] = video_hash
         for this_option in visual_stimulus_parameters:
             print(this_option, ":", visual_stimulus_parameters[this_option])
             if this_option not in self.options.keys():

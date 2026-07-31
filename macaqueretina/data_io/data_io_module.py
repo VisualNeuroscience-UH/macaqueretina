@@ -9,7 +9,6 @@ from pathlib import Path
 from typing import Any
 
 # Third-party
-import brian2.units as b2u
 import cv2
 import h5py
 import numpy as np
@@ -206,6 +205,7 @@ class DataIO:
         exclude_substring=None,
         return_filename=False,
         full_path=None,
+        hush=False,
     ):
         """
         Open requested file and get data.
@@ -233,7 +233,7 @@ class DataIO:
             raise FileNotFoundError(f"I could not find file {filename}, aborting...")
 
         # Open file by extension type
-        filename_extension = data_fullpath_filename.suffix
+        filename_extension = data_fullpath_filename.suffix.lower()
 
         if filename_extension in [".gz", ".pkl"]:
             try:
@@ -252,7 +252,7 @@ class DataIO:
                 # data = data.drop(["Unnamed: 0"], axis=1)
                 data.set_index("Unnamed: 0", inplace=True)
                 data.index.name = None
-        elif filename_extension in [".jpg", ".png"]:
+        elif filename_extension in [".jpg", ".jpeg", ".png"]:
             # The 0-flag calls for grayscale. Comes in as uint8 type
             image = cv2.imread(str(data_fullpath_filename), 0)
 
@@ -274,7 +274,8 @@ class DataIO:
         else:
             raise TypeError("U r trying to input unknown filetype, aborting...")
 
-        print(f"Loaded file {data_fullpath_filename}")
+        if not hush:
+            print(f"Loaded file {data_fullpath_filename}")
 
         if return_filename is True:
             return data, data_fullpath_filename
@@ -365,6 +366,13 @@ class DataIO:
                 np.savez(filename, **data)
             case ".h5" | ".hdf5":
                 self._save_hdf5(filename, data)
+            case ".jpg" | ".png":
+                if isinstance(data, np.ndarray):
+                    cv2.imwrite(str(filename), data)
+                else:
+                    raise ValueError(
+                        "Data must be a numpy array to save as an image file."
+                    )
             case _:
                 raise TypeError("Unknown file type for saving data")
 
@@ -957,118 +965,6 @@ class DataIO:
             overwrite=overwrite,
         )
 
-    def combine_LGN_input(self, filename=None):
-        """
-        Provide two files: one with on units, one with off units.
-        It combines them into a single file "filename".
-        """
-        on_data_paths = list(self.config.output_folder.glob("*on*response*.gz"))
-        off_data_paths = list(self.config.output_folder.glob("*off*response*.gz"))
-
-        if len(on_data_paths) != len(off_data_paths):
-            raise ValueError(
-                "The number of on and off data files do not match. Please check the output folder."
-            )
-        if len(on_data_paths) + len(off_data_paths) > 4:
-            raise ValueError(
-                "There are more than 2 on and 2 off data files. Please check the output folder."
-            )
-
-        combined = {"w_coord": np.array([]), "z_coord": np.array([])}
-        unit_idx_counter = 0
-        on_data = self.load_data(full_path=on_data_paths[0])
-        n_sweeps = len([k for k in on_data.keys() if k.startswith("spikes_")])
-        on_off = {
-            f"spikes_{i}": np.empty((0, 2), dtype=np.float32) for i in range(n_sweeps)
-        }
-
-        for on_data_path, off_data_path in zip(on_data_paths, off_data_paths):
-            on_data = self.load_data(full_path=on_data_path)
-            off_data = self.load_data(full_path=off_data_path)
-            if on_data.keys() != off_data.keys():
-                raise ValueError("On and off data keys do not match.")
-            if on_data["video_hash"] != off_data["video_hash"]:
-                raise ValueError("On and off data video (hash) do not match.")
-            if on_data["cone_noise_hash"] != off_data["cone_noise_hash"]:
-                raise ValueError("On and off data cone_noise (hash) do not match.")
-            if "parasol" in on_data_path.name:
-                print("Parasol data found, combining parasol on and off data...")
-                if "parasol" not in off_data_path.name:
-                    raise ValueError(
-                        "On and off data cell types do not match (parasol vs midget)."
-                    )
-                gc_type = "parasol"
-            if "midget" in on_data_path.name:
-                print("Midget data found, combining midget on and off data...")
-                if "midget" not in off_data_path.name:
-                    raise ValueError(
-                        "On and off data cell types do not match (parasol vs midget)."
-                    )
-                gc_type = "midget"
-            # There may be multiple sweeps, eg 'spikes_0', 'spikes_1', 'spikes_2'
-            # Make a loop combining all sweeps separately.
-            for this_sweep in [k for k in on_data.keys() if k.startswith("spikes_")]:
-                on_spike_idx = unit_idx_counter + on_data.get(this_sweep)[0]
-                on_spike_t = on_data.get(this_sweep)[1]
-                off_spike_idx = off_data.get(this_sweep)[0]
-                off_spike_t = off_data.get(this_sweep)[1]
-
-                # Reindex off spikes on top of on spikes
-                off_spike_idx += unit_idx_counter + on_data.get("n_units")
-
-                unitless_on_spike_t = on_spike_t / b2u.msecond
-                unitless_off_spike_t = off_spike_t / b2u.msecond
-
-                on_off[this_sweep] = np.vstack(
-                    [
-                        on_off[this_sweep],
-                        np.array([on_spike_idx, unitless_on_spike_t]).T,
-                    ]
-                )
-                on_off[this_sweep] = np.vstack(
-                    [
-                        on_off[this_sweep],
-                        np.array([off_spike_idx, unitless_off_spike_t]).T,
-                    ]
-                )
-
-            combined["w_coord"] = np.concatenate(
-                [combined["w_coord"], on_data.get("w_coord"), off_data.get("w_coord")]
-            )
-            combined["z_coord"] = np.concatenate(
-                [combined["z_coord"], on_data.get("z_coord"), off_data.get("z_coord")]
-            )
-            n_on_units = on_data.get("n_units")
-            combined[f"{gc_type}_on_unit_idx"] = range(
-                unit_idx_counter, unit_idx_counter + n_on_units
-            )
-            unit_idx_counter += n_on_units
-            n_off_units = off_data.get("n_units")
-            combined[f"{gc_type}_off_unit_idx"] = range(
-                unit_idx_counter, unit_idx_counter + n_off_units
-            )
-            # Reindex midget spikes on top of parasol spikes for the next round
-            # if both are included in the same simulation
-            unit_idx_counter += n_off_units
-
-        for this_sweep in [k for k in on_data.keys() if k.startswith("spikes_")]:
-            combined[this_sweep] = (
-                list(on_off[this_sweep][:, 0].astype(np.int32)),
-                list(on_off[this_sweep][:, 1].astype(np.float32) * b2u.msecond),
-            )
-
-        print(f"Total number of units combined: {unit_idx_counter}")
-        combined["dt"] = off_data.get("dt")
-        combined["n_units"] = unit_idx_counter
-        combined["video_hash"] = on_data.get("video_hash")
-        combined["cone_noise_hash"] = on_data.get("cone_noise_hash")
-
-        if filename is None:
-            filename = on_data_path.name.replace("_on_", "_combined_")
-
-        filepath_full = self.config.output_folder.joinpath(filename)
-        self._write_to_file(filepath_full, combined)
-
     def save_retina_output(self, vs, gcs, filename, save_variables=None):
         vs.w_coord, vs.z_coord = self._get_w_z_coords(gcs)
 
@@ -1088,6 +984,13 @@ class DataIO:
                             "video_hash", None
                         ),
                         dt=vs.simulation_dt,
+                    )
+                case "retina_patch_pixel_mask":
+                    mask_file_name = "retina_mask.npy"
+                    self.save_data(
+                        mask_file_name,
+                        vs.retina_patch_pixel_mask,
+                        path=self.config.output_folder,
                     )
 
                 case "cone_noise":

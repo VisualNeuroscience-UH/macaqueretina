@@ -1,5 +1,7 @@
 
 retina_parameters_extend:
+  retina_mask_filename: "retina_mask.npy"
+
   noise_type: "shared"  # "shared" or "independent" GC noise
   fixed_mask_threshold: 0.1  # 0.1,  # Applies to rf volume normalization. This value is also the only surround mask threshold.
   center_mask_threshold: 0.1  # 0.1,  Limits rf center extent to values above this proportion of the peak values after volume normalization.
@@ -8,7 +10,7 @@ retina_parameters_extend:
 
   # Proportion from all ganglion cells.
   proportion_of_parasol_gc_type: 0.08
-  proportion_of_midget_gc_type: 0.64
+  proportion_of_midget_gc_type: 0.85
 
   # Proportion of ON and OFF response type units, assuming ON rf diameter = 1.2 x OFF rf diameter, and
   # coverage factor =1; Chichilnisky_2002_JNeurosci
@@ -74,7 +76,7 @@ retina_parameters_extend:
 
   bipolar_general_parameters:
     bipo2gc_div: 6  # Divide GC dendritic diameter to get bipolar/subunit SD
-    bipo2gc_cutoff_SD: 2  # Multiplier for above value
+    bipo2gc_cutoff_SD: 2  # Multiplier for above value. With 1 SD the bipo/GC ratio is more physiological, but you start loosing midget GCs due to zero input.
     cone2bipo_cen_sd: 10  # um, Turner_2018_eLife
     cone2bipo_sur_sd: 150
     bipo_sub_sur2cen: 0.5  # Surround / Center amplitude ratio for bipolar subunits (cone => bipo connection).
@@ -102,11 +104,11 @@ retina_parameters_extend:
   # Good for testing, speed and memory.
   gc_placement_parameters:
     algorithm: "force"  # "voronoi" or "force" or null
-    n_iterations: 30  # v 20, f 5000
+    n_iterations: 10 # v 20, f 5000
     change_rate: 0.0005  # f 0.001, v 0.5
     unit_repulsion_stregth: 10  # 10 f only
     unit_distance_threshold: 0.2  # f only, adjusted with ecc
-    diffusion_speed: 0.001  # f only, adjusted with ecc
+    diffusion_speed: 0.002  # f only, adjusted with ecc
     border_repulsion_stength: 0.2  # f only
     border_distance_threshold: 0.001  # f only
     show_placing_progress: False  # True False
@@ -114,7 +116,7 @@ retina_parameters_extend:
 
   cone_placement_parameters:
     algorithm: "force"  # "voronoi" or "force" or null
-    n_iterations: 15  # v 20, f 300
+    n_iterations: 10  # v 20, f 300
     change_rate: 0.0005  # f 0.0005, v 0.5
     unit_repulsion_stregth: 2  # 10 f only
     unit_distance_threshold: 0.25  # f only, adjusted with ecc
@@ -127,7 +129,7 @@ retina_parameters_extend:
 
   bipolar_placement_parameters:
     algorithm: "force"  # "voronoi" or "force" or null
-    n_iterations: 15  # v 20, f 300
+    n_iterations: 10  # v 20, f 300
     change_rate: 0.0005  # f 0.0005, v 0.5
     unit_repulsion_stregth: 2  # 10 f only
     unit_distance_threshold: 0.2  # f only, adjusted with ecc

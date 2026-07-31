@@ -26,7 +26,10 @@ Proceed with the Linux installation instructions once WSL2 is configured and run
 ## Install with Linux
 
 ### Setting up the environment
-We suggest using [Poetry](https://python-poetry.org/docs/main/) for creating and managing the project environment.
+We suggest using [Poetry](https://python-poetry.org/docs/main/) for creating and managing the project environment. Alternatively, you can use pip virtual environments:
+```
+python3 -m venv .venv
+```
 
 
 ### Install macaqueretina
@@ -35,6 +38,13 @@ Navigate to your local macaqueretina git repository root and run:
 
 ```
 poetry install
+```
+
+Alternatively, you can install with pip at the git repository root:
+
+```
+source .venv/bin/activate
+pip install .
 ```
 
 ### Download variational autoencoder (VAE) models separately
