@@ -501,6 +501,31 @@ class ImageReconstruction:
 
         return dataloader
 
+    def get_rates(self, gc_types: list[str], response_types: list[str]):
+        """
+        Get the response matrix R and video hashes for the specified RGC types and response types.
+
+        Parameters
+        ----------
+        gc_types : list
+            List of RGC types.
+        response_types : list
+            List of RGC response types ('on', 'off').
+
+        Returns
+        -------
+        R : np.ndarray
+            Response matrix of shape (N_images, N_cells)
+        R_hash : np.ndarray
+            Ordered array of video hashes corresponding to the spike data in R.
+        """
+        filenames_spikes = self._get_spike_filenames(gc_types, response_types)
+        spike_data_dicts = self._load_spikes(filenames_spikes, self.n_images)
+        R, R_hash = self._get_response_matrix(
+            spike_data_dicts, gc_types, response_types, self.n_images
+        )
+        return R, R_hash
+
     def get_spikes_and_images(self, gc_types: list[str], response_types: list[str]):
         """
         Create a linear model for image reconstruction.
@@ -532,13 +557,7 @@ class ImageReconstruction:
         The hash order check ensures that the the stimulus video matches the response.
         """
 
-        filenames_spikes = self._get_spike_filenames(gc_types, response_types)
-
-        spike_data_dicts = self._load_spikes(filenames_spikes, self.n_images)
-
-        R, R_hash = self._get_response_matrix(
-            spike_data_dicts, gc_types, response_types, self.n_images
-        )
+        R, R_hash = self.get_rates(gc_types, response_types)
 
         retina_mask_filename = self.config.retina_parameters_extend.retina_mask_filename
         retina_mask = self.data_io.load_data(retina_mask_filename, hush=True)
