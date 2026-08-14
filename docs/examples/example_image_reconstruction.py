@@ -14,7 +14,7 @@ dataset = "test", 834 images available
 4) operation = "transform_images" # Creates the retina spike data for testing the model
 5) operation = "simulate" # Creates the retina spike data for testing the model
 6) operation = "reconstruct" # Reconstructs the images from the test spike data
-7) operation = "display" # Displays the reconstructed images from the test spike data
+7) operation = "show_model_comparison" # show_model_comparisons the reconstructed images from the test spike data
 8) operation = "fourier_transform" # Computes and compares the Fourier transform of the reconstructed images
 """
 
@@ -58,15 +58,16 @@ mr.config.device = "cuda" if torch.cuda.is_available() else "cpu"
 # H = W = int(os.environ["HEIGHT_AND_WIDTH"])
 
 # Fluid parameters for workstation run.
-dataset = "train"  # "train" or "test"
-n_images = 3
-operation = "construct_model"  # "transform_images", "simulate", "construct_model", "reconstruct", "display", "fourier_transform"
+dataset = "test"  # "train" or "test"
+n_images = 834  # 3330 for train, 834 for test
+operation = "show_slurm_arrays"  # "transform_images", "simulate", "construct_model", "reconstruct", "show_model_comparison", "fourier_transform"
 spatial_model_type = "DOG"  # "DOG" or "VAE"
-temporal_model_type = "subunit"  # "fixed", "dynamic" or "subunit"
+temporal_model_type = "dynamic"  # "fixed", "dynamic" or "subunit"
 array_idx_str = "01"
-H = W = 120
+H = W = 240
 
-mr.config.experiment = "tmp_260730d"
+# mr.config.experiment = "tmp_260730d"
+mr.config.experiment = "im_reco_vanhateren_240_260730/mod_rec_dynamic_gain_multiplier"
 # mr.config.experiment = "im_reco_vanhateren_240_260730"
 image_rootpath = Path(f"/opt3/images/vanHateren/imc_images_{dataset}")
 # torch.manual_seed(42)
@@ -83,11 +84,11 @@ print(f"{H=}, {W=}")
 
 mr.config.retina_parameters.spatial_model_type = spatial_model_type
 mr.config.retina_parameters.temporal_model_type = temporal_model_type
-mr.config.retina_parameters.ecc_limits_deg = (4.5, 5.5)
-mr.config.retina_parameters.pol_limits_deg = (-1.5, 1.5)
+# mr.config.retina_parameters.ecc_limits_deg = (4.5, 5.5)
+# mr.config.retina_parameters.pol_limits_deg = (-1.5, 1.5)
 
-# mr.config.retina_parameters.ecc_limits_deg = (3.5, 6.5)
-# mr.config.retina_parameters.pol_limits_deg = (-10, 10)
+mr.config.retina_parameters.ecc_limits_deg = (3.5, 6.5)
+mr.config.retina_parameters.pol_limits_deg = (-10, 10)
 
 mr.config.external_stimulus_parameters.ext_pix_per_deg = 30
 mr.config.visual_stimulus_parameters.image_height = H
@@ -102,6 +103,7 @@ mr.config.visual_stimulus_parameters.baseline_end_seconds = 0.3
 mr.config.visual_stimulus_parameters.pattern = "natural_image"
 
 
+# gc_types = ["midget"]
 gc_types = ["parasol", "midget"]
 response_types = ["on", "off"]
 
@@ -111,7 +113,7 @@ mr.config.path = Path(mr.config.model_root_path).joinpath(
     Path(mr.config.project), mr.config.experiment
 )
 
-session_suffix = f"{H}x{W}_{spatial_model_type}_{temporal_model_type}_{array_idx_str}"
+session_suffix = f"{H}x{W}_{spatial_model_type}_{temporal_model_type}_gain_multiplier"
 
 model_filename = f"W_{session_suffix}.npz"
 
@@ -290,6 +292,7 @@ match operation:
         R, S, retina_mask = reco.get_spikes_and_images(
             gc_types=gc_types, response_types=response_types
         )
+
         W, S_mean = reco.create_model(R, S, ridge_lambda=0.0)
 
         # If any value in W or S_mean is NaN, raise an error
@@ -334,22 +337,23 @@ match operation:
             path=mr.config.path,
         )
 
-    case "display":
+    case "show_model_comparison":
         spatial_models = ["DOG", "VAE"]
         temporal_models = ["fixed", "dynamic", "subunit"]
         # image_reconstruction_hpc_240: 115, 83, 5, 11, 20, 107
         # 6, 35, 83
-        stimulus_sample = [0, 1]
-        # stimulus_sample = [115, 83]
+        # im_reco_vanhateren_240_260730, array_idx_str (transformed images folder) 01
+        # 23, 273, 204, 211
+        stimulus_sample = [23, 273, 204, 211]
+        n_samples = len(stimulus_sample)
 
         # Create all possible session suffixes based on the model combinations
         model_combinations = [
             f"{spatial_model}_{temporal_model}"
-            # f"{H}x{W}_{spatial_model}_{temporal_model}"
             for spatial_model in spatial_models
             for temporal_model in temporal_models
         ]
-        n_cond = len(model_combinations)
+        n_models = len(model_combinations)
 
         #############################
         # Load the correlation values
@@ -357,12 +361,11 @@ match operation:
 
         # Get all reconstruction result files matching the session suffix
         reconstruction_files = {}
-        for session_suffix in model_combinations:
+        for this_model in model_combinations:
             session_files = list(
-                mr.config.path.glob(f"reconstruction_results*{session_suffix}*")
+                mr.config.path.glob(f"reconstruction_results*{this_model}*")
             )
-
-            reconstruction_files[session_suffix] = session_files
+            reconstruction_files[this_model] = session_files
 
         n_files = [len(reconstruction_files[x]) for x in model_combinations]
         n_iterations = max(n_files)
@@ -373,8 +376,8 @@ match operation:
             )
         )
         # Get the correlation values for each reconstruction file
-        for i, session_suffix in enumerate(model_combinations):
-            for j, file in enumerate(reconstruction_files[session_suffix]):
+        for i, this_model in enumerate(model_combinations):
+            for j, file in enumerate(reconstruction_files[this_model]):
                 data = mr.data_io.load_data(filename=file, hush=True)
                 rho_values[j, i] = data["rho"]
 
@@ -382,30 +385,43 @@ match operation:
         # Init S_test and S_estimated arrays with the correct shape
         ###########################################################
 
-        # Read one file to get the shape of S_test and S_estimated
-        sample_file = reconstruction_files[
-            model_combinations[np.where(np.array(n_files) > 0)[0][0]]
-        ][0]
+        this_array = int(array_idx_str) - 1
+
+        # Read one file to get the shape of S_test and S_estimated and S_test_img
+        sample_file = sorted(
+            reconstruction_files[
+                model_combinations[np.where(np.array(n_files) > 0)[0][0]]
+            ]
+        )[this_array]
         sample_data = mr.data_io.load_data(filename=sample_file, hush=True)
 
         S_test = sample_data["S_test"][stimulus_sample]
         S_test_img = np.zeros((*S_test.shape[:1], H, W))
 
         S_estimated = sample_data["S_estimated"][stimulus_sample]
-        S_estimated_img = np.zeros((*S_estimated.shape[:1], n_cond, H, W))
+        S_estimated_img = np.zeros((*S_estimated.shape[:1], n_models, H, W))
         retina_mask = sample_data["retina_mask"]
         # for i in range(2):
 
-        stimulus_sample_idx = range(len(stimulus_sample))
+        stimulus_sample_idx = range(n_samples)
 
+        # Here we choose the S_test_img (ground truth on the left) from sample_file
         for idx in stimulus_sample_idx:
             S_test_img[idx, ...] = reco.reconstruct_images(
                 sample_data["S_test"][stimulus_sample[idx]], retina_mask
             )
-        for i in range(n_cond):
-            session_suffix = model_combinations[i]
+
+        for i in range(n_models):
+            this_model = model_combinations[i]
             try:
-                file = reconstruction_files[session_suffix][0]
+                file = sorted(reconstruction_files[this_model])[this_array]
+                array_idx = file.stem.rfind("_") + 1
+                this_array_idx_str = file.stem[array_idx:]
+                if this_array_idx_str != array_idx_str:
+                    raise ValueError(
+                        f"Array index mismatch: expected {array_idx_str}, got {this_array_idx_str}"
+                    )
+
                 data = mr.data_io.load_data(filename=file, hush=True)
 
                 S_estimated_img[:, i, ...] = reco.reconstruct_images(
@@ -413,15 +429,13 @@ match operation:
                 )
 
             except IndexError:
-                print(
-                    f"No reconstruction file found for session_suffix: {session_suffix}"
-                )
+                print(f"No reconstruction file found for this_model: {this_model}")
 
         ##########################################
         # Analyze and group the correlation values
         ##########################################
 
-        # returns array of shape (2, n_cond): [lower, upper] for each column
+        # returns array of shape (2, n_models): [lower, upper] for each column
         cis = mr.retina_math.bootstrap_ci(rho_values)
 
         # Spatial test: DOG (columns 0-2) vs VAE (columns 3-5)
@@ -438,7 +452,7 @@ match operation:
         ####################
         # Create the figure
         ####################
-        fig = plt.figure()
+        fig = plt.figure(figsize=(16, 18))
         outer = gridspec.GridSpec(
             2, 2, height_ratios=[1, 2], width_ratios=[1, 6], wspace=0.1, hspace=0.1
         )
@@ -449,14 +463,18 @@ match operation:
         ax11 = fig.add_subplot(outer[1, 1])
 
         # Nested 2x6 subgrid in [1]
-        test_inner = gridspec.GridSpecFromSubplotSpec(2, 1, subplot_spec=outer[1, 0])
-        reco_inner = gridspec.GridSpecFromSubplotSpec(2, 6, subplot_spec=outer[1, 1])
+        test_inner = gridspec.GridSpecFromSubplotSpec(
+            n_samples, 1, subplot_spec=outer[1, 0]
+        )
+        reco_inner = gridspec.GridSpecFromSubplotSpec(
+            n_samples, 6, subplot_spec=outer[1, 1]
+        )
 
         test_axes = [fig.add_subplot(test_inner[i]) for i in stimulus_sample_idx]
         reco_axes = [
             fig.add_subplot(reco_inner[i, j])
             for i in stimulus_sample_idx
-            for j in range(n_cond)
+            for j in range(n_models)
         ]
 
         # Make a bar graph of the mean of the correlation values for each model combination. Add SEM error bars to the bar graph.
@@ -511,9 +529,9 @@ match operation:
 
         # Show estimated images.
         for i in range(len(stimulus_sample_idx)):
-            for j in range(n_cond):
-                session_suffix = model_combinations[j]
-                ax = reco_axes[i * n_cond + j]
+            for j in range(n_models):
+                this_model = model_combinations[j]
+                ax = reco_axes[i * n_models + j]
 
                 ax.imshow(
                     S_estimated_img[i, j, ...],
@@ -521,7 +539,7 @@ match operation:
                     vmin=0,
                     vmax=255,
                 )
-                ax.set_title(session_suffix)
+                ax.set_title(this_model)
                 ax.axis("off")
 
         ax10.axis("off")
@@ -531,7 +549,7 @@ match operation:
 
         mr.viz._figsave(
             figurename=mr.config.path.joinpath(
-                f"fig_reconstruction_results_{session_suffix}_summary.eps"
+                f"reco_array_{array_idx_str}_samples_{'_'.join(map(str, stimulus_sample))}_tmp.eps"
             ),
         )
 
@@ -644,6 +662,48 @@ match operation:
 
         plt.tight_layout()
 
+    case "show_slurm_arrays":
+        # Show reconstruction separately for each SLURM array index. Only one set of array indexes
+        # are processed at a time, so we can show the results for each array index separately.
+        # Get all reconstruction result files matching the session suffix
+        reconstruction_files = sorted(
+            list(mr.config.path.glob(f"reconstruction_results*{session_suffix}*"))
+        )
+        n_files = len(reconstruction_files)
+
+        rho_values = np.zeros(n_files)
+        for idx, file in enumerate(reconstruction_files):
+            data = mr.data_io.load_data(filename=file, hush=True)
+            rho_values[idx] = data["rho"]
+
+        # mr.config.output_folder = Path(str(mr.config.output_folder) + f"_{dataset}")
+        result_paths = sorted(
+            list(mr.config.path.glob(f"hpc/resolution_*{session_suffix}*_{dataset}"))
+        )
+
+        R_values = np.zeros(n_files)
+        for idx, this_path in enumerate(result_paths):
+            mr.config.output_folder = this_path
+            print(f"Processing {this_path}...")
+            R, _ = reco.get_rates(gc_types, response_types)
+            R_values[idx] = R.mean()
+
+        # plot rho values and R_values as a function of array index. Put them in the same figure with two y-axes.
+        fig, ax1 = plt.subplots(figsize=(12, 6))
+        ax1.plot(range(n_files), rho_values, "b-", label="Correlation (rho)")
+        ax1.set_xlabel("SLURM Array Index")
+        ax1.set_ylabel("Correlation (rho)", color="b")
+        ax2 = ax1.twinx()
+        ax2.plot(range(n_files), R_values, "r-", label="Mean Response (R)")
+        ax2.set_ylabel("Mean Response (R)", color="r")
+        plt.title("Correlation and Mean Response vs SLURM Array Index")
+        plt.tight_layout()
+
+        mr.viz._figsave(
+            figurename=mr.config.path.joinpath(
+                f"gain_multiplier_rho_R_{spatial_model_type}_{temporal_model_type}.eps"
+            ),
+        )
 end_time = time.time()
 print(f"Time taken: {end_time - start_time:.2f} seconds")
 
