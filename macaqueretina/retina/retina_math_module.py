@@ -1167,3 +1167,50 @@ class RetinaMath:
         stats = stat_func(data[idx], axis=1)
         cis = np.percentile(stats, [100 * alpha / 2, 100 * (1 - alpha / 2)], axis=0)
         return cis
+
+    def rmse_with_interpolation(self, x1, y1, x2, y2):
+        """
+        Calculate RMSE between two curves with different x-values.
+
+        Interpolates both curves onto a common x-axis within their overlapping range
+        and computes the root mean square error.
+
+        Parameters:
+        x1, x2 : array-like
+            X-coordinates for the first and second curve.
+        y1, y2 : array-like
+            Y-coordinates for the first and second curve.
+
+        Returns:
+        float
+            The RMSE value between the two interpolated curves.
+
+        Raises:
+        ValueError
+            If there is no overlapping x-range between the two curves.
+        """
+        x1 = np.asarray(x1)
+        y1 = np.asarray(y1)
+        x2 = np.asarray(x2)
+        y2 = np.asarray(y2)
+
+        sort_idx1 = np.argsort(x1)
+        sort_idx2 = np.argsort(x2)
+        x1_sorted, y1_sorted = x1[sort_idx1], y1[sort_idx1]
+        x2_sorted, y2_sorted = x2[sort_idx2], y2[sort_idx2]
+
+        x_min = max(x1_sorted[0], x2_sorted[0])
+        x_max = min(x1_sorted[-1], x2_sorted[-1])
+
+        if x_min >= x_max:
+            raise ValueError("No overlapping x-range between the two curves")
+
+        common_x = np.linspace(x_min, x_max, 1000)
+
+        y1_interp = np.interp(common_x, x1_sorted, y1_sorted)
+        y2_interp = np.interp(common_x, x2_sorted, y2_sorted)
+
+        squared_errors = (y1_interp - y2_interp) ** 2
+        rmse = np.sqrt(np.mean(squared_errors))
+
+        return float(rmse)
