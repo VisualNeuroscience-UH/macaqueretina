@@ -152,12 +152,14 @@ class ImageReconstruction:
 
         return W
 
-    def _get_spike_filenames(self, gc_types: list[str], response_types: list[str]):
+    def _get_spike_filenames(
+        self, gc_types: list[str], response_types: list[str], output_folder: Path
+    ):
         """
         Get the filenames of the responses for a specific RGC type and response type.
 
         """
-        output_folder = self.config.output_folder
+        # output_folder = self.config.output_folder
         response_files = list(output_folder.glob("*results*.gz"))
 
         # Raise error if no response files are found
@@ -501,6 +503,23 @@ class ImageReconstruction:
 
         return dataloader
 
+    def get_rates(
+        self, gc_types: list[str], response_types: list[str], output_folder: Path
+    ):
+        """
+        Get the response matrix R and the R_hash.
+        """
+        filenames_spikes = self._get_spike_filenames(
+            gc_types, response_types, output_folder
+        )
+
+        spike_data_dicts = self._load_spikes(filenames_spikes, self.n_images)
+
+        R, R_hash = self._get_response_matrix(
+            spike_data_dicts, gc_types, response_types, self.n_images
+        )
+        return R, R_hash
+
     def get_spikes_and_images(self, gc_types: list[str], response_types: list[str]):
         """
         Create a linear model for image reconstruction.
@@ -532,13 +551,7 @@ class ImageReconstruction:
         The hash order check ensures that the the stimulus video matches the response.
         """
 
-        filenames_spikes = self._get_spike_filenames(gc_types, response_types)
-
-        spike_data_dicts = self._load_spikes(filenames_spikes, self.n_images)
-
-        R, R_hash = self._get_response_matrix(
-            spike_data_dicts, gc_types, response_types, self.n_images
-        )
+        R, R_hash = self.get_rates(gc_types, response_types, self.config.output_folder)
 
         retina_mask_filename = self.config.retina_parameters_extend.retina_mask_filename
         retina_mask = self.data_io.load_data(retina_mask_filename, hush=True)
