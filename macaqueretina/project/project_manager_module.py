@@ -141,6 +141,7 @@ def create_viz_instance(
         sector2area_mm2=retina_math.sector2area_mm2,
         interpolate_data=retina_math.interpolate_data,
         lorenzian_function=retina_math.lorenzian_function,
+        fit_function_to_data=retina_math.fit_function_to_data,
     )
 
 

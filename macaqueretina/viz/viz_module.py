@@ -4825,49 +4825,14 @@ class Viz:
             Initial guess for the parameters.
         """
 
-        if fit_in_log_space:
-            y_data = np.log(y_data)
-            # p0 = np.log(p0)
-
-            # Define the objective function in log space that works with vectors
-            def log_objective(x: np.ndarray, *params) -> np.ndarray:
-                y_pred = fit_function(x, *params)
-                # Handle potential negative or zero values
-                # Set minimum value to positive number
-                y_pred = np.maximum(y_pred, 1e-10)
-                return np.log(y_pred)
-
-            popt, pcov = opt.curve_fit(
-                log_objective,
-                x_data,
-                np.log(y_data),
-                p0=p0,
-                bounds=bounds,
-                maxfev=10000,
-                ftol=1e-08,
-            )
-            y_data = np.exp(y_data)  # Convert y_data back to original scale
-
-        else:
-            popt, pcov = opt.curve_fit(
-                fit_function,
-                x_data,
-                y_data,
-                p0=p0,
-                bounds=bounds,
-                # method="lm",
-                method="lm" if bounds == (-np.inf, np.inf) else "trf",
-                maxfev=10000,
-                ftol=1e-08,
-            )
-
-        x_dense = np.logspace(np.log10(np.min(x_data)), np.log10(np.max(x_data)), 100)
-        y_fitted = fit_function(x_dense, *popt)
-
-        # Remove fit ints with cs < 1, considered noise
-        mask = y_fitted < 1
-        x_dense = x_dense[~mask]
-        y_fitted = y_fitted[~mask]
+        popt, pcov, x_dense, y_fitted = self.fit_function_to_data(
+            fit_function,
+            x_data,
+            y_data,
+            p0=p0,
+            fit_in_log_space=fit_in_log_space,
+            bounds=bounds,
+        )
 
         fig, ax = plt.subplots()
         ax.scatter(x_data, y_data, label="Data points")

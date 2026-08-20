@@ -2,6 +2,7 @@ from typing import TYPE_CHECKING
 
 # Third-party
 import numpy as np
+import scipy.optimize as opt
 from brian2 import units as b2u
 from scipy.interpolate import interp1d
 from scipy.special import gamma
@@ -1168,49 +1169,102 @@ class RetinaMath:
         cis = np.percentile(stats, [100 * alpha / 2, 100 * (1 - alpha / 2)], axis=0)
         return cis
 
-    def rmse_with_interpolation(self, x1, y1, x2, y2):
+    def rmse_at_data(self, x_data, y_data, x2, y2):
         """
-        Calculate RMSE between two curves with different x-values.
-
-        Interpolates both curves onto a common x-axis within their overlapping range
-        and computes the root mean square error.
+        Calculate RMSE between y_data and y2 interpolated at x_data points.
 
         Parameters:
-        x1, x2 : array-like
-            X-coordinates for the first and second curve.
-        y1, y2 : array-like
-            Y-coordinates for the first and second curve.
+        x_data : array-like
+            X-coordinates for the reference data.
+        y_data : array-like
+            Y-coordinates for the reference data.
+        x2 : array-like
+            X-coordinates for the curve to be interpolated.
+        y2 : array-like
+            Y-coordinates for the curve to be interpolated.
 
         Returns:
         float
-            The RMSE value between the two interpolated curves.
+            The RMSE value between y_data and the interpolated y2 at x_data points.
 
         Raises:
         ValueError
-            If there is no overlapping x-range between the two curves.
+            If x_data and x2 have no overlapping range.
         """
-        x1 = np.asarray(x1)
-        y1 = np.asarray(y1)
+        x_data = np.asarray(x_data)
+        y_data = np.asarray(y_data)
         x2 = np.asarray(x2)
         y2 = np.asarray(y2)
 
-        sort_idx1 = np.argsort(x1)
+        sort_idx_data = np.argsort(x_data)
         sort_idx2 = np.argsort(x2)
-        x1_sorted, y1_sorted = x1[sort_idx1], y1[sort_idx1]
+        x_data_sorted, y_data_sorted = x_data[sort_idx_data], y_data[sort_idx_data]
         x2_sorted, y2_sorted = x2[sort_idx2], y2[sort_idx2]
 
-        x_min = max(x1_sorted[0], x2_sorted[0])
-        x_max = min(x1_sorted[-1], x2_sorted[-1])
+        x_min = max(x_data_sorted[0], x2_sorted[0])
+        x_max = min(x_data_sorted[-1], x2_sorted[-1])
 
         if x_min >= x_max:
-            raise ValueError("No overlapping x-range between the two curves")
+            raise ValueError("No overlapping x-range between x_data and x2")
 
-        common_x = np.linspace(x_min, x_max, 1000)
+        y2_at_x_data = np.interp(x_data_sorted, x2_sorted, y2_sorted)
 
-        y1_interp = np.interp(common_x, x1_sorted, y1_sorted)
-        y2_interp = np.interp(common_x, x2_sorted, y2_sorted)
-
-        squared_errors = (y1_interp - y2_interp) ** 2
+        squared_errors = (y_data_sorted - y2_at_x_data) ** 2
         rmse = np.sqrt(np.mean(squared_errors))
 
         return float(rmse)
+
+    def fit_function_to_data(
+        self,
+        fit_function: callable,
+        x_data: np.ndarray,
+        y_data: np.ndarray,
+        p0: tuple | None = None,
+        fit_in_log_space: bool = False,
+        bounds: tuple[float, float] = (-np.inf, np.inf),
+    ):
+        if fit_in_log_space:
+            y_data = np.log(y_data)
+            # p0 = np.log(p0)
+
+            # Define the objective function in log space that works with vectors
+            def log_objective(x: np.ndarray, *params) -> np.ndarray:
+                y_pred = fit_function(x, *params)
+                # Handle potential negative or zero values
+                # Set minimum value to positive number
+                y_pred = np.maximum(y_pred, 1e-10)
+                return np.log(y_pred)
+
+            popt, pcov = opt.curve_fit(
+                log_objective,
+                x_data,
+                np.log(y_data),
+                p0=p0,
+                bounds=bounds,
+                maxfev=10000,
+                ftol=1e-08,
+            )
+            y_data = np.exp(y_data)  # Convert y_data back to original scale
+
+        else:
+            popt, pcov = opt.curve_fit(
+                fit_function,
+                x_data,
+                y_data,
+                p0=p0,
+                bounds=bounds,
+                # method="lm",
+                method="lm" if bounds == (-np.inf, np.inf) else "trf",
+                maxfev=10000,
+                ftol=1e-08,
+            )
+
+        x_dense = np.logspace(np.log10(np.min(x_data)), np.log10(np.max(x_data)), 100)
+        y_fitted = fit_function(x_dense, *popt)
+
+        # Remove fit ints with cs < 1, considered noise
+        mask = y_fitted < 1
+        x_dense = x_dense[~mask]
+        y_fitted = y_fitted[~mask]
+
+        return popt, pcov, x_dense, y_fitted
