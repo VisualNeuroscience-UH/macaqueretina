@@ -343,6 +343,8 @@ class DataIO:
                 filename = path / filename
             else:
                 raise ValueError(f"Provided path {path} is not a directory.")
+        else:
+            filename = Path.joinpath(self.config.output_folder, filename)
 
         filename_extension = Path(filename).suffix
 
