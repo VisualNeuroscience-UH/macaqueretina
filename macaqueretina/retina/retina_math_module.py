@@ -1363,3 +1363,19 @@ class RetinaMath:
         y_fitted = fit_function(x_dense, *popt)
 
         return popt, pcov, x_dense, y_fitted
+
+    def rowwise_correlation(self, A, B):
+        # Center the data (subtract row means)
+        A_centered = A - np.mean(A, axis=1, keepdims=True)
+        B_centered = B - np.mean(B, axis=1, keepdims=True)
+
+        # Compute dot products and norms
+        dot_products = np.sum(A_centered * B_centered, axis=1)
+        norm_A = np.sqrt(np.sum(A_centered**2, axis=1))
+        norm_B = np.sqrt(np.sum(B_centered**2, axis=1))
+
+        # Avoid division by zero (handle zero-norm rows)
+        with np.errstate(divide="ignore", invalid="ignore"):
+            correlations = dot_products / (norm_A * norm_B)
+
+        return correlations
