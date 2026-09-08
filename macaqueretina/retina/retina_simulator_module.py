@@ -1073,66 +1073,74 @@ class TemporalModelFixed(TemporalModelBase):
         AssertionError
             If there is a mismatch between the duration of the stimulus and the duration of the generator potential.
         """
+
         start_time = time.time()
 
         print("Using PyTorch for convolution...")
         device = self.device
-        num_units_t = torch.tensor(gcs.n_units, device=device)
-        stim_len_tp_t = torch.tensor(vs.stim_len_tp, device=device)
 
-        # Convert to float32 to save memory
-        stimulus_cropped_adapted = torch.tensor(
-            vs.stimulus_cropped_adapted, dtype=torch.float32
-        ).to(device)
+        if device == "cuda":
+            dtype = torch.float16
+            torch.backends.cudnn.enabled = True
+        else:
+            dtype = torch.float32
 
-        spatiotemporal_filter = torch.tensor(
-            gcs.spatiotemporal_filters, dtype=torch.float32
-        ).to(device)
+        stimulus = torch.tensor(vs.stimulus_cropped_adapted, dtype=dtype).to(device)
+        # # Pin CPU tensor before moving to GPU
+        # stimulus = torch.as_tensor(
+        #     vs.stimulus_cropped_adapted, dtype=dtype
+        # ).pin_memory()
+        # stimulus = stimulus.to(device)  # Now transfer uses pinned memory
+
+        filters = torch.tensor(gcs.spatiotemporal_filters, dtype=dtype).to(device)
+
+        n_units = gcs.n_units
+        n_channels = stimulus.shape[1]
+        stim_len = vs.stim_len_tp
+        filter_len = filters.shape[2]
 
         # Convolving two signals involves "flipping" one signal and then sliding it across the other signal.
         # PyTorch, however, does not flip the kernel, so we need to do it manually.
-        spatiotemporal_filter_flipped = torch.flip(spatiotemporal_filter, dims=[2])
+        filters_flipped = torch.flip(filters, dims=[2])
 
-        # Calculate padding size
-        filter_length = spatiotemporal_filter_flipped.shape[2]
-        padding_size = filter_length - 1
-
-        # Initialize output tensor
-        output = torch.empty(
-            (num_units_t, stim_len_tp_t),
-            device=device,
-            dtype=torch.float32,
+        # Pad entire stimulus once (not per batch)
+        padding_size = filter_len - 1
+        stimulus_padded = torch.nn.functional.pad(
+            stimulus, (padding_size, 0), mode="replicate"
         )
 
+        # Initialize output
+        output = torch.empty((n_units, stim_len), device=device, dtype=dtype)
+
         # Define batch size
-        batch_size = 80  # Adjust this based on your GPU memory
+        batch_size = 256  # Adjust this based on your GPU memory
 
         # Process in batches
         tqdm_desc = "Preparing fixed generator potential..."
-        for i in tqdm(range(0, num_units_t, batch_size), desc=tqdm_desc):
-            batch_end = min(i + batch_size, num_units_t)
-            batch_indices = torch.arange(i, batch_end, device=device, dtype=torch.int32)
+        for i in tqdm(range(0, n_units, batch_size), desc=tqdm_desc):
+            batch_end = min(i + batch_size, n_units)
+            B = batch_end - i  # Actual batch size
 
-            # Extract the current batch of stimulus
-            stimulus_batch = stimulus_cropped_adapted[batch_indices]
+            stim_batch = stimulus_padded[i:batch_end]  # (B, C, L+P)
+            filter_batch = filters_flipped[i:batch_end]  # (B, C, K)
 
-            # Pad the current batch of stimulus
-            stimulus_batch_padded = torch.nn.functional.pad(
-                stimulus_batch, (padding_size, 0), mode="replicate"
-            )
+            # Reshape for batched conv1d:
+            # Input: (B, C, L+P) -> (1, B*C, L+P)
+            # Weight: (B, C, K) -> (B*C, 1, K)
+            input_reshaped = stim_batch.view(1, B * n_channels, -1)
+            weight_reshaped = filter_batch.view(B * n_channels, 1, -1)
 
-            # Extract the current batch of filter
-            filter_batch = spatiotemporal_filter_flipped[batch_indices]
-            # Perform convolution for the current batch
-            for idx, this_unit in enumerate(batch_indices):
-                # Perform convolution on the current batch
-                output[this_unit] = torch.nn.functional.conv1d(
-                    stimulus_batch_padded[idx].unsqueeze(0),
-                    filter_batch[idx].unsqueeze(0),
-                    padding=0,
-                )
+            # Single conv1d call for entire batch (groups = B * C)
+            conv_output = torch.nn.functional.conv1d(
+                input_reshaped,
+                weight_reshaped,
+                groups=B * n_channels,
+            )  # (1, B*C, L)
 
-        # Move back to CPU and convert to numpy
+            # Reshape and sum over channels: (1, B*C, L) -> (B, C, L) -> (B, L)
+            output_batch = conv_output.view(B, n_channels, -1).sum(1)
+            output[i:batch_end] = output_batch
+
         generator_potential = output.cpu().squeeze().numpy()
 
         print(f"Convolution time: {time.time() - start_time:.2f} s")

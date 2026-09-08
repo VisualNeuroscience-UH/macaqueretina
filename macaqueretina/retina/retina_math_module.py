@@ -2,6 +2,7 @@ from typing import TYPE_CHECKING
 
 # Third-party
 import numpy as np
+import scipy.optimize as opt
 from brian2 import units as b2u
 from scipy.interpolate import interp1d
 from scipy.special import gamma
@@ -1167,3 +1168,214 @@ class RetinaMath:
         stats = stat_func(data[idx], axis=1)
         cis = np.percentile(stats, [100 * alpha / 2, 100 * (1 - alpha / 2)], axis=0)
         return cis
+
+    def _interp_y2_at_x_data(self, x_data, x2, y2):
+        """
+        Helper method to interpolate y2 at x_data points.
+        Extrapolation is used when x_data points fall outside the x2 range.
+
+        Parameters:
+        x_data : array-like
+            X-coordinates where y2 will be interpolated.
+        x2 : array-like
+            X-coordinates for the curve to be interpolated.
+        y2 : array-like
+            Y-coordinates for the curve to be interpolated.
+
+        Returns:
+        array
+            The interpolated y2 values at sorted x_data points.
+        """
+        x_data = np.asarray(x_data)
+        x2 = np.asarray(x2)
+        y2 = np.asarray(y2)
+
+        sort_idx_data = np.argsort(x_data)
+        sort_idx2 = np.argsort(x2)
+        x_data_sorted = x_data[sort_idx_data]
+        x2_sorted, y2_sorted = x2[sort_idx2], y2[sort_idx2]
+
+        interp_func = interp1d(
+            x2_sorted, y2_sorted, kind="linear", fill_value="extrapolate"
+        )
+        y2_at_x_data = interp_func(x_data_sorted)
+
+        return y2_at_x_data
+
+    def rmse_at_data(self, x_data, y_data, x2, y2):
+        """
+        Calculate RMSE between y_data and y2 interpolated at x_data points.
+        Extrapolation is used when x_data points fall outside the x2 range.
+
+        Parameters:
+        x_data : array-like
+            X-coordinates for the reference data.
+        y_data : array-like
+            Y-coordinates for the reference data.
+        x2 : array-like
+            X-coordinates for the curve to be interpolated.
+        y2 : array-like
+            Y-coordinates for the curve to be interpolated.
+
+        Returns:
+        float
+            The RMSE value between y_data and the interpolated y2 at x_data points.
+        array
+            The interpolated y2 values at x_data points.
+        """
+        x_data = np.asarray(x_data)
+        y_data = np.asarray(y_data)
+
+        sort_idx_data = np.argsort(x_data)
+        y_data_sorted = y_data[sort_idx_data]
+
+        y2_at_x_data = self._interp_y2_at_x_data(x_data, x2, y2)
+
+        squared_errors = (y_data_sorted - y2_at_x_data) ** 2
+        rmse = np.sqrt(np.mean(squared_errors))
+
+        return rmse, y2_at_x_data
+
+    def nrmse_at_data(self, x_data, y_data, x2, y2):
+        """
+        Calculate Normalized RMSE (NRMSE) between y_data and y2 interpolated at x_data points.
+        NRMSE = RMSE / (y_data_max - y_data_min)
+        Extrapolation is used when x_data points fall outside the x2 range.
+
+        Parameters:
+        x_data : array-like
+            X-coordinates for the reference data.
+        y_data : array-like
+            Y-coordinates for the reference data.
+        x2 : array-like
+            X-coordinates for the curve to be interpolated.
+        y2 : array-like
+            Y-coordinates for the curve to be interpolated.
+
+        Returns:
+        float
+            The NRMSE value. Returns np.inf if y_data is constant (range = 0).
+        array
+            The interpolated y2 values at x_data points.
+        """
+        x_data = np.asarray(x_data)
+        y_data = np.asarray(y_data)
+
+        sort_idx_data = np.argsort(x_data)
+        y_data_sorted = y_data[sort_idx_data]
+
+        y2_at_x_data = self._interp_y2_at_x_data(x_data, x2, y2)
+
+        y_range = np.max(y_data_sorted) - np.min(y_data_sorted)
+        if y_range == 0:
+            return np.inf, y2_at_x_data
+
+        squared_errors = (y_data_sorted - y2_at_x_data) ** 2
+        rmse = np.sqrt(np.mean(squared_errors))
+        nrmse = rmse / y_range
+
+        return nrmse, y2_at_x_data
+
+    def r2_at_data(self, x_data, y_data, x2, y2):
+        """
+        Calculate R^2 (coefficient of determination) between y_data and y2 interpolated at x_data points.
+        R^2 = 1 - (SS_res / SS_tot), where:
+            SS_res = sum of squared residuals = sum((y_data - y2_interp)^2)
+            SS_tot = total sum of squares = sum((y_data - mean(y_data))^2)
+        Extrapolation is used when x_data points fall outside the x2 range.
+
+        Parameters:
+        x_data : array-like
+            X-coordinates for the reference data.
+        y_data : array-like
+            Y-coordinates for the reference data.
+        x2 : array-like
+            X-coordinates for the curve to be interpolated.
+        y2 : array-like
+            Y-coordinates for the curve to be interpolated.
+
+        Returns:
+        float
+            The R^2 value. Returns 0.0 if y_data is constant (SS_tot = 0).
+        array
+            The interpolated y2 values at x_data points.
+        """
+        x_data = np.asarray(x_data)
+        y_data = np.asarray(y_data)
+
+        sort_idx_data = np.argsort(x_data)
+        y_data_sorted = y_data[sort_idx_data]
+
+        y2_at_x_data = self._interp_y2_at_x_data(x_data, x2, y2)
+
+        mean_y_data = np.mean(y_data_sorted)
+        ss_res = np.sum((y_data_sorted - y2_at_x_data) ** 2)
+        ss_tot = np.sum((y_data_sorted - mean_y_data) ** 2)
+
+        if ss_tot == 0:
+            return 0.0, y2_at_x_data
+
+        r2 = 1.0 - (ss_res / ss_tot)
+        return r2, y2_at_x_data
+
+    def fit_function_to_data(
+        self,
+        fit_function: callable,
+        x_data: np.ndarray,
+        y_data: np.ndarray,
+        p0: tuple | None = None,
+        fit_in_log_space: bool = False,
+        bounds: tuple[float, float] = (-np.inf, np.inf),
+    ):
+        if fit_in_log_space:
+            # Define the objective function in log space that works with vectors
+            def log_objective(x: np.ndarray, *params) -> np.ndarray:
+                y_pred = fit_function(x, *params)
+                # Handle potential negative or zero values
+                # Set minimum value to positive number
+                y_pred = np.maximum(y_pred, 1e-10)
+                return np.log(y_pred)
+
+            popt, pcov = opt.curve_fit(
+                log_objective,
+                x_data,
+                np.log(y_data),
+                p0=p0,
+                bounds=bounds,
+                maxfev=10000,
+                ftol=1e-08,
+            )
+
+        else:
+            popt, pcov = opt.curve_fit(
+                fit_function,
+                x_data,
+                y_data,
+                p0=p0,
+                bounds=bounds,
+                # method="lm",
+                method="lm" if bounds == (-np.inf, np.inf) else "trf",
+                maxfev=10000,
+                ftol=1e-08,
+            )
+
+        x_dense = np.logspace(np.log10(np.min(x_data)), np.log10(np.max(x_data)), 100)
+        y_fitted = fit_function(x_dense, *popt)
+
+        return popt, pcov, x_dense, y_fitted
+
+    def rowwise_correlation(self, A, B):
+        # Center the data (subtract row means)
+        A_centered = A - np.mean(A, axis=1, keepdims=True)
+        B_centered = B - np.mean(B, axis=1, keepdims=True)
+
+        # Compute dot products and norms
+        dot_products = np.sum(A_centered * B_centered, axis=1)
+        norm_A = np.sqrt(np.sum(A_centered**2, axis=1))
+        norm_B = np.sqrt(np.sum(B_centered**2, axis=1))
+
+        # Avoid division by zero (handle zero-norm rows)
+        with np.errstate(divide="ignore", invalid="ignore"):
+            correlations = dot_products / (norm_A * norm_B)
+
+        return correlations
