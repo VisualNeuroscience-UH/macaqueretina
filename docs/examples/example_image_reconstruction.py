@@ -3,6 +3,7 @@ Quantitative evaluation of macaque retina simulator
 
 Simulate responses to natural images, build linear reconstruction models from spike data,
 and evaluate model performance by comparing reconstructed images to originals.
+This requires van Hateren image dataset.
 
 Sequence of operations:
 dataset = "train", 3330 images available
@@ -20,13 +21,17 @@ dataset = "test", 834 images available
 
 import os
 import shutil
+import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 # Third-party
 import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
+import seaborn as sns
 import torch
 from scipy.stats import kruskal, mannwhitneyu
 from torchvision.transforms import v2
@@ -41,35 +46,20 @@ start_time = time.time()
 
 mr.load_parameters()
 
-shutil.rmtree(mr.config.path, ignore_errors=True)  # will be created later
-
 mr.config.device = "cuda" if torch.cuda.is_available() else "cpu"
-
-# # Fluid parameters from HPC compute node environment, defined in SLURM job file.
-# dataset = os.environ["DATASET"]  # "train" or "test"
-# n_images = int(os.environ["N_IMAGES"])
-# operation = os.environ["OPERATION"]  # "transform_images", "simulate", "construct_model", or "reconstruct"
-# spatial_model_type = os.environ["SPATIAL_MODEL_TYPE"]  # "DOG" or "VAE"
-# temporal_model_type = os.environ[
-#     "TEMPORAL_MODEL_TYPE"
-# ]  # "fixed", "dynamic" or "subunit"
-# array_idx = int(os.environ["ARRAY_IDX"])
-# array_idx_str = f"{array_idx:02d}"
-# H = W = int(os.environ["HEIGHT_AND_WIDTH"])
 
 # Fluid parameters for workstation run.
 dataset = "test"  # "train" or "test"
 n_images = 834  # 3330 for train, 834 for test
-operation = "show_slurm_arrays"  # "transform_images", "simulate", "construct_model", "reconstruct", "show_model_comparison", "fourier_transform"
+operation = "transform_images"  # "transform_images", "simulate", "construct_model", "reconstruct", "show_model_comparison", "fourier_transform", show_slurm_arrays
 spatial_model_type = "DOG"  # "DOG" or "VAE"
-temporal_model_type = "dynamic"  # "fixed", "dynamic" or "subunit"
+temporal_model_type = "fixed"  # "fixed", "dynamic" or "subunit"
 array_idx_str = "01"
 H = W = 240
 
-# mr.config.experiment = "tmp_260730d"
-mr.config.experiment = "im_reco_vanhateren_240_260730/mod_rec_dynamic_gain_multiplier"
-# mr.config.experiment = "im_reco_vanhateren_240_260730"
-image_rootpath = Path(f"/opt3/images/vanHateren/imc_images_{dataset}")
+image_rootpath = Path(
+    f"/opt3/images/vanHateren/imc_images_{dataset}"
+)  # Change to your path
 # torch.manual_seed(42)
 
 # QA Print captured env vars
@@ -84,11 +74,11 @@ print(f"{H=}, {W=}")
 
 mr.config.retina_parameters.spatial_model_type = spatial_model_type
 mr.config.retina_parameters.temporal_model_type = temporal_model_type
-# mr.config.retina_parameters.ecc_limits_deg = (4.5, 5.5)
-# mr.config.retina_parameters.pol_limits_deg = (-1.5, 1.5)
+mr.config.retina_parameters.ecc_limits_deg = (4.5, 5.5)
+mr.config.retina_parameters.pol_limits_deg = (-1.5, 1.5)
 
-mr.config.retina_parameters.ecc_limits_deg = (3.5, 6.5)
-mr.config.retina_parameters.pol_limits_deg = (-10, 10)
+# mr.config.retina_parameters.ecc_limits_deg = (3.5, 6.5)
+# mr.config.retina_parameters.pol_limits_deg = (-10, 10)
 
 mr.config.external_stimulus_parameters.ext_pix_per_deg = 30
 mr.config.visual_stimulus_parameters.image_height = H
@@ -107,13 +97,12 @@ mr.config.visual_stimulus_parameters.pattern = "natural_image"
 gc_types = ["parasol", "midget"]
 response_types = ["on", "off"]
 
-
 # Update session data.
 mr.config.path = Path(mr.config.model_root_path).joinpath(
     Path(mr.config.project), mr.config.experiment
 )
 
-session_suffix = f"{H}x{W}_{spatial_model_type}_{temporal_model_type}_gain_multiplier"
+session_suffix = f"{H}x{W}_{spatial_model_type}_{temporal_model_type}"
 
 model_filename = f"W_{session_suffix}.npz"
 
@@ -273,7 +262,6 @@ if dataset == "test" and operation == "construct_model":
 if dataset == "test" and operation == "simulate":
     transfer_retina_to_test_folder()
 
-
 match operation:
     case "transform_images":
         if transformed_dir.is_dir():
@@ -323,7 +311,9 @@ match operation:
         S_estimated = reco.estimate_model(W, R_test, S_mean)
         S_estimated_img = reco.reconstruct_images(S_estimated, retina_mask)
 
-        rho = np.corrcoef(S_estimated.flatten(), S_test.flatten())[0, 1]
+        corr = mr.retina_math.rowwise_correlation(S_estimated, S_test)
+        rho = np.nanmean(corr, axis=0)
+
         print(f"Correlation: {rho:.4f} between reconstructed and original images")
 
         mr.data_io.save_data(
@@ -333,6 +323,7 @@ match operation:
                 "S_estimated": S_estimated,
                 "retina_mask": retina_mask,
                 "rho": rho,
+                "R_test": R_test,
             },
             path=mr.config.path,
         )
@@ -340,10 +331,7 @@ match operation:
     case "show_model_comparison":
         spatial_models = ["DOG", "VAE"]
         temporal_models = ["fixed", "dynamic", "subunit"]
-        # image_reconstruction_hpc_240: 115, 83, 5, 11, 20, 107
-        # 6, 35, 83
-        # im_reco_vanhateren_240_260730, array_idx_str (transformed images folder) 01
-        # 23, 273, 204, 211
+
         stimulus_sample = [23, 273, 204, 211]
         n_samples = len(stimulus_sample)
 
@@ -356,7 +344,7 @@ match operation:
         n_models = len(model_combinations)
 
         #############################
-        # Load the correlation values
+        # Load reconstruction data
         #############################
 
         # Get all reconstruction result files matching the session suffix
@@ -365,21 +353,10 @@ match operation:
             session_files = list(
                 mr.config.path.glob(f"reconstruction_results*{this_model}*")
             )
-            reconstruction_files[this_model] = session_files
+            # sorted is critical to get array idx right, glob does not sort
+            reconstruction_files[this_model] = sorted(session_files)
 
         n_files = [len(reconstruction_files[x]) for x in model_combinations]
-        n_iterations = max(n_files)
-        rho_values = np.zeros(
-            (
-                n_iterations,
-                len(reconstruction_files.keys()),
-            )
-        )
-        # Get the correlation values for each reconstruction file
-        for i, this_model in enumerate(model_combinations):
-            for j, file in enumerate(reconstruction_files[this_model]):
-                data = mr.data_io.load_data(filename=file, hush=True)
-                rho_values[j, i] = data["rho"]
 
         ###########################################################
         # Init S_test and S_estimated arrays with the correct shape
@@ -388,20 +365,16 @@ match operation:
         this_array = int(array_idx_str) - 1
 
         # Read one file to get the shape of S_test and S_estimated and S_test_img
-        sample_file = sorted(
-            reconstruction_files[
-                model_combinations[np.where(np.array(n_files) > 0)[0][0]]
-            ]
-        )[this_array]
+        sample_file = reconstruction_files[
+            model_combinations[np.where(np.array(n_files) > 0)[0][0]]
+        ][this_array]
         sample_data = mr.data_io.load_data(filename=sample_file, hush=True)
-
         S_test = sample_data["S_test"][stimulus_sample]
         S_test_img = np.zeros((*S_test.shape[:1], H, W))
 
         S_estimated = sample_data["S_estimated"][stimulus_sample]
         S_estimated_img = np.zeros((*S_estimated.shape[:1], n_models, H, W))
         retina_mask = sample_data["retina_mask"]
-        # for i in range(2):
 
         stimulus_sample_idx = range(n_samples)
 
@@ -414,7 +387,7 @@ match operation:
         for i in range(n_models):
             this_model = model_combinations[i]
             try:
-                file = sorted(reconstruction_files[this_model])[this_array]
+                file = reconstruction_files[this_model][this_array]
                 array_idx = file.stem.rfind("_") + 1
                 this_array_idx_str = file.stem[array_idx:]
                 if this_array_idx_str != array_idx_str:
@@ -423,7 +396,6 @@ match operation:
                     )
 
                 data = mr.data_io.load_data(filename=file, hush=True)
-
                 S_estimated_img[:, i, ...] = reco.reconstruct_images(
                     data["S_estimated"][stimulus_sample], retina_mask
                 )
@@ -431,28 +403,76 @@ match operation:
             except IndexError:
                 print(f"No reconstruction file found for this_model: {this_model}")
 
-        ##########################################
+        # #########################################
         # Analyze and group the correlation values
-        ##########################################
+        # #########################################
+        n_iterations = max(n_files)
+        rho_values = (
+            np.zeros((n_iterations, len(reconstruction_files.keys()), n_images))
+            * np.nan
+        )  # Initialize with NaN to handle missing data
+
+        # Get the correlation values for each reconstruction file
+        for i, this_model in enumerate(model_combinations):
+            for j, file in enumerate(reconstruction_files[this_model]):
+                data = mr.data_io.load_data(filename=file, hush=True)
+                S_test_all = data["S_test"]
+                S_estimated_all = data["S_estimated"]
+                # Compute the correlation for each sample in stimulus_sample
+                this_n_images = S_test_all.shape[0]
+
+                rho_values[j, i, :this_n_images] = mr.retina_math.rowwise_correlation(
+                    S_estimated_all, S_test_all
+                )
 
         # returns array of shape (2, n_models): [lower, upper] for each column
-        cis = mr.retina_math.bootstrap_ci(rho_values)
+        # Reshape rho_values to become (n_iterations * n_images_in_data, n_models) for bootstrap_ci
+        reshaped_rho_values = np.transpose(rho_values, (0, 2, 1)).reshape(-1, 6)
+        cis = mr.retina_math.bootstrap_ci(
+            reshaped_rho_values, n_bootstraps=1000, stat_func=np.nanmean
+        )
 
-        # Spatial test: DOG (columns 0-2) vs VAE (columns 3-5)
-        dog = rho_values[:, :3].flatten()
-        vae = rho_values[:, 3:].flatten()
+        # Prepare data: list of arrays, one per model. After removal of nan values,
+        # arrays are no longer the same length.
+        rho_tmp = [reshaped_rho_values[:, i] for i in range(n_models)]
+        rho_data_nan_free = [
+            model_data[~np.isnan(model_data)] for model_data in rho_tmp
+        ]
+
+        dog = np.concatenate(
+            (
+                np.array(rho_data_nan_free[0]),
+                np.array(rho_data_nan_free[1]),
+                np.array(rho_data_nan_free[2]),
+            )
+        )
+        vae = np.concatenate(
+            (
+                np.array(rho_data_nan_free[3]),
+                np.array(rho_data_nan_free[4]),
+                np.array(rho_data_nan_free[5]),
+            )
+        )
         spatial_stat, spatial_p = mannwhitneyu(dog, vae, alternative="two-sided")
 
         # Temporal test: fixed (cols 0,3), dynamic (cols 1,4), subunit (cols 2,5)
-        fixed = rho_values[:, [0, 3]].flatten()
-        dynamic = rho_values[:, [1, 4]].flatten()
-        subunit = rho_values[:, [2, 5]].flatten()
-        temporal_stat, temporal_p = kruskal(fixed, dynamic, subunit)
+        fixed = np.concatenate(
+            (np.array(rho_data_nan_free[0]), np.array(rho_data_nan_free[3]))
+        )
+        dynamic = np.concatenate(
+            (np.array(rho_data_nan_free[1]), np.array(rho_data_nan_free[4]))
+        )
+        subunit = np.concatenate(
+            (np.array(rho_data_nan_free[2]), np.array(rho_data_nan_free[5]))
+        )
+        temporal_stat, temporal_p = mannwhitneyu(
+            np.array(rho_data_nan_free[2]), np.array(rho_data_nan_free[5])
+        )
 
         ####################
         # Create the figure
         ####################
-        fig = plt.figure(figsize=(16, 18))
+        fig = plt.figure(figsize=(16, 14))
         outer = gridspec.GridSpec(
             2, 2, height_ratios=[1, 2], width_ratios=[1, 6], wspace=0.1, hspace=0.1
         )
@@ -477,45 +497,80 @@ match operation:
             for j in range(n_models)
         ]
 
-        # Make a bar graph of the mean of the correlation values for each model combination. Add SEM error bars to the bar graph.
-        mean_rho_values = rho_values.mean(axis=0)
-        ax01.bar(
-            model_combinations,
-            mean_rho_values,
-            yerr=[mean_rho_values - cis[0, :], cis[1, :] - mean_rho_values],
-            capsize=20,
-            linewidth=1,
-        )
-        ax01.set_ylim(0.3, 1)
-        ax01.set_xlabel("Model Combination")
-        ax01.set_ylabel("Mean Correlation (rho)")
-        ax01.set_title("Mean Correlation between Reconstructed and Original Images")
+        mean_rho_values = np.nanmean(reshaped_rho_values, axis=0)
 
-        # Print the rho values +- 95% ci on top of the bars
+        # Prepare data for Seaborn: long-form DataFrame
+        plot_data = []
+        for i, model in enumerate(model_combinations):
+            for rho_val in rho_data_nan_free[i]:
+                plot_data.append({"model": model, "rho": rho_val})
+        df = pd.DataFrame(plot_data)
+
+        # Create Seaborn violin plot
+        sns.violinplot(
+            data=df,
+            x="model",
+            y="rho",
+            ax=ax01,
+            color="lightgray",
+            inner=None,  # We'll add our own mean/CI markers
+            cut=0,  # Extend density to extremes
+            scale="width",
+        )
+
+        # Add mean markers and 95% CI error bars
+        for i, model in enumerate(model_combinations):
+            ax01.scatter(
+                i,
+                mean_rho_values[i],
+                color="black",
+                s=100,
+                zorder=3,
+                marker="_",
+                label="Mean" if i == 0 else "",
+            )
+
+        # Add text annotations for mean and CI values
         for i, (mean, lower, upper) in enumerate(
             zip(mean_rho_values, cis[0, :], cis[1, :])
         ):
             ax01.text(
                 i,
-                mean + 0.02,
-                f"{mean:.3f}\n({lower:.3f}, {upper:.3f})",
+                mean + 0.1,
+                f"{mean:.3f}\n({lower:.3f}, {upper:.3f})\nn={len(rho_data_nan_free[i])}",
                 ha="center",
                 va="bottom",
                 fontsize=8,
+                zorder=4,
             )
 
-        # Annotate the figure with the p-values and statistics from the statistical tests
+        ax01.set_ylim(-0.2, 1)
+        ax01.set_xlabel("Model Combination")
+        ax01.set_ylabel("Correlation (rho)")
+        ax01.set_title(
+            "Distribution of Correlation between Reconstructed and Original Images"
+        )
+
+        # Rotate x-axis labels for readability
+        plt.setp(ax01.get_xticklabels(), rotation=45, ha="right")
+
+        # Add legend for mean marker
+        ax01.legend(loc="upper right")
+
+        # Annotate the figure with the p-values and statistics
         ax01.text(
             0.5,
             0.95,
             f"Spatial: U = {spatial_stat:.4f}, p = {spatial_p:.4f}, test: Mann-Whitney U",
             transform=ax01.transAxes,
+            ha="center",
         )
         ax01.text(
             0.5,
             0.90,
             f"Temporal: H = {temporal_stat:.4f}, p = {temporal_p:.4f}, test: Kruskal-Wallis",
             transform=ax01.transAxes,
+            ha="center",
         )
 
         # Show test images.
@@ -532,12 +587,31 @@ match operation:
             for j in range(n_models):
                 this_model = model_combinations[j]
                 ax = reco_axes[i * n_models + j]
+                this_S_estimated = S_estimated_img[i, j, ...][retina_mask]
+                this_S_test = S_test_img[i, ...][retina_mask]
+
+                rho = np.corrcoef(this_S_estimated, this_S_test)[0, 1]
+                rho2 = rho_values[this_array, j, stimulus_sample[i]]
+                if not np.isclose(rho, rho2, atol=1e-3):
+                    raise ValueError(
+                        f"Correlation mismatch for sample {stimulus_sample[i]} and model {this_model}: {rho:.4f} vs {rho2:.4f}"
+                    )
 
                 ax.imshow(
                     S_estimated_img[i, j, ...],
                     cmap="gray",
                     vmin=0,
                     vmax=255,
+                )
+                ax.text(
+                    0.05,
+                    0.95,
+                    f"rho = {rho:.3f}",
+                    color="white",
+                    fontsize=8,
+                    ha="left",
+                    va="top",
+                    transform=ax.transAxes,
                 )
                 ax.set_title(this_model)
                 ax.axis("off")
@@ -547,11 +621,11 @@ match operation:
 
         plt.tight_layout()
 
-        mr.viz._figsave(
-            figurename=mr.config.path.joinpath(
-                f"reco_array_{array_idx_str}_samples_{'_'.join(map(str, stimulus_sample))}_tmp.eps"
-            ),
-        )
+        # mr.viz._figsave(
+        #     figurename=mr.config.path.joinpath(
+        #         f"Fig7_reco_array_{array_idx_str}_samples_{'_'.join(map(str, stimulus_sample))}_260827.eps"
+        #     ),
+        # )
 
     case "fourier_transform":
         # 115, 83,  11, 20, 107
@@ -575,10 +649,6 @@ match operation:
             data["S_estimated"], data["retina_mask"]
         )
         retina_mask = data["retina_mask"]
-
-        # # Get a rectangle inside the retina mask. Without this the retina border dominates the mean fourier transform.
-        # min_row, min_col = 81, 40
-        # max_row, max_col = 158, 204
 
         # Get a rectangle inside the retina mask. Without this the retina border dominates the mean fourier transform.
         min_row, min_col = (
@@ -671,39 +741,115 @@ match operation:
         )
         n_files = len(reconstruction_files)
 
-        rho_values = np.zeros(n_files)
+        rho_values = (
+            np.zeros((n_files, n_images)) * np.nan
+        )  # Initialize with NaN to handle missing data
+        has_R_test = np.zeros(n_files)
+        R_values = np.zeros(n_files)
+
         for idx, file in enumerate(reconstruction_files):
             data = mr.data_io.load_data(filename=file, hush=True)
-            rho_values[idx] = data["rho"]
+            S_test_all = data["S_test"]
+            S_estimated_all = data["S_estimated"]
+            this_n_images = S_test_all.shape[0]
 
-        # mr.config.output_folder = Path(str(mr.config.output_folder) + f"_{dataset}")
+            rho_values[idx, :this_n_images] = mr.retina_math.rowwise_correlation(
+                S_estimated_all, S_test_all
+            )
+            if "R_test" in data.keys():
+                # plt.hist(data["R_test"].flatten(),100);plt.show()
+                R_values[idx] = data["R_test"].mean()
+                has_R_test[idx] = 0  # temporarily set to 0 to force recomputation of R
+
         result_paths = sorted(
-            list(mr.config.path.glob(f"hpc/resolution_*{session_suffix}*_{dataset}"))
+            list(mr.config.path.parent.glob(f"resolution_{session_suffix}/*_{dataset}"))
         )
 
-        R_values = np.zeros(n_files)
-        for idx, this_path in enumerate(result_paths):
-            mr.config.output_folder = this_path
-            print(f"Processing {this_path}...")
-            R, _ = reco.get_rates(gc_types, response_types)
-            R_values[idx] = R.mean()
+        def save_R(R, idx):
+            data = mr.data_io.load_data(filename=reconstruction_files[idx], hush=True)
+            data = dict(data)
+            data[f"R_{dataset}"] = R
+            mr.data_io.save_data(
+                filename=reconstruction_files[idx],
+                data=data,
+            )
 
-        # plot rho values and R_values as a function of array index. Put them in the same figure with two y-axes.
+        # --- Parallel version using ThreadPoolExecutor for async disk I/O ---
+        # Use a lock for numpy array access if you want strict thread-safety
+        has_R_test_lock = threading.Lock()
+
+        def process_single_path(this_path, idx):
+            # Check with lock for strict thread-safety
+            with has_R_test_lock:
+                if has_R_test[idx]:
+                    return None
+            print(f"Processing {this_path}...")
+            R, _ = reco.get_rates(gc_types, response_types, this_path)
+            return R  # Return the full array, not the mean
+
+        with ThreadPoolExecutor(max_workers=min(n_files, 5)) as executor:
+            futures = [
+                executor.submit(process_single_path, this_path, idx)
+                for idx, this_path in enumerate(result_paths)
+            ]
+            for idx, future in enumerate(futures):
+                if not has_R_test[idx]:
+                    R = future.result()
+                    if R is not None:  # Only process if not skipped
+                        R_values[idx] = R.mean()
+                        save_R(R, idx)  # Pass the full array R
+
+        mean_rho_values = np.nanmean(rho_values, axis=1)
         fig, ax1 = plt.subplots(figsize=(12, 6))
-        ax1.plot(range(n_files), rho_values, "b-", label="Correlation (rho)")
+
+        sns.violinplot(
+            x=np.repeat(
+                range(n_files), rho_values.shape[1]
+            ),  # Repeat each index for all samples
+            y=rho_values.flatten(),  # Flatten all rho_values
+            ax=ax1,
+            color="lightgray",
+            inner=None,  # No inner markings
+            cut=0,  # Clip the KDE to the range of the data
+            scale="width",
+        )
+
+        # Plot mean correlation line
+        ax1.plot(range(n_files), mean_rho_values, "b-", label="Correlation (rho)")
         ax1.set_xlabel("SLURM Array Index")
         ax1.set_ylabel("Correlation (rho)", color="b")
+        ax1.set_ylim(-0.2, 1)
+
+        # Add gorizontal grid lines for better readability
+        ax1.grid(axis="y", linestyle="--", alpha=0.7)
+
+        # Twin axes for R_values
+        # Divide R_values by epoch duration to get firing rates.
+        firing_rates = R_values / 0.15  # NOTE hard coded
         ax2 = ax1.twinx()
-        ax2.plot(range(n_files), R_values, "r-", label="Mean Response (R)")
+        ax2.plot(range(n_files), firing_rates, "r-", label="Mean Response (R)")
+        # ax2.plot(range(n_files), R_values, "r-", label="Mean Response (R)")
         ax2.set_ylabel("Mean Response (R)", color="r")
+        ax2.set_ylim(5, 30)
+
+        # Title and layout
         plt.title("Correlation and Mean Response vs SLURM Array Index")
         plt.tight_layout()
 
+        # Optional: Add legend for both axes
+        lines1, labels1 = ax1.get_legend_handles_labels()
+        lines2, labels2 = ax2.get_legend_handles_labels()
+        ax1.legend(lines1 + lines2, labels1 + labels2, loc="upper right")
+
+        outpath = Path("/opt3/projects/macaqueretina/experiment_scripts")
+
         mr.viz._figsave(
-            figurename=mr.config.path.joinpath(
-                f"gain_multiplier_rho_R_{spatial_model_type}_{temporal_model_type}.eps"
+            # figurename=None,
+            figurename=outpath.joinpath(
+                f"Fig7_gain_multiplier_rho_R_{spatial_model_type}_{temporal_model_type}_poisson.eps"
             ),
         )
+
 end_time = time.time()
 print(f"Time taken: {end_time - start_time:.2f} seconds")
 
