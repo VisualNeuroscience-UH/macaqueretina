@@ -31,7 +31,7 @@ if [ "$BYPASS_PROMPT" = false ]; then
 fi
 
 # Configuration
-ZIP_URL="https://datacloud.helsinki.fi/index.php/s/NrYCcotR4s7bFHt/download"
+ZIP_URL="https://datacloud.helsinki.fi/public.php/dav/files/o2nXPTYrjPeoySn/?accept=zip"
 ZIP_FILE="vae_statistics.zip"
 TARGET_DIR="./macaqueretina/retina/"
 EXPECTED_SHA256="a658f60066719c2f55a95ca9792186fc0cc213a1e80b0d3344542f6d04b752b5"
