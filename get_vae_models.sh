@@ -34,7 +34,7 @@ fi
 ZIP_URL="https://datacloud.helsinki.fi/public.php/dav/files/o2nXPTYrjPeoySn/?accept=zip"
 ZIP_FILE="vae_statistics.zip"
 TARGET_DIR="./macaqueretina/retina/"
-EXPECTED_SHA256="a658f60066719c2f55a95ca9792186fc0cc213a1e80b0d3344542f6d04b752b5"
+EXPECTED_SHA256="741433ab58582979e1c8e34cb6f111920da9321f80bd30a08eb430c80ee3f99d"
 
 # Step 1: Download the ZIP file
 echo "Downloading $ZIP_URL..."
