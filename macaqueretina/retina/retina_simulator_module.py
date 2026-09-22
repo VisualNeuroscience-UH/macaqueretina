@@ -2874,28 +2874,6 @@ class ConeProduct(NeuralUnits):
 
         return image_after_optics
 
-    # Detached internal legacy functions
-    def _luminance2cone_response(self):
-        """
-        Cone nonlinearity. Equation from Baylor_1987_JPhysiol.
-        """
-
-        # Range
-        response_range = np.ptp([self.cone_sensitivity_min, self.cone_sensitivity_max])
-
-        # Scale. Image should be between 0 and 1
-        image_at_response_scale = self.image * response_range
-        cone_input = image_at_response_scale + self.cone_sensitivity_min
-
-        # Cone nonlinearity
-        cone_response = self.rm * (1 - np.exp(-self.k * cone_input))
-
-        self.cone_response = cone_response
-
-        # Save the cone response to output folder
-        filename = self.config.external_stimulus_parameters["ext_stimulus_file"]
-        self.data_io.save_cone_response_to_hdf5(filename, cone_response)
-
     # Public functions
     def create_signal(self, vs: VisualSignal) -> VisualSignal:
         """
