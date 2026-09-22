@@ -1068,12 +1068,11 @@ class StimulusFactory(VideoClass):
         )
 
         self.frames = self.frames.astype(self.options["dtype"])
-        self.video = self.frames
         self.fps = self.options["fps"]
         self.pix_per_deg = self.options["pix_per_deg"]
         self.baseline_len_tp = frames_baseline_start.shape[0]
 
-        self.video_n_frames = len(self.video)
+        self.video_n_frames = len(self.frames)
         self.video_width = self.frames.shape[2]
         self.video_height = self.frames.shape[1]
         self.video_width_deg = self.video_width / self.pix_per_deg

@@ -95,8 +95,8 @@ def test_make_stimulus_video(
 
     # Assertions
     assert hasattr(
-        stimulus_video, "video"
-    ), "Stimulus video object missing 'video' attribute"
+        stimulus_video, "frames"
+    ), "Stimulus video object missing 'frames' attribute"
     assert hasattr(
         stimulus_video, "fps"
     ), "Stimulus video object missing 'fps' attribute"
@@ -121,19 +121,19 @@ def test_make_stimulus_video(
     assert hasattr(
         stimulus_video, "video_height_deg"
     ), "Stimulus video object missing 'video_height_deg' attribute"
-    assert stimulus_video.video is not None, "Stimulus video is None"
+    assert stimulus_video.frames is not None, "Stimulus frames is None"
     assert (
-        stimulus_video.video.shape[0] == stimulus_video.video_n_frames
+        stimulus_video.frames.shape[0] == stimulus_video.video_n_frames
     ), "Video frame count mismatch"
     assert (
-        stimulus_video.video.shape[1]
+        stimulus_video.frames.shape[1]
         == stimulus_config.visual_stimulus_parameters.image_height
     ), "Video height mismatch"
     assert (
-        stimulus_video.video.shape[2]
+        stimulus_video.frames.shape[2]
         == stimulus_config.visual_stimulus_parameters.image_width
     ), "Video width mismatch"
-    assert stimulus_video.video.dtype == getattr(
+    assert stimulus_video.frames.dtype == getattr(
         np, dtype_name
     ), f"Video dtype is not {dtype_name}"
 
