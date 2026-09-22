@@ -1135,9 +1135,7 @@ class StimulusFactory(VideoClass):
 
         # Now only the stimulus is scaled. The baseline and bg comes from options
         self._scale_intensity()
-        plt.hist(self.frames.flatten(),256)
-        plt.show()
-
+        
         # For natural images, set zero-masked pixels to background value
         if self.options["pattern"] == "natural_image":
             self._set_zero_masked_pixels_to_bg()
