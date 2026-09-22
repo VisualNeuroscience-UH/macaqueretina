@@ -797,7 +797,6 @@ class StimulusPattern:
 
         After this integration, the method updates the raw intensity values based on the new data.
         """
-
         image_file_name = self.config.external_stimulus_parameters["ext_stimulus_file"]
 
         if isinstance(image_file_name, list):
@@ -860,12 +859,14 @@ class StimulusPattern:
         number_of_successive_off_frames = int(off_time * fps)
         n_frames_per_period = number_of_successive_on_frames + number_of_successive_off_frames
         n_frames_per_cycle = n_frames_per_period * n_images
-        n_cycles = self.frames.shape[0] // n_frames_per_cycle
+        n_cycles = np.maximum(self.frames.shape[0] // n_frames_per_cycle, 1) # at least one cycle
 
         for this_cycle in range(n_cycles):
             for this_image in range(n_images):
                 start_frame = this_cycle * n_frames_per_cycle + this_image * n_frames_per_period
                 end_frame = start_frame + number_of_successive_on_frames
+                if end_frame > self.frames.shape[0]:
+                    end_frame = self.frames.shape[0]
                 self.frames[start_frame:end_frame,...] = (
                     self.frames[start_frame:end_frame,...]  * 2 * all_frame_images[this_image]
                 )
@@ -1135,7 +1136,7 @@ class StimulusFactory(VideoClass):
 
         # Now only the stimulus is scaled. The baseline and bg comes from options
         self._scale_intensity()
-        
+
         # For natural images, set zero-masked pixels to background value
         if self.options["pattern"] == "natural_image":
             self._set_zero_masked_pixels_to_bg()
