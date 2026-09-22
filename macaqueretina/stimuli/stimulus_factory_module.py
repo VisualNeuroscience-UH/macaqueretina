@@ -72,6 +72,7 @@ class VideoClass:
         # between 0 and 1, proportion of stimulus-on time
         options["on_proportion"] = 0.5
         options["on_time"] = 0.1  # in seconds
+        options["off_time"] = 0.1  # in seconds
         options["direction"] = "increment"  # or 'decrement'
 
         # Limits, no need to go beyond these
@@ -785,6 +786,92 @@ class StimulusPattern:
         self.frames = self.frames * frame_image
         self._raw_intensity_from_data()
 
+    def iterating_natural_images(self):
+        """
+        Process natural images for use in stimulus patterns.
+
+        This method handles natural images loading an image file based on the provided
+        stimulus metadata. The selected image is then resized to match the frame dimensions.
+        The resized image is integrated with the frames by multiplying it, enabling the
+        creation of a stimulus video.
+
+        After this integration, the method updates the raw intensity values based on the new data.
+        """
+
+        image_file_name = self.config.external_stimulus_parameters["ext_stimulus_file"]
+
+        if isinstance(image_file_name, list):
+            image = self.data_io.load_data(image_file_name[0])
+            n_images = len(image_file_name)
+            all_images = np.zeros((n_images, image.shape[0], image.shape[1]))
+            for i, img_file in enumerate(image_file_name):
+                all_images[i] = self.data_io.load_data(img_file)
+        else:
+            image = self.data_io.load_data(image_file_name)
+            n_images = 1
+            all_images = np.zeros((1, image.shape[0], image.shape[1]))
+            all_images[0] = image
+
+
+        image_pix_per_deg = self.config.external_stimulus_parameters["ext_pix_per_deg"]
+        image_scale_factor = self.options["pix_per_deg"] / image_pix_per_deg
+
+        all_frame_images = np.zeros((n_images, self.frames.shape[1], self.frames.shape[2]))
+
+        for i in range(all_images.shape[0]):
+            image = all_images[i]
+            resized_image = resize(
+                image, None, fx=image_scale_factor, fy=image_scale_factor
+            )
+
+
+            if (
+                resized_image.shape[0] < self.frames.shape[1]
+                or resized_image.shape[1] < self.frames.shape[2]
+            ):
+                # Pad the scaled image to ensure it is large enough for cropping
+                pad_height = max(0, self.frames.shape[1] - resized_image.shape[0])
+                pad_width = max(0, self.frames.shape[2] - resized_image.shape[1])
+                background = self.options["background"] / 255.0
+                frame_image = np.pad(
+                    resized_image,
+                    (
+                        (pad_height // 2, pad_height - pad_height // 2),
+                        (pad_width // 2, pad_width - pad_width // 2),
+                    ),
+                    mode="constant",
+                    constant_values=background,
+                )
+            else:
+                # Crop the scaled image to match the frame dimensions
+                start_y = (resized_image.shape[0] - self.frames.shape[1]) // 2
+                start_x = (resized_image.shape[1] - self.frames.shape[2]) // 2
+                frame_image = resized_image[
+                    start_y : start_y + self.frames.shape[1],
+                    start_x : start_x + self.frames.shape[2],
+                ]
+
+            all_frame_images[i] = frame_image[np.newaxis, :, :]
+
+        fps = self.options["fps"]
+        on_time = self.options["on_time"]
+        number_of_successive_on_frames = int(on_time * fps)
+        off_time = self.options["off_time"]
+        number_of_successive_off_frames = int(off_time * fps)
+        n_frames_per_period = number_of_successive_on_frames + number_of_successive_off_frames
+        n_frames_per_cycle = n_frames_per_period * n_images
+        n_cycles = self.frames.shape[0] // n_frames_per_cycle
+
+        for this_cycle in range(n_cycles):
+            for this_image in range(n_images):
+                start_frame = this_cycle * n_frames_per_cycle + this_image * n_frames_per_period
+                end_frame = start_frame + number_of_successive_on_frames
+                self.frames[start_frame:end_frame,...] = (
+                    self.frames[start_frame:end_frame,...]  * 2 * all_frame_images[this_image]
+                )
+
+        self._raw_intensity_from_data()
+
     def natural_video(self):
         """
         Process natural video for use in stimulus patterns.
@@ -943,8 +1030,8 @@ class StimulusFactory(VideoClass):
         baseline_end_seconds: midgray at the end
         pattern:
             'sine_grating'; 'square_grating'; 'white_gaussian_noise';
-            'natural_image'; 'natural_video'; 'temporal_sine_pattern'; 'temporal_square_pattern';
-            'spatially_uniform_binary_noise'
+            'natural_image'; iterating_natural_images; 'natural_video';
+            'temporal_sine_pattern'; 'temporal_square_pattern'; 'spatially_uniform_binary_noise'
         stimulus_form: 'circular'; 'rectangular'; 'annulus'
         stimulus_position: in degrees, (0,0) is the center.
         stimulus_size: In degrees. Radius for circle and annulus, half-width for rectangle.
@@ -968,6 +1055,9 @@ class StimulusFactory(VideoClass):
         direction: 'increment' or 'decrement'
         stimulus_video_name: name of the stimulus video
 
+        For natural_image and natural_video, additional arguments are:
+        ext_stimulus_file: name of the external stimulus file
+        ext_pix_per_deg: pixels per degree of the external stimulus file
         ------------------------
         Output: saves the stimulus video file to output path if stimulus_video_name is not empty str or None
 
@@ -1045,6 +1135,8 @@ class StimulusFactory(VideoClass):
 
         # Now only the stimulus is scaled. The baseline and bg comes from options
         self._scale_intensity()
+        plt.hist(self.frames.flatten(),256)
+        plt.show()
 
         # For natural images, set zero-masked pixels to background value
         if self.options["pattern"] == "natural_image":

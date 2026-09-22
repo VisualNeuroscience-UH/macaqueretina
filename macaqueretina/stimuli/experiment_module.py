@@ -73,6 +73,10 @@ class RelevantStimulusParameters:
         "on_time",
         "direction",
     ]
+    relevant_stimulus_parameters["iterating_natural_images"] = [
+        "on_time",
+        "off_time",
+    ]
     relevant_stimulus_parameters["annulus"] = [
         "size_inner",
         "size_outer",
@@ -341,7 +345,7 @@ class Experiment(VideoClass):
 
             formatted_values = [f"{v:.2f}" for v in cond_metadata_key[option]]
             print(
-                f"Variable: {option}, values: { ", ".join(map(str, formatted_values))}"
+                f"Variable: {option}, values: { ', '.join(map(str, formatted_values))}"
             )
 
         # Return cond_options -- a dict with all keywords matching stimulus_factory_module.StimulusFactory
