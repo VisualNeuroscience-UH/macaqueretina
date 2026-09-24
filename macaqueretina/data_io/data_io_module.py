@@ -255,12 +255,7 @@ class DataIO:
         elif filename_extension in [".jpg", ".jpeg", ".png"]:
             # The 0-flag calls for grayscale. Comes in as uint8 type
             image = cv2.imread(str(data_fullpath_filename), 0)
-
-            # Normalize image intensity to 0-1, if RGB value
-            if np.ptp(image) > 1:
-                data = np.float32(image / 256)
-            else:
-                data = np.float32(image)  # 16 bit to save space and memory
+            data = np.float32(image / 255.0)  # Convert to float32 and normalize to [0, 1]
         elif filename_extension in [".avi", ".mp4"]:
             data = cv2.VideoCapture(str(data_fullpath_filename))
         elif filename_extension in [".npy"]:

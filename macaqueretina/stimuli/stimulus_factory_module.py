@@ -865,7 +865,7 @@ class StimulusPattern:
         dtype = self.frames.dtype
         self.frames = self.frames.astype(np.float32)
         all_frame_images = np.asarray(all_frame_images, dtype=np.float32)
-        
+
         for this_cycle in range(n_cycles):
             for this_image in range(n_images):
                 start_frame = this_cycle * n_frames_per_cycle + this_image * n_frames_per_period
@@ -882,7 +882,7 @@ class StimulusPattern:
             self.frames = np.clip(self.frames, 0, 255).astype(np.uint8)
         elif dtype == 'float64':
             self.frames = self.frames.astype(np.float64)
-        
+
         self._raw_intensity_from_data()
 
     def natural_video(self):
