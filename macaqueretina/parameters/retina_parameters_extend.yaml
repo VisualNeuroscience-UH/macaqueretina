@@ -34,8 +34,8 @@ retina_parameters_extend:
   # However, if we relate 1/M = (a/k) + (1/k) * E and M = (1/0.077) + (1/(0.082 * E)), we get
   # Andrew James, personal communication: k=1/.082, a=.077/.082
   visual2cortical_params:
-    a: 0.94 # 0.077 / 0.082,  # ~0.94
-    k: 12.2 # 1 / 0.082,  # ~12.2
+    a: 0.94 # 0.077 / 0.082,  # ~0.94 # 0.7 Polimeni
+    k: 12.2 # 1 / 0.082,  # ~12.2 # 15 Polimeni
 
 
   # Compressing cone nonlinearity. Parameters are manually scaled to give dynamic cone ouput.
