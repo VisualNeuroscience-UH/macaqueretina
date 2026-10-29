@@ -3212,10 +3212,30 @@ class BipolarProduct(NeuralUnits):
         bipo_signal_input = subunit_sum.T
 
         ############## Ganglion cell activation computation ######################
-        # Loop over time points. Expand NegScaler(tp) to [NB,NGC]
-        # Multiply neg_scaler_expanded and bipolar_to_gcs_weights
-        # Take dot product of signal input [timepoint] and neg_scaler_expanded[timepoint]
-
+        # Turner_2018_eLife model of the bipolar-to-ganglion cell synapse
+        # nonlinearity, applied timepointwise.
+        #
+        # The linearization scaler neg_scaler = 1 - RI (1: linear synapse,
+        # 0: fully rectifying) is defined at the ganglion cell level,
+        # [n_timepoints, n_gcs]. It is projected onto the bipolar units through
+        # the synaptic weights:
+        #   neg_scaler_bipo = neg_scaler @ bipo_to_gc_weights.T
+        #     -> [n_timepoints, n_bipolars]
+        # The projection SUMS over the ganglion cells sharing each bipolar unit
+        # (Eq. D in the manuscript); it is not a per-(bipolar, ganglion cell)
+        # scaling.
+        #
+        # The bipolar output half-wave rectifies: the positive part of the
+        # bipolar signal passes unchanged, the negative part is scaled:
+        #   phi[t, b] = max(s, 0) + min(s, 0) * neg_scaler_bipo[t, b]
+        #
+        # Ganglion cells then read out the rectified bipolar output:
+        #   gc_input[t, g] = sum_b phi[t, b] * bipo_to_gc_weights[b, g]
+        #
+        # The same operation is applied separately to the center and surround
+        # pathways (with weights bipolar_to_gcs_cen_weights and
+        # bipolar_to_gcs_sur_weights, respectively).
+        
         def _compute_gc_input(bipo_to_gc_weights):
             # Bipolar unit nonlinearity
             neg_scaler_bipo = neg_scaler @ bipo_to_gc_weights.T
