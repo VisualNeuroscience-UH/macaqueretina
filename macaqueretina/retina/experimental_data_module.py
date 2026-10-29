@@ -87,7 +87,7 @@ class ExperimentalData:
         # Pick out the initial guess for rotation of center ellipse
         cen_rot_rad_all = np.zeros(n_spatial_cells)
         for cell_idx in range(n_spatial_cells):
-            cen_rot_rad = float(initial_center_values[0, cell_idx][4])
+            cen_rot_rad = float(np.squeeze(initial_center_values[0, cell_idx][4]))
             if cen_rot_rad < 0:  # For negative angles, turn positive
                 cen_rot_rad_all[cell_idx] = cen_rot_rad + 2 * np.pi
 
