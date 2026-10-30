@@ -2219,7 +2219,7 @@ class ConcreteSimulationBuilder(SimulationBuildInterface):
             if not q_ok: s = "Width"
             if not r_ok and not q_ok: s = "Height and Width"    
             raise ValueError(
-                f"Retina falls outside stimulus. {s} out of bounds."
+                f"Retina crosses the border of the video. {s} out of bounds."
             )
 
         # Perform slicing and arithmetic operations on the first batch
