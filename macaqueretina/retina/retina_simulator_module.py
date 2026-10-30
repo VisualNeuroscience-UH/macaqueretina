@@ -2210,6 +2210,18 @@ class ConcreteSimulationBuilder(SimulationBuildInterface):
         r_batch = r_matrix_tensor[0:batch_size]
         q_batch = q_matrix_tensor[0:batch_size]
 
+        # Test if the retina RFs are within bounds of the simulus video
+        H,W = video_copy_tensor.shape[1:3]
+        r_ok = ((r_batch >= 0) & (r_batch < H)).all().item()
+        q_ok = ((q_batch >= 0) & (q_batch < W)).all().item()
+        if not (r_ok and q_ok):
+            if not r_ok: s = "Height"
+            if not q_ok: s = "Width"
+            if not r_ok and not q_ok: s = "Height and Width"    
+            raise ValueError(
+                f"Retina falls outside stimulus. {s} out of bounds."
+            )
+
         # Perform slicing and arithmetic operations on the first batch
         # print(f"video_copy.shape: {video_copy.shape}")
         stimulus_cropped_batch = video_copy_tensor[
