@@ -222,7 +222,6 @@ class DataIO:
             data_fullpath_filename = self.parse_path(
                 filename, substring=substring, exclude_substring=exclude_substring
             )
-            breakpoint()
         else:
             if isinstance(full_path, str):
                 full_path = Path(full_path)

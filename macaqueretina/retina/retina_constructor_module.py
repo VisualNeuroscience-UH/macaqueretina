@@ -4948,7 +4948,6 @@ class RetinaConstructor(PrintableMixin):
         else:
             print("Retina construction hash does not exist. Building the retina.")
             return False
-
     def _get_density_from(self, filepaths: list[str]) -> tuple[np.ndarray, np.ndarray]:
         """
         Get density data from given filepaths.
