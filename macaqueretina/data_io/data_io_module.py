@@ -152,7 +152,8 @@ class DataIO:
 
         # Check first for direct load in current directory. E.g. for direct ipython testing
         # if isinstance(filename, str) and len(filename > 0):
-        if len(str(filename)) > 0:
+
+        if filename is not None and len(filename) > 0:
             data_fullpath_filename = self._check_candidate_file(Path("./"), filename)
 
             # Next check direct load in output path, stimulus_path, input path and project path in this order
@@ -221,6 +222,7 @@ class DataIO:
             data_fullpath_filename = self.parse_path(
                 filename, substring=substring, exclude_substring=exclude_substring
             )
+            breakpoint()
         else:
             if isinstance(full_path, str):
                 full_path = Path(full_path)
