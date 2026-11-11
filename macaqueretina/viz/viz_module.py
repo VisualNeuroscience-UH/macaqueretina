@@ -93,7 +93,7 @@ class Viz:
 
     def _figsave(
         self,
-        figurename: str | Path = "",
+        figurename: str | Path | None = None,
         myformat: str = "png",
         subfolderpath: str | Path = "",
         suffix: str = "",
@@ -110,7 +110,7 @@ class Viz:
         figurename : str | Path, optional
             The name of the figure file. If it's specified with an extension, the figure
             is saved with that name. If it's a relative path, the figure is saved to that path.
-            If not provided, the figure is saved as 'MyFigure.png'. Defaults to "".
+            If not provided, the figure is not saved. Deafaults to None.
         myformat : str, optional
             The format of the figure (e.g., 'png', 'jpg', 'eps', etc.).
             If provided with a leading ".", the "." is removed. Defaults to 'png'.
@@ -129,6 +129,10 @@ class Viz:
         and `subfolderpath` is overridden.
         - A configuration file with the same base name plus '_conf.py' suffix is saved alongside the figure.
         """
+
+        if figurename is None:
+            return
+
         plt.rcParams["svg.fonttype"] = "none"  # Fonts as fonts and not as paths
         plt.rcParams["ps.fonttype"] = "type3"  # Fonts as fonts and not as paths
 
