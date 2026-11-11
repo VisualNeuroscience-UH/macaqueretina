@@ -211,7 +211,7 @@ class ImageReconstruction:
                 file_list_sorted = sorted(file_list, key=lambda x: x.name)
                 spike_data[gc_type][response_type] = []
                 for filename in file_list_sorted[:n_images]:
-                    data_dict = self.data_io.load_data(filename, hush=True)
+                    data_dict = self.data_io.load_data(full_path=filename, hush=True)
                     spike_data[gc_type][response_type].append(data_dict)
         return spike_data
 
