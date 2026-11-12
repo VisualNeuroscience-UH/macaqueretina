@@ -3762,6 +3762,10 @@ class Viz:
             If True, the x-axis is shown in logarithmic scale.
         ylog : bool
             If True, the y-axis is shown in logarithmic scale.
+        xlim : list(float, float)
+            If set, fix x axis limits
+        ylim : list(float, float)
+            If set, fix y axis limits
         savefigname : str or None
             If not empty, the figure is saved to this filename."""
 
