@@ -3743,6 +3743,8 @@ class Viz:
         exp_variables: list[str],
         xlog: bool = False,
         ylog: bool = False,
+        xlim: list(float, float) | None = None,
+        ylim: list(float, float) | None = None,
         savefigname: str | None = None,
     ):
         """
@@ -3814,6 +3816,10 @@ class Viz:
                 ax.set_xscale("log")
             if ylog:
                 ax.set_yscale("log")
+            if xlim is not None:
+                ax.set_xlim(xlim)
+            if ylim is not None:
+                ax.set_xlim(ylim)
 
         else:
             for i, cond in enumerate(exp_variables):
@@ -3834,6 +3840,10 @@ class Viz:
                     ax[i].set_xscale("log")
                 if ylog:
                     ax[i].set_yscale("log")
+                if xlim is not None:
+                    ax[i].set_xlim(xlim)
+                if ylim is not None:
+                    ax[i].set_xlim(ylim)
 
         if savefigname:
             self._figsave(figurename=savefigname)
