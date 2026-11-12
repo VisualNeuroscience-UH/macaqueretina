@@ -5365,6 +5365,7 @@ class RetinaConstructor(PrintableMixin):
         spatial_rfs_attrs = [
             "img",
             "img_mask",
+            "img_mask_sur",
             "X_grid_cen_mm",
             "Y_grid_cen_mm",
             "um_per_pix",
