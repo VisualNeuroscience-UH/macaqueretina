@@ -56,6 +56,12 @@ class RelevantStimulusParameters:
         "orientation",
         "phase_shift",
     ]
+    relevant_stimulus_parameters["square_contrast_reversing_grating"] = [
+        "temporal_frequency",
+        "spatial_frequency",
+        "orientation",
+        "phase_shift",
+    ]
     relevant_stimulus_parameters["temporal_sine_pattern"] = [
         "temporal_frequency",
         "phase_shift",

@@ -75,12 +75,6 @@ class VideoClass:
         options["off_time"] = 0.1  # in seconds
         options["direction"] = "increment"  # or 'decrement'
 
-        # Limits, no need to go beyond these
-        options["min_spatial_frequency"] = 0.0625  # cycles per degree
-        options["max_spatial_frequency"] = 16.0  # cycles per degree
-        options["min_temporal_frequency"] = 0.5  # cycles per second, Hz
-        options["max_temporal_frequency"] = 32.0  # cycles per second, Hz.
-
         options["background"] = 128  # Background grey value
 
         # Get resolution
@@ -231,6 +225,25 @@ class VideoClass:
                 relative_bar_coords = (
                     bar_coords
                     + ((temporal_shift + phase_shift_in_pixels) / (cycle_width_pix / 2))
+                ) % 2
+                frames[frame] = np.where(relative_bar_coords < 1, 1, -1)
+
+        elif grating_type == "square_contrast_reversing":
+            cycle_width_pix = self.options["pix_per_deg"] / spatial_frequency
+
+            phase_shift_in_pixels = cycle_width_pix * (
+                self.options["phase_shift"] / (2 * np.pi)
+            )
+
+            # X coords refects luminance values, % 2 < 1 is white, % 2 > 1 is black
+            bar_coords = np.arange(image_width_diameter) / (cycle_width_pix / 2)
+            # Apply the phase shift in the square grating calculation
+            for frame in range(n_frames):
+                reverse_contrast = (temporal_frequency * frame / fps) // 1.0
+                relative_bar_coords = (
+                    bar_coords
+                    + ((phase_shift_in_pixels) / (cycle_width_pix / 2))
+                    + reverse_contrast
                 ) % 2
                 frames[frame] = np.where(relative_bar_coords < 1, 1, -1)
 
@@ -551,6 +564,13 @@ class StimulusPattern:
         """
 
         self._prepare_grating(grating_type="square")
+
+    def square_contrast_reversing_grating(self):
+        """
+        Create a square wave grating stimulus pattern.
+        """
+
+        self._prepare_grating(grating_type="square_contrast_reversing")
 
     def white_gaussian_noise(self):
         """
