@@ -3823,7 +3823,7 @@ class Viz:
             if xlim is not None:
                 ax.set_xlim(xlim)
             if ylim is not None:
-                ax.set_xlim(ylim)
+                ax.set_ylim(ylim)
 
         else:
             for i, cond in enumerate(exp_variables):
@@ -3847,7 +3847,7 @@ class Viz:
                 if xlim is not None:
                     ax[i].set_xlim(xlim)
                 if ylim is not None:
-                    ax[i].set_xlim(ylim)
+                    ax[i].set_ylim(ylim)
 
         if savefigname:
             self._figsave(figurename=savefigname)
